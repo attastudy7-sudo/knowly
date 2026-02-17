@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="search-container">
+    <!-- Enhanced Search Header -->
+    <div class="search-header">
+        <div class="header-content">
+            <div class="header-icon-wrapper">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="header-text">
+                <h1>Search</h1>
+                {% if query %}
+                <p class="search-subtitle">
+                    <i class="fas fa-filter"></i>
+                    Results for "<strong>{{ query }}</strong>"
+                </p>
+                {% else %}
+                <p class="search-subtitle">
+                    <i class="fas fa-sparkles"></i>
+                    Discover users and posts
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Search Input Bar -->
+    <div class="search-input-section">
+        <form action="{{ url_for('users.search') }}" method="get" class="main-search-form">
+            <div class="search-input-wrapper">
+                <input 
+                    type="text" 
+                    name="q" 
+                    value="{{ query }}" 
+                    placeholder="Search for users, posts, or documents..." 
+                    class="main-search-input"
+                    autofocus>
+                <button type="submit" class="search-submit-btn">
+                    <i class="fas fa-search" style="font-size: 1.2rem;"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Users Results -->
+    {% if users %}
+    <div class="search-section">
+        <h2><i class="fas fa-users"></i> Users ({{ users|length }})</h2>
+        <div class="users-grid">
+            {% for user in users %}
+            <div class="user-card">
+                <a href="{{ url_for('users.profile', username=user.username) }}">
+                    <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_picture) }}" 
+                         alt="{{ user.username }}"
+                         class="user-avatar"
+                         onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
+                </a>
+                <div class="user-info">
+                    <a href="{{ url_for('users.profile', username=user.username) }}" class="user-name">
+                        {{ user.full_name or user.username }}
+                    </a>
+                    <p class="user-username">@{{ user.username }}</p>
+                    {% if user.bio %}
+                        <p class="user-bio">{{ user.bio[:100] }}{% if user.bio|length > 100 %}...{% endif %}</p>
+                    {% endif %}
+                    <div class="user-stats">
+                        <span><i class="fas fa-book"></i> {{ user.posts.count() }} posts</span>
+                        <span><i class="fas fa-users"></i> {{ user.followers_count() }} followers</span>
+                    </div>
+                </div>
+                {% if current_user.is_authenticated and current_user.id != user.id %}
+                <div class="user-actions">
+                    {% if current_user.is_following(user) %}
+                    <form action="{{ url_for('users.unfollow', username=user.username) }}" method="post">
+                        <button type="submit" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-user-minus"></i> Unfollow
+                        </button>
+                    </form>
+                    {% else %}
+                    <form action="{{ url_for('users.follow', username=user.username) }}" method="post">
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="fas fa-user-plus"></i> Follow
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Posts Results -->
+    {% if posts %}
+    <div class="search-section">
+        <h2><i class="fas fa-book"></i> Posts ({{ posts|length }})</h2>
+        <div class="posts-grid">
+            {% for post in posts %}
+            <div class="post-card">
+                <div class="post-header">
+                    <a href="{{ url_for('users.profile', username=post.author.username) }}" class="post-author">
+                        <img src="{{ url_for('static', filename='uploads/profiles/' + post.author.profile_picture) }}" 
+                             alt="{{ post.author.username }}" 
+                             class="author-avatar"
+                             onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
+                        <div class="author-info">
+                            <span class="author-name">{{ post.author.full_name or post.author.username }}</span>
+                            <span class="post-time">{{ post.created_at.strftime('%b %d, %Y') }}</span>
+                        </div>
+                    </a>
+                </div>
+                
+                <div class="post-content">
+                    <a href="{{ url_for('posts.view', post_id=post.id) }}" class="post-link">
+                        <h3 class="post-title">{{ post.title }}</h3>
+                        {% if post.description %}
+                            <p class="post-description">{{ post.description[:150] }}{% if post.description|length > 150 %}...{% endif %}</p>
+                        {% endif %}
+                    </a>
+                    
+                    {% if post.has_document and post.document %}
+                    <div class="document-badge">
+                        <i class="fas fa-file-{{ post.document.file_type }}"></i>
+                        <span>{{ post.document.original_filename }}</span>
+                        {% if post.document.is_paid %}
+                            <span class="price-tag">${{ post.document.price }}</span>
+                        {% else %}
+                            <span class="free-tag">Free</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="post-actions">
+                    <span class="action-btn">
+                        <i class="fas fa-heart"></i>
+                        <span>{{ post.like_count() }}</span>
+                    </span>
+                    <span class="action-btn">
+                        <i class="fas fa-comment"></i>
+                        <span>{{ post.comment_count() }}</span>
+                    </span>
+                    {% if post.has_document and post.document %}
+                    <span class="action-btn">
+                        <i class="fas fa-download"></i>
+                        <span>{{ post.document.download_count }}</span>
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- No Results -->
+    {% if query and not users and not posts %}
+    <div class="empty-state">
+        <i class="fas fa-search"></i>
+        <h2>No results found</h2>
+        <p>Try searching with different keywords</p>
+    </div>
+    {% endif %}
+    
+    <!-- Initial State (No search performed) -->
+    {% if not query %}
+    <div class="empty-state">
+        <i class="fas fa-search"></i>
+        <h2>Start Searching</h2>
+        <p>Enter a keyword above to search for users or posts</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Search Container */
+.search-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-lg) var(--spacing-md);
+}
+
+/* Enhanced Search Header - Matches Feed Header */
+.search-header {
+    margin-bottom: 2rem;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+    border-radius: 20px;
+    border: 1px solid rgba(102, 126, 234, 0.15);
+}
+
+.header-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    background: #667eea;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.header-text h1 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.search-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.search-subtitle i {
+    color: #667eea;
+}
+
+.search-subtitle strong {
+    color: var(--text-primary);
+}
+
+/* === SEARCH INPUT SECTION (CLEAN VERSION) === */
+.search-input-section {
+    padding: 0 0 1.5rem 0;
+    margin-bottom: var(--spacing-xl);
+}
+
+/* Center form */
+.main-search-form {
+    width: 100%;
+    max-width: 750px;
+    margin: 0 auto;
+}
+
+/* Search wrapper */
+.search-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: 2px solid var(--border);
+    padding: 0.4rem;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+/* Focus effect */
+.search-input-wrapper:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+/* Icon */
+.search-icon {
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-left: 1rem;
+}
+
+/* Input */
+.main-search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.main-search-input:focus {
+    outline: none;
+}
+
+.main-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Button */
+.search-submit-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.6rem 0.7rem;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-submit-btn:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .search-container {
+        padding: 1rem;
+    }
+
+    .header-content {
+        padding: 1.25rem;
+        border-radius: 16px;
+        gap: 1rem;
+    }
+
+    .header-icon-wrapper {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+
+    .header-text h1 {
+        font-size: 1.375rem;
+    }
+
+    .search-subtitle {
+        font-size: 0.875rem;
+    }
+
+    .search-input-section {
+        padding: 0 0 1rem 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-content {
+        padding: 1rem;
+    }
+
+    .header-icon-wrapper {
+        width: 45px;
+        height: 45px;
+        font-size: 1.375rem;
+    }
+
+    .header-text h1 {
+        font-size: 1.25rem;
+    }
+}
+</style>
+{% endblock %}

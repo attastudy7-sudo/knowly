@@ -1,0 +1,546 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="create-container">
+    <div class="create-card">
+        <div class="create-header">
+            <div class="header-icon">
+                <i class="fas fa-plus-circle"></i>
+            </div>
+            <h1>Create New Post</h1>
+            <p>Share your knowledge with the community</p>
+        </div>
+        
+        <form method="post" enctype="multipart/form-data" class="create-form" novalidate>
+            {{ form.hidden_tag() }}
+            
+            <div class="form-group">
+                {{ form.title.label }}
+                {{ form.title(class="form-control", placeholder="Give your post a descriptive title") }}
+                {% if form.title.errors %}
+                    <span class="error">{{ form.title.errors[0] }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.description.label }}
+                {{ form.description(class="form-control textarea", rows=5, placeholder="Describe what you're sharing (optional)") }}
+                {% if form.description.errors %}
+                    <span class="error">{{ form.description.errors[0] }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.subject.label }}
+                {{ form.subject(class="form-control") }}
+                {% if form.subject.errors %}
+                    <span class="error">{{ form.subject.errors[0] }}</span>
+                {% endif %}
+                <small class="form-hint">Categorize your post for better discovery</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="document">
+                    <i class="fas fa-file-upload"></i> Upload Document (Optional)
+                </label>
+                <div class="file-upload-container">
+                    {{ form.document(class="file-input", id="document", onchange="updateFileName(this)") }}
+                    <label for="document" class="file-label">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <span id="file-name" class="file-name-text">Choose a file</span>
+                        <span class="file-types">PDF, DOCX, PPTX, TXT</span>
+                    </label>
+                </div>
+                {% if form.document.errors %}
+                    <span class="error">{{ form.document.errors[0] }}</span>
+                {% endif %}
+                <small class="form-hint"><i class="fas fa-info-circle"></i> Max file size: 16 MB</small>
+            </div>
+            
+            <div class="payment-section">
+                <div class="payment-header">
+                    <i class="fas fa-sparkles"></i>
+                    <h3>Payment Options</h3>
+                    <span class="coming-soon-badge">Coming Soon</span>
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    {{ form.is_paid() }}
+                    {{ form.is_paid.label }}
+                </div>
+                
+                <div class="form-group" id="price-group" style="display: none;">
+                    {{ form.price.label }}
+                    <div class="price-input-wrapper">
+                        <span class="currency-symbol">$</span>
+                        {{ form.price(class="form-control price-input", placeholder="0.00", disabled=true) }}
+                    </div>
+                    <small class="form-hint">Payment integration coming soon!</small>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                    <span>Cancel</span>
+                </a>
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.create-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.create-card {
+    background: var(--bg-card);
+    border-radius: 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+    padding: var(--spacing-xl);
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle gradient overlay */
+.create-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+    background-size: 200% 100%;
+    animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.create-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.header-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 1rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    animation: float-icon 3s ease-in-out infinite;
+}
+
+@keyframes float-icon {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+}
+
+.create-header h1 {
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+    font-size: 2rem;
+    font-weight: 800;
+    word-wrap: break-word;
+}
+
+.create-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.create-form {
+    width: 100%;
+}
+
+.form-group {
+    margin-bottom: 1.75rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: var(--bg-main);
+    color: var(--text-primary);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    background: var(--bg-card);
+}
+
+.form-control.textarea {
+    resize: vertical;
+    min-height: 140px;
+    font-family: inherit;
+}
+
+.form-hint {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.form-hint i {
+    margin-right: 0.25rem;
+    color: #667eea;
+}
+
+/* File Upload Styling */
+.file-upload-container {
+    position: relative;
+}
+
+.file-input {
+    position: absolute;
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    z-index: -1;
+}
+
+.file-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.file-label:hover {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    transform: translateY(-2px);
+}
+
+.upload-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.upload-icon i {
+    color: white;
+}
+
+
+.file-name-text {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.file-types {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Payment Section */
+.payment-section {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+    padding: 1.75rem;
+    border-radius: 16px;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.payment-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.payment-header i {
+    color: #f093fb;
+    font-size: 1.25rem;
+}
+
+.payment-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.coming-soon-badge {
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    color: white;
+    padding: 0.375rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.checkbox-group label {
+    margin: 0;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.price-input-wrapper {
+    position: relative;
+}
+
+.currency-symbol {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-size: 1.125rem;
+}
+
+.price-input {
+    padding-left: 2.5rem !important;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2.5rem;
+}
+
+.form-actions .btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: var(--bg-main);
+    color: var(--text-secondary);
+    border: 2px solid var(--border);
+    text-decoration: none;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--text-secondary);
+}
+
+.error {
+    display: block;
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .create-container {
+        padding: 1.5rem 1rem;
+    }
+    
+    .create-card {
+        padding: 2rem 1.5rem;
+        border-radius: 20px;
+    }
+    
+    .header-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.75rem;
+    }
+    
+    .create-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .create-header p {
+        font-size: 0.9rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-control {
+        padding: 0.875rem 1rem;
+        font-size: 1rem;
+        border-radius: 12px;
+    }
+    
+    .file-label {
+        padding: 1.75rem 1rem;
+    }
+    
+    .upload-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+    
+    .payment-section {
+        padding: 1.5rem;
+        border-radius: 14px;
+    }
+    
+    .payment-header h3 {
+        font-size: 1rem;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+        margin-top: 2rem;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .create-container {
+        padding: 1rem 0.75rem;
+    }
+    
+    .create-card {
+        padding: 1.5rem 1rem;
+    }
+    
+    .create-header {
+        margin-bottom: 2rem;
+    }
+    
+    .header-icon {
+        width: 55px;
+        height: 55px;
+        font-size: 1.5rem;
+    }
+    
+    .create-header h1 {
+        font-size: 1.375rem;
+    }
+    
+    .file-label {
+        padding: 1.5rem 0.75rem;
+    }
+    
+    .file-name-text {
+        font-size: 0.9rem;
+    }
+    
+    .file-types {
+        font-size: 0.8rem;
+    }
+}
+</style>
+
+<script>
+function updateFileName(input) {
+    const fileNameSpan = document.getElementById('file-name');
+    const fileTypesSpan = document.querySelector('.file-types');
+    
+    if (input.files && input.files[0]) {
+        const fileName = input.files[0].name;
+        fileNameSpan.textContent = fileName;
+        fileTypesSpan.style.display = 'none';
+    } else {
+        fileNameSpan.textContent = 'Choose a file';
+        fileTypesSpan.style.display = 'block';
+    }
+}
+
+// Show/hide price input based on is_paid checkbox
+const isPaidCheckbox = document.getElementById('is_paid');
+if (isPaidCheckbox) {
+    isPaidCheckbox.addEventListener('change', function() {
+        const priceGroup = document.getElementById('price-group');
+        priceGroup.style.display = this.checked ? 'block' : 'none';
+    });
+}
+</script>
+{% endblock %}

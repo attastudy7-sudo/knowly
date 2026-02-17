@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1><i class="fas fa-file-alt"></i> Manage Posts</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+    
+    <!-- Filters -->
+    <div class="filters-bar">
+        <form action="{{ url_for('admin.posts') }}" method="get">
+            <div class="filters-group">
+                <input type="text" name="search" value="{{ search }}" 
+                       placeholder="Search posts..." class="form-control">
+                
+                <select name="subject" class="form-control">
+                    <option value="">All Subjects</option>
+                    {% for subject in subjects %}
+                        <option value="{{ subject.id }}" {% if subject_filter == subject.id %}selected{% endif %}>
+                            {{ subject.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+                
+                {% if search or subject_filter %}
+                <a href="{{ url_for('admin.posts') }}" class="btn btn-secondary">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    
+    <!-- Posts Table -->
+    {% if posts.items %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Post</th>
+                    <th>Author</th>
+                    <th>Subject</th>
+                    <th>Created</th>
+                    <th>Engagement</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for post in posts.items %}
+                <tr>
+                    <td>
+                        <div class="post-cell">
+                            {% if post.has_document %}
+                                <i class="fas fa-file-pdf doc-icon"></i>
+                            {% else %}
+                                <i class="fas fa-sticky-note doc-icon"></i>
+                            {% endif %}
+                            <div>
+                                <strong>{{ post.title[:50] }}{% if post.title|length > 50 %}...{% endif %}</strong>
+                                {% if post.description %}
+                                    <small>{{ post.description[:80] }}{% if post.description|length > 80 %}...{% endif %}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('users.profile', username=post.author.username) }}">
+                            {{ post.author.username }}
+                        </a>
+                    </td>
+                    <td>
+                        {% if post.subject %}
+                           <span class="subject-badge"style="
+                                color: {{ post.subject.color }};
+                                background: {{ post.subject.color }}15;
+                                border-color: {{ post.subject.color }}40;">
+
+                                <i class="fas fa-{{ post.subject.icon }}"></i>
+                                {{ post.subject.name }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted">None</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ post.created_at.strftime('%b %d, %Y') }}</td>
+                    <td>
+                        <div class="engagement-stats">
+                            <span title="Likes"><i class="fas fa-heart"></i> {{ post.like_count() }}</span>
+                            <span title="Comments"><i class="fas fa-comment"></i> {{ post.comment_count() }}</span>
+                            {% if post.document %}
+                                <span title="Downloads"><i class="fas fa-download"></i> {{ post.document.download_count }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="actions-cell">
+                        <a href="{{ url_for('posts.view', post_id=post.id) }}" 
+                           class="btn btn-sm btn-secondary" title="View Post">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        
+                        <form action="{{ url_for('admin.delete_post', post_id=post.id) }}" 
+                              method="post" style="display: inline;"
+                              onsubmit="return confirm('Delete this post? This cannot be undone!');">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete Post">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if posts.has_prev or posts.has_next %}
+    <div class="pagination">
+        {% if posts.has_prev %}
+            <a href="{{ url_for('admin.posts', page=posts.prev_num, search=search, subject=subject_filter) }}" class="page-btn">
+                <i class="fas fa-chevron-left"></i> Previous
+            </a>
+        {% endif %}
+        
+        <span class="page-info">Page {{ posts.page }} of {{ posts.pages }}</span>
+        
+        {% if posts.has_next %}
+            <a href="{{ url_for('admin.posts', page=posts.next_num, search=search, subject=subject_filter) }}" class="page-btn">
+                Next <i class="fas fa-chevron-right"></i>
+            </a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <h2>No posts found</h2>
+        {% if search or subject_filter %}
+            <p>No posts match your filters.</p>
+            <a href="{{ url_for('admin.posts') }}" class="btn btn-primary">Clear Filters</a>
+        {% else %}
+            <p>No posts in the system yet.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.filters-bar {
+    background: var(--bg-card);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    margin-bottom: var(--spacing-xl);
+}
+
+.filters-group {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filters-group .form-control {
+    flex: 1;
+    min-width: 200px;
+}
+
+.post-cell {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    max-width: 400px;
+}
+
+.doc-icon {
+    font-size: 1.25rem;
+    color: var(--primary);
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+}
+
+.post-cell div {
+    display: flex;
+    flex-direction: column;
+}
+
+.post-cell small {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+}
+
+.subject-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.engagement-stats {
+    display: flex;
+    gap: var(--spacing-md);
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.engagement-stats span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .filters-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filters-group .form-control {
+        width: 100%;
+    }
+    
+    .post-cell {
+        max-width: 200px;
+    }
+    
+    .engagement-stats {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+}
+</style>
+{% endblock %}

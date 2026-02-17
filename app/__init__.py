@@ -1,0 +1,67 @@
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
+from config import Config
+
+# Initialize extensions
+# These are created here but initialized later in create_app()
+db = SQLAlchemy()
+login_manager = LoginManager()
+
+
+def create_app(config_class=Config):
+    """
+    Application Factory Pattern
+    Creates and configures the Flask application instance.
+    
+    This pattern makes testing easier and allows multiple instances.
+    """
+    app = Flask(__name__)
+    app.config.from_object(config_class)
+    
+    # Initialize extensions with app
+    db.init_app(app)
+    login_manager.init_app(app)
+    
+    # Configure login manager
+    login_manager.login_view = 'auth.login'  # Redirect here if not logged in
+    login_manager.login_message = 'Please log in to access this page.'
+    login_manager.login_message_category = 'info'
+    
+    # Register blueprints (modular routes)
+    from app.auth import bp as auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    
+    from app.posts import bp as posts_bp
+    app.register_blueprint(posts_bp, url_prefix='/posts')
+    
+    from app.users import bp as users_bp
+    app.register_blueprint(users_bp, url_prefix='/users')
+    
+    from app.payments import bp as payments_bp
+    app.register_blueprint(payments_bp, url_prefix='/payments')
+    
+    from app.admin import bp as admin_bp
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    
+    # Main routes (home page, etc.)
+    from app import routes
+    app.register_blueprint(routes.bp)
+    
+    # Create database tables if they don't exist
+    with app.app_context():
+        try:
+            # Only create if tables don't exist
+            db.create_all()
+        except Exception as e:
+            print(f"Database already initialized: {e}")    
+        return app
+
+
+# Import models so SQLAlchemy knows about them
+from app import models
+from app.models import Subject
+
+# In __init__.py
+import logging
+logging.basicConfig(level=logging.INFO)

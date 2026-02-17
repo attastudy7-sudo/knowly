@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="about-container">
+    <div class="about-card" style="background: var(--bg-card); padding: var(--spacing-2xl); border-radius: var(--radius-lg); border: 1px solid var(--border); max-width: 800px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: var(--spacing-2xl);">
+            <i class="fas fa-graduation-cap" style="font-size: 4rem; color: var(--primary); margin-bottom: var(--spacing-md);"></i>
+            <h1>About EduShare</h1>
+            <p style="color: var(--text-secondary); font-size: 1.125rem;">Empowering students through knowledge sharing</p>
+        </div>
+        
+        <section style="margin-bottom: var(--spacing-xl);">
+            <h2 style="color: var(--primary); margin-bottom: var(--spacing-md);">
+                <i class="fas fa-lightbulb"></i> Our Mission
+            </h2>
+            <p style="line-height: 1.8; color: var(--text-secondary);">
+                EduShare is a modern educational social media platform designed to help students share knowledge, 
+                collaborate on learning materials, and build a supportive academic community. We believe that 
+                education is better when it's shared.
+            </p>
+        </section>
+        
+        <section style="margin-bottom: var(--spacing-xl);">
+            <h2 style="color: var(--primary); margin-bottom: var(--spacing-md);">
+                <i class="fas fa-star"></i> Features
+            </h2>
+            <div style="display: grid; gap: var(--spacing-md);">
+                <div style="display: flex; gap: var(--spacing-md); align-items: start;">
+                    <i class="fas fa-file-upload" style="color: var(--primary); font-size: 1.5rem; margin-top: 0.25rem;"></i>
+                    <div>
+                        <h3 style="margin-bottom: var(--spacing-xs);">Share Documents</h3>
+                        <p style="color: var(--text-secondary);">Upload and share educational materials including PDFs, Word documents, and presentations.</p>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: var(--spacing-md); align-items: start;">
+                    <i class="fas fa-users" style="color: var(--primary); font-size: 1.5rem; margin-top: 0.25rem;"></i>
+                    <div>
+                        <h3 style="margin-bottom: var(--spacing-xs);">Connect with Peers</h3>
+                        <p style="color: var(--text-secondary);">Follow other students, engage with their content, and build your learning network.</p>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: var(--spacing-md); align-items: start;">
+                    <i class="fas fa-comments" style="color: var(--primary); font-size: 1.5rem; margin-top: 0.25rem;"></i>
+                    <div>
+                        <h3 style="margin-bottom: var(--spacing-xs);">Engage & Discuss</h3>
+                        <p style="color: var(--text-secondary);">Like, comment, and discuss educational content with the community.</p>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: var(--spacing-md); align-items: start;">
+                    <i class="fas fa-mobile-alt" style="color: var(--primary); font-size: 1.5rem; margin-top: 0.25rem;"></i>
+                    <div>
+                        <h3 style="margin-bottom: var(--spacing-xs);">Mobile-First</h3>
+                        <p style="color: var(--text-secondary);">Optimized for mobile devices with a clean, responsive design.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section style="margin-bottom: var(--spacing-xl);">
+            <h2 style="color: var(--primary); margin-bottom: var(--spacing-md);">
+                <i class="fas fa-shield-alt"></i> Privacy & Security
+            </h2>
+            <p style="line-height: 1.8; color: var(--text-secondary);">
+                We take your privacy seriously. All passwords are securely hashed, and your personal information 
+                is protected. We use industry-standard security practices to keep your data safe.
+            </p>
+        </section>
+        
+        <section style="background: var(--bg-hover); padding: var(--spacing-lg); border-radius: var(--radius-md); text-align: center;">
+            <h2 style="margin-bottom: var(--spacing-md);">Get Started Today!</h2>
+            <p style="color: var(--text-secondary); margin-bottom: var(--spacing-lg);">
+                Join our community of students sharing knowledge and helping each other succeed.
+            </p>
+            {% if not current_user.is_authenticated %}
+            <div style="display: flex; gap: var(--spacing-md); justify-content: center; flex-wrap: wrap;">
+                <a href="{{ url_for('auth.signup') }}" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Sign Up
+                </a>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">
+                    <i class="fas fa-sign-in-alt"></i> Log In
+                </a>
+            </div>
+            {% else %}
+            <a href="{{ url_for('posts.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Your First Post
+            </a>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}

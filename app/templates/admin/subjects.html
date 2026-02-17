@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1><i class="fas fa-cog"></i> Manage Subjects/Categories</h1>
+        <a href="{{ url_for('admin.create_subject') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Subject
+        </a>
+    </div>
+    
+    {% if subjects %}
+    <div class="subjects-table-container">
+        <table class="subjects-table">
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Subject</th>
+                    <th>Description</th>
+                    <th>Posts</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subject in subjects %}
+                <tr class="{% if not subject.is_active %}inactive{% endif %}">
+                    <td>{{ subject.order }}</td>
+                    <td>
+                        <div class="subject-info">
+                            <i class="fas fa-{{ subject.icon }}" style="color: {{ subject.color }};"></i>
+                            <strong>{{ subject.name }}</strong>
+                        </div>
+                    </td>
+                    <td class="description-cell">{{ subject.description or '-' }}</td>
+                    <td>
+                        <span class="badge">{{ subject.post_count }} posts</span>
+                    </td>
+                    <td>
+                        <form action="{{ url_for('admin.toggle_subject', subject_id=subject.id) }}" method="post" style="display: inline;">
+                            <button type="submit" class="btn-toggle {% if subject.is_active %}active{% endif %}">
+                                {% if subject.is_active %}
+                                    <i class="fas fa-check-circle"></i> Active
+                                {% else %}
+                                    <i class="fas fa-times-circle"></i> Inactive
+                                {% endif %}
+                            </button>
+                        </form>
+                    </td>
+                    <td class="actions-cell">
+                        <a href="{{ url_for('admin.edit_subject', subject_id=subject.id) }}" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <form action="{{ url_for('admin.delete_subject', subject_id=subject.id) }}" method="post" 
+                              style="display: inline;"
+                              onsubmit="return confirm('Delete {{ subject.name }}? This will unlink all posts from this subject.');">
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-folder-open"></i>
+        <h2>No subjects yet</h2>
+        <p>Create your first subject to start organizing posts.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.admin-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.subjects-table-container {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    overflow-x: auto;
+}
+
+.subjects-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.subjects-table thead {
+    background: var(--bg-hover);
+}
+
+.subjects-table th {
+    padding: var(--spacing-md);
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border);
+}
+
+.subjects-table td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.subjects-table tr.inactive {
+    opacity: 0.6;
+}
+
+.subject-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.subject-info i {
+    font-size: 1.25rem;
+}
+
+.description-cell {
+    max-width: 300px;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem var(--spacing-sm);
+    background: var(--bg-hover);
+    border-radius: var(--radius-sm);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.btn-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    padding: 0.25rem var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.8125rem;
+    transition: all var(--transition-fast);
+}
+
+.btn-toggle.active {
+    background: var(--success);
+    color: white;
+    border-color: var(--success);
+}
+
+.btn-toggle:not(.active) {
+    color: var(--text-muted);
+}
+
+.actions-cell {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .admin-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .subjects-table {
+        font-size: 0.875rem;
+    }
+    
+    .subjects-table th,
+    .subjects-table td {
+        padding: var(--spacing-sm);
+    }
+    
+    .description-cell {
+        display: none;
+    }
+}
+</style>
+{% endblock %}

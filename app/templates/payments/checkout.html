@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="create-container">
+    <div class="create-card">
+        <div class="create-header">
+            <h1><i class="fas fa-shopping-cart"></i> Checkout</h1>
+            <p>Payment integration coming soon</p>
+        </div>
+        
+        <div class="document-section" style="margin-bottom: var(--spacing-xl);">
+            <div class="document-info">
+                <i class="fas fa-file-{{ document.file_type }} file-icon"></i>
+                <div class="document-details">
+                    <h3>{{ document.original_filename }}</h3>
+                    <p>{{ document.post.title }}</p>
+                </div>
+                <span class="price-badge">${{ document.price }}</span>
+            </div>
+        </div>
+        
+        <div class="payment-placeholder">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <h3>Payment Integration - Coming Soon!</h3>
+                    <p>This feature is under development. Soon you'll be able to purchase documents using:</p>
+                    <ul style="margin-top: var(--spacing-md); padding-left: var(--spacing-lg);">
+                        <li><strong>Stripe</strong> - For international payments</li>
+                        <li><strong>Paystack</strong> - For African payments</li>
+                    </ul>
+                    <p style="margin-top: var(--spacing-md);">
+                        For now, all documents are free to download!
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{{ url_for('posts.view', post_id=document.post.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Post
+            </a>
+            <a href="{{ url_for('posts.download_document', document_id=document.id) }}" class="btn btn-primary">
+                <i class="fas fa-download"></i> Download for Free (Demo)
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.alert {
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.alert-info {
+    background: #dbeafe;
+    border: 1px solid #3b82f6;
+    color: #1e40af;
+}
+
+.alert i {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.alert h3 {
+    margin-bottom: var(--spacing-sm);
+}
+
+.alert ul {
+    list-style: disc;
+    color: #1e40af;
+}
+
+.alert li {
+    margin-bottom: var(--spacing-xs);
+}
+</style>
+{% endblock %}

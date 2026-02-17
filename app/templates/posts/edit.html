@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="create-container">
+    <div class="create-card">
+        <div class="create-header">
+            <h1><i class="fas fa-edit"></i> Edit Post</h1>
+            <p>Update your post details</p>
+        </div>
+        
+        <form method="post" enctype="multipart/form-data" class="create-form" novalidate>
+            {{ form.hidden_tag() }}
+            
+            <div class="form-group">
+                {{ form.title.label }}
+                {{ form.title(class="form-control") }}
+                {% if form.title.errors %}
+                    <span class="error">{{ form.title.errors[0] }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.description.label }}
+                {{ form.description(class="form-control textarea", rows=5) }}
+                {% if form.description.errors %}
+                    <span class="error">{{ form.description.errors[0] }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.subject.label }}
+                {{ form.subject(class="form-control") }}
+                {% if form.subject.errors %}
+                    <span class="error">{{ form.subject.errors[0] }}</span>
+                {% endif %}
+                <small class="form-hint">Categorize your post for better discovery</small>
+            </div>
+            
+            {% if post.has_document and post.document %}
+            <div class="current-document">
+                <h3>Current Document</h3>
+                <p><i class="fas fa-file-{{ post.document.file_type }}"></i> {{ post.document.original_filename }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="form-group">
+                <label for="document">
+                    <i class="fas fa-file-upload"></i> Replace Document (Optional)
+                </label>
+                <div class="file-upload-container">
+                    {{ form.document(class="file-input", id="document", onchange="updateFileName(this)") }}
+                    <label for="document" class="file-label">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span id="file-name">Choose a new file to replace</span>
+                    </label>
+                </div>
+                {% if form.document.errors %}
+                    <span class="error">{{ form.document.errors[0] }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="form-actions">
+                <a href="{{ url_for('posts.view', post_id=post.id) }}" class="btn btn-secondary">Cancel</a>
+                {{ form.submit(value="Update Post", class="btn btn-primary") }}
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.create-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--spacing-lg) var(--spacing-md);
+}
+
+.create-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-xl);
+    width: 100%;
+}
+
+.create-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.create-header h1 {
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+    font-size: 1.75rem;
+    word-wrap: break-word;
+}
+
+.create-header p {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+}
+
+.create-form {
+    width: 100%;
+}
+
+.current-document {
+    background: var(--bg-hover);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+    border: 1px solid var(--border);
+}
+
+.current-document h3 {
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+}
+
+.current-document p {
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin: 0;
+    word-break: break-word;
+}
+
+.form-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+}
+
+.form-actions .btn {
+    flex: 1;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .create-container {
+        padding: var(--spacing-sm);
+    }
+    
+    .create-card {
+        padding: var(--spacing-md);
+        border-radius: var(--radius-md);
+    }
+    
+    .create-header h1 {
+        font-size: 1.375rem;
+    }
+    
+    .create-header h1 i {
+        display: block;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .create-header p {
+        font-size: 0.875rem;
+    }
+    
+    .current-document {
+        padding: var(--spacing-sm);
+    }
+    
+    .current-document p {
+        flex-direction: column;
+        align-items: flex-start;
+        font-size: 0.875rem;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    .create-container {
+        padding: var(--spacing-xs);
+    }
+    
+    .create-card {
+        padding: var(--spacing-sm);
+    }
+    
+    .create-header {
+        margin-bottom: var(--spacing-md);
+        padding-bottom: var(--spacing-md);
+    }
+    
+    .file-label {
+        padding: var(--spacing-md);
+    }
+    
+    .file-label span {
+        font-size: 0.8125rem;
+    }
+}
+</style>
+
+<script>
+function updateFileName(input) {
+    const fileName = input.files[0]?.name || 'Choose a new file to replace';
+    document.getElementById('file-name').textContent = fileName;
+}
+</script>
+{% endblock %}
