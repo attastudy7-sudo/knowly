@@ -47,12 +47,27 @@ class Config:
     DATABASE_URL = os.environ.get("DATABASE_URL")
 
     if DATABASE_URL:
-        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+        # Handle different database URL formats
+        if DATABASE_URL.startswith('postgresql://'):
+            # PostgreSQL (Neon, Supabase, Railway, etc.)
+            SQLALCHEMY_DATABASE_URI = DATABASE_URL
+        elif DATABASE_URL.startswith('mysql://'):
+            # MySQL/PlanetScale - convert to use pymysql driver
+            SQLALCHEMY_DATABASE_URI = DATABASE_URL.replace('mysql://', 'mysql+pymysql://')
+        elif DATABASE_URL.startswith('https://'):
+            # Turso with https - convert to sqlite+libsql://
+            SQLALCHEMY_DATABASE_URI = DATABASE_URL.replace('https://', 'sqlite+libsql://')
+        elif DATABASE_URL.startswith('libsql://'):
+            # Turso with libsql - add sqlite+ prefix
+            SQLALCHEMY_DATABASE_URI = DATABASE_URL.replace('libsql://', 'sqlite+libsql://')
+        else:
+            # Use as-is for other formats
+            SQLALCHEMY_DATABASE_URI = DATABASE_URL
 
         print("\n" + "="*70)
         print("🚀 USING REMOTE DATABASE")
         print("="*70)
-        print("☁️  Connected to Turso")
+        print("☁️  Connected to Cloud Database")
         print("="*70 + "\n")
 
     else:
@@ -80,7 +95,7 @@ class Config:
     # ============================================================================
     
     UPLOAD_FOLDER = os.path.join(basedir, 'app/static/uploads')
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB max file size
+    MAX_CONTENT_LENGTH =  5* 1024 * 1024  # 16 MB max file size
     
     # Allowed file extensions for security
     ALLOWED_DOCUMENT_EXTENSIONS = {'pdf', 'docx', 'pptx', 'txt', 'doc', 'ppt'}

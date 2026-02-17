@@ -83,6 +83,17 @@
                 </div>
             </div>
             
+            <div class="copyright-warning">
+    <i class="fas fa-exclamation-circle"></i>
+    <span>
+        <strong>No copyrighted material.</strong>
+        Only upload your own personal notes, personal quizzes, AI-generated notes,
+        explanations, or quizzes that other students may find helpful.
+        Copyrighted textbooks, lecture slides, past exam papers, or any
+        third-party protected content will be <strong>taken down immediately.</strong>
+    </span>
+</div>
+
             <div class="form-actions">
                 <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
                     <i class="fas fa-times"></i>
@@ -151,6 +162,32 @@
     color: white;
     box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
     animation: float-icon 3s ease-in-out infinite;
+}
+
+.copyright-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    background: #fff1f1;
+    border: 1px solid #fca5a5;
+    border-left: 3px solid #ef4444;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    color: #b91c1c;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.copyright-warning i {
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+    font-size: 0.9rem;
+    color: #ef4444;
+}
+
+.copyright-warning strong {
+    color: #991b1b;
 }
 
 @keyframes float-icon {
