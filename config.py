@@ -56,19 +56,24 @@ class Config:
         print("="*70 + "\n")
 
     else:
+        # Local development fallback
         SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'edushare_dev.db')
-        print("\n⚠️  Using local SQLite: edushare_dev.db\n")
+        
+        if IS_WINDOWS:
+            print("\n" + "="*70)
+            print("🪟 WINDOWS DEVELOPMENT MODE")
+            print("="*70)
+            print("📁 Using local SQLite: edushare_dev.db")
+            print("="*70 + "\n")
+        else:
+            print("\n⚠️  Using local SQLite: edushare_dev.db\n")
 
-
-        print("\n" + "="*70)
-        print("🪟 WINDOWS DEVELOPMENT MODE")
-        print("="*70)
-        print("📁 Using local SQLite: edushare_dev.db")
-        print("="*70 + "\n")
-
-        # Default fallback (Linux/mac local dev)
-        SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'edushare_dev.db')
-        print("\n⚠️  Using local SQLite: edushare_dev.db\n")
+    # SQLAlchemy settings
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+    }
 
     # ============================================================================
     # File Upload Settings
