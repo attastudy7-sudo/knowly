@@ -46,19 +46,19 @@ class Config:
 
     DATABASE_URL = os.environ.get("DATABASE_URL")
 
-    if IS_RENDER and DATABASE_URL:
-        # Production (Render)
+    if DATABASE_URL:
         SQLALCHEMY_DATABASE_URI = DATABASE_URL
 
         print("\n" + "="*70)
-        print("🚀 PRODUCTION MODE (Render)")
+        print("🚀 USING REMOTE DATABASE")
         print("="*70)
-        print("☁️  Using Turso database")
+        print("☁️  Connected to Turso")
         print("="*70 + "\n")
 
-    elif IS_WINDOWS and IS_DEVELOPMENT:
-        # Windows development
+    else:
         SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'edushare_dev.db')
+        print("\n⚠️  Using local SQLite: edushare_dev.db\n")
+
 
         print("\n" + "="*70)
         print("🪟 WINDOWS DEVELOPMENT MODE")
@@ -66,7 +66,6 @@ class Config:
         print("📁 Using local SQLite: edushare_dev.db")
         print("="*70 + "\n")
 
-    else:
         # Default fallback (Linux/mac local dev)
         SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'edushare_dev.db')
         print("\n⚠️  Using local SQLite: edushare_dev.db\n")
