@@ -91,16 +91,23 @@ class Config:
     }
 
     # ============================================================================
+    # Cloudinary Configuration
+    # ============================================================================
+
+    CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME')
+    CLOUDINARY_API_KEY = os.environ.get('CLOUDINARY_API_KEY')
+    CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET')
+
+    # ============================================================================
     # File Upload Settings
     # ============================================================================
-    
-    UPLOAD_FOLDER = os.path.join(basedir, 'app/static/uploads')
-    MAX_CONTENT_LENGTH =  5* 1024 * 1024  # 16 MB max file size
-    
+
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5 MB max file size
+
     # Allowed file extensions for security
     ALLOWED_DOCUMENT_EXTENSIONS = {'pdf', 'docx', 'pptx', 'txt', 'doc', 'ppt'}
     ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-    
+
     # ============================================================================
     # Pagination Settings
     # ============================================================================

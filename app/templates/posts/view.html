@@ -471,7 +471,11 @@
     font-size: 1rem;
     font-weight: 700;
     color: var(--text-primary);
-    word-wrap: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;  /* ← add this, h3 needs to be block not inline for ellipsis to work */
 }
 
 .document-meta {
@@ -1162,6 +1166,28 @@
     
     .post-title {
         font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 768px) {
+    /* ... your existing mobile styles ... */
+    
+    .document-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    /* ADD these two: */
+    .document-info {
+        width: 100%;
+        min-width: 0;
+    }
+    
+    .document-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
     }
 }
 </style>

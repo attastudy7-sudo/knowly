@@ -28,11 +28,10 @@
             <div class="profile-picture-section">
                 <div class="current-avatar-wrapper">
                     <div class="avatar-container">
-                        <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_picture) }}" 
+                        <img src="{{ current_user.profile_picture_url }}" 
                              alt="{{ current_user.username }}"
                              class="current-avatar"
-                             id="avatar-preview"
-                             onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
+                             id="avatar-preview">
                         <div class="avatar-overlay">
                             <i class="fas fa-camera"></i>
                         </div>
@@ -480,7 +479,7 @@ function updateFileName(input) {
     const fileName = input.files[0]?.name || 'Choose new picture';
     document.getElementById('file-name').textContent = fileName;
     
-    // Preview image
+    // Preview image locally before upload
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -497,8 +496,6 @@ const bioCount = document.getElementById("bio-count");
 if (bioInput && bioCount) {
     bioInput.addEventListener("input", function() {
         bioCount.textContent = this.value.length;
-        
-        // Visual feedback when approaching limit
         if (this.value.length > 450) {
             bioCount.style.color = '#ef4444';
         } else {

@@ -4,25 +4,23 @@
 
 {% block content %}
 <div class="profile-container">
+
     <!-- Profile Header -->
     <div class="profile-header">
+
+        <!-- Cover + Avatar + Name -->
         <div class="profile-cover">
-            <!-- Profile Avatar positioned to overlap cover and info sections -->
-            <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_picture) }}" 
+            <img src="{{ user.profile_picture_url }}" 
                 alt="{{ user.username }}" 
-                class="profile-avatar"
-                onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
-            <!-- Name in the colored section -->
+                class="profile-avatar">
             <h1 class="profile-name">{{ user.full_name or user.username }}</h1>
         </div>
+
+        <!-- Username only -->
         <div class="profile-info">
-            <!-- Username in the white section -->
             <p class="profile-username">@{{ user.username }}</p>
-            {% if user.bio %}
-                <p class="profile-bio">{{ user.bio }}</p>
-            {% endif %}
         </div>
-        
+
         <!-- Stats -->
         <div class="profile-stats">
             <div class="stat">
@@ -42,7 +40,29 @@
                 </a>
             </div>
         </div>
-        
+
+        <!-- Bio — its own dedicated section with label -->
+        <div class="profile-bio-wrapper">
+            <div class="bio-section-label">
+                <i class="fas fa-user-circle"></i>
+                <span>About</span>
+            </div>
+            <div class="profile-bio-section">
+                {% if user.bio %}
+                    <p class="profile-bio">{{ user.bio }}</p>
+                {% else %}
+                    <p class="profile-bio-empty">
+                        {% if current_user.is_authenticated and current_user.id == user.id %}
+                            <i class="fas fa-pen"></i>
+                            <a href="{{ url_for('users.edit_profile') }}">Add a bio to tell people about yourself</a>
+                        {% else %}
+                            <i class="fas fa-user"></i> This user hasn't added a bio yet.
+                        {% endif %}
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="profile-actions">
             {% if current_user.is_authenticated %}
@@ -74,11 +94,11 @@
                 </a>
             {% endif %}
         </div>
+
     </div>
-    
+
     <!-- Posts Section -->
     <div class="profile-posts">
-        <!-- Enhanced Posts Header -->
         <div class="posts-header">
             <div class="header-content">
                 <div class="header-icon-wrapper">
@@ -97,7 +117,7 @@
                 </div>
             </div>
         </div>
-        
+
         {% if posts.items %}
         <div class="posts-grid">
             {% for post in posts.items %}
@@ -107,7 +127,7 @@
                             <span class="post-time">{{ post.created_at.strftime('%b %d, %Y') }}</span>
                         </div>
                     </div>
-                    
+
                     <div class="post-content">
                         <a href="{{ url_for('posts.view', post_id=post.id) }}" class="post-link">
                             <h3 class="post-title">{{ post.title }}</h3>
@@ -115,7 +135,7 @@
                                 <p class="post-description">{{ post.description[:150] }}{% if post.description|length > 150 %}...{% endif %}</p>
                             {% endif %}
                         </a>
-                        
+
                         {% if post.has_document and post.document %}
                         <div class="document-badge">
                             <i class="fas fa-file-{{ post.document.file_type }}"></i>
@@ -128,7 +148,7 @@
                         </div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="post-actions">
                         <span class="action-btn">
                             <i class="fas fa-heart"></i>
@@ -148,8 +168,7 @@
                 </div>
             {% endfor %}
         </div>
-        
-        <!-- Pagination -->
+
         {% if posts.has_prev or posts.has_next %}
         <div class="pagination">
             {% if posts.has_prev %}
@@ -157,9 +176,7 @@
                     <i class="fas fa-chevron-left"></i> Previous
                 </a>
             {% endif %}
-            
             <span class="page-info">Page {{ posts.page }} of {{ posts.pages }}</span>
-            
             {% if posts.has_next %}
                 <a href="{{ url_for('users.profile', username=user.username, page=posts.next_num) }}" class="page-btn">
                     Next <i class="fas fa-chevron-right"></i>
@@ -167,7 +184,7 @@
             {% endif %}
         </div>
         {% endif %}
-        
+
         {% else %}
         <div class="empty-state">
             <div class="empty-icon">
@@ -178,56 +195,16 @@
         </div>
         {% endif %}
     </div>
+
 </div>
 
 <style>
-/* Enhanced Search Container */
-
-.search-form {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.search-icon {
-    position: absolute;
-    left: 1.25rem;
-    color: var(--text-secondary);
-    pointer-events: none;
-}
-
-.search-input {
-    flex: 1;
-    padding: 1rem 1.25rem 1rem 3rem;
-    border: 2px solid var(--border);
-    border-radius: 50px;
-    font-size: 1rem;
-    background: var(--bg-card);
-    color: var(--text-primary);
-    transition: all 0.3s ease;
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.search-btn {
-    position: absolute;
-    right: 0.375rem;
-    width: 44px;
-    height: 44px;
-    background: #667eea;
-    border: none;
-    border-radius: 50%;
-    color: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+/* Search (base.html compatibility) */
+.search-form { position: relative; display: flex; align-items: center; }
+.search-icon { position: absolute; left: 1.25rem; color: var(--text-secondary); pointer-events: none; }
+.search-input { flex: 1; padding: 1rem 1.25rem 1rem 3rem; border: 2px solid var(--border); border-radius: 50px; font-size: 1rem; background: var(--bg-card); color: var(--text-primary); transition: all 0.3s ease; }
+.search-input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+.search-btn { position: absolute; right: 0.375rem; width: 44px; height: 44px; background: #667eea; border: none; border-radius: 50%; color: white; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; }
 
 /* Profile Container */
 .profile-container {
@@ -236,7 +213,7 @@
     padding: var(--spacing-lg) var(--spacing-md);
 }
 
-/* Profile Header Redesign */
+/* Profile Card */
 .profile-header {
     background: var(--bg-card);
     border-radius: var(--radius-lg);
@@ -245,6 +222,7 @@
     margin-bottom: var(--spacing-2xl);
 }
 
+/* Cover */
 .profile-cover {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     height: 200px;
@@ -275,25 +253,19 @@
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* Username row */
 .profile-info {
-    padding: var(--spacing-xl);
+    padding: 1.25rem var(--spacing-xl) 0;
     text-align: center;
 }
 
 .profile-username {
     color: var(--text-muted);
     font-size: 1.125rem;
-    margin: 0 0 var(--spacing-md) 0;
+    margin: 0;
 }
 
-.profile-bio {
-    color: var(--text-secondary);
-    max-width: 600px;
-    margin: 0 auto;
-    line-height: 1.6;
-}
-
-/* Profile Stats */
+/* Stats */
 .profile-stats {
     display: flex;
     justify-content: center;
@@ -301,37 +273,81 @@
     padding: var(--spacing-lg) var(--spacing-xl);
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
+    margin-top: 1rem;
 }
 
-.stat {
-    text-align: center;
+.stat { text-align: center; }
+.stat a { text-decoration: none; color: inherit; transition: all 0.3s ease; }
+.stat a:hover { color: var(--primary); }
+.stat-value { display: block; font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
+.stat-label { display: block; font-size: 0.875rem; color: var(--text-muted); margin-top: var(--spacing-xs); }
+
+/* ── Bio — fully own section ── */
+.profile-bio-wrapper {
+    padding: 1.5rem var(--spacing-xl);
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(102, 126, 234, 0.025) 0%, transparent 100%);
 }
 
-.stat a {
-    text-decoration: none;
-    color: inherit;
-    transition: all 0.3s ease;
+.bio-section-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
 }
 
-.stat a:hover {
-    color: var(--primary);
+.bio-section-label i {
+    font-size: 0.8rem;
+    color: #667eea;
 }
 
-.stat-value {
-    display: block;
-    font-size: 1.5rem;
+.bio-section-label span {
+    font-size: 0.72rem;
     font-weight: 700;
-    color: var(--text-primary);
-}
-
-.stat-label {
-    display: block;
-    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
     color: var(--text-muted);
-    margin-top: var(--spacing-xs);
 }
 
-/* Profile Actions */
+.profile-bio-section {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.06), rgba(118, 75, 162, 0.06));
+    border: 1px solid rgba(102, 126, 234, 0.15);
+    border-left: 3px solid #667eea;
+    border-radius: 10px;
+}
+
+.profile-bio {
+    color: var(--text-secondary);
+    line-height: 1.75;
+    font-size: 0.975rem;
+    margin: 0;
+    font-style: italic;
+}
+
+.profile-bio-empty {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.profile-bio-empty i { color: #a0aec0; }
+
+.profile-bio-empty a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.profile-bio-empty a:hover { text-decoration: underline; }
+
+/* Action Buttons */
 .profile-actions {
     padding: var(--spacing-xl);
     display: flex;
@@ -352,38 +368,14 @@
     transition: all 0.3s ease;
 }
 
-.btn-primary {
-    background: var(--primary);
-    color: white;
-}
-
-.btn-primary:hover {
-    background: var(--primary-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-
-.btn-secondary {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-}
-
-.btn-secondary:hover {
-    background: var(--bg-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+.btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--bg-hover); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
 
 /* Posts Section */
-.profile-posts {
-    margin-bottom: var(--spacing-2xl);
-}
-
-/* Enhanced Posts Header - Matches Feed Header */
-.posts-header {
-    margin-bottom: 2rem;
-}
+.profile-posts { margin-bottom: var(--spacing-2xl); }
+.posts-header { margin-bottom: 2rem; }
 
 .posts-header .header-content {
     display: flex;
@@ -408,27 +400,11 @@
     flex-shrink: 0;
 }
 
-.posts-header .header-text h2 {
-    margin: 0 0 0.25rem 0;
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
+.posts-header .header-text h2 { margin: 0 0 0.25rem 0; font-size: 1.75rem; font-weight: 600; color: var(--text-primary); }
+.posts-subtitle { display: flex; align-items: center; gap: 0.5rem; margin: 0; color: var(--text-secondary); font-size: 0.95rem; }
+.posts-subtitle i { color: #667eea; }
 
-.posts-subtitle {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-}
-
-.posts-subtitle i {
-    color: #667eea;
-}
-
-/* Enhanced Empty State */
+/* Empty State */
 .empty-state {
     text-align: center;
     padding: 4rem 2rem;
@@ -437,121 +413,37 @@
     margin: 2rem 0;
 }
 
-.empty-icon {
-    width: 200px;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 2rem;
-}
+.empty-icon { width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; }
+.empty-icon i { font-size: 8rem; color: rgb(180, 180, 180); }
+.empty-state h3 { font-size: 1.75rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.75rem; }
+.empty-state p { font-size: 1.125rem; color: var(--text-secondary); margin: 0; }
 
-.empty-icon i {
-    font-size: 8rem;
-    color: rgb(180, 180, 180);
-}
-
-.empty-state h3 {
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 0.75rem;
-}
-
-.empty-state p {
-    font-size: 1.125rem;
-    color: var(--text-secondary);
-    margin: 0;
-}
-
-/* Responsive Design */
+/* Responsive */
 @media (max-width: 768px) {
-    .profile-container {
-        padding: 1rem;
-    }
-
-    .profile-cover {
-        height: 160px;
-    }
-    
-    .profile-avatar {
-        width: 100px;
-        height: 100px;
-    }
-    
-    .profile-name {
-        font-size: 1.5rem;
-    }
-    
-    .profile-stats {
-        gap: var(--spacing-lg);
-    }
-    
-    .stat-value {
-        font-size: 1.25rem;
-    }
-    
-    .profile-actions {
-        flex-direction: column;
-    }
-    
-    .btn {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .posts-header .header-content {
-        padding: 1.25rem;
-        border-radius: 16px;
-        gap: 1rem;
-    }
-
-    .posts-header .header-icon-wrapper {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-    }
-
-    .posts-header .header-text h2 {
-        font-size: 1.375rem;
-    }
-
-    .posts-subtitle {
-        font-size: 0.875rem;
-    }
-
-    .empty-icon {
-        width: 150px;
-        height: 150px;
-    }
-
-    .empty-icon i {
-        font-size: 6rem;
-    }
-
-    .empty-state h3 {
-        font-size: 1.375rem;
-    }
-
-    .empty-state p {
-        font-size: 1rem;
-    }
+    .profile-container { padding: 1rem; }
+    .profile-cover { height: 160px; }
+    .profile-avatar { width: 100px; height: 100px; }
+    .profile-name { font-size: 1.5rem; }
+    .profile-stats { gap: var(--spacing-lg); }
+    .stat-value { font-size: 1.25rem; }
+    .profile-bio-wrapper { padding: 1.25rem var(--spacing-md); }
+    .profile-bio-section { padding: 1rem 1.25rem; }
+    .profile-actions { flex-direction: column; }
+    .btn { width: 100%; justify-content: center; }
+    .posts-header .header-content { padding: 1.25rem; border-radius: 16px; gap: 1rem; }
+    .posts-header .header-icon-wrapper { width: 50px; height: 50px; font-size: 1.5rem; }
+    .posts-header .header-text h2 { font-size: 1.375rem; }
+    .posts-subtitle { font-size: 0.875rem; }
+    .empty-icon { width: 150px; height: 150px; }
+    .empty-icon i { font-size: 6rem; }
+    .empty-state h3 { font-size: 1.375rem; }
+    .empty-state p { font-size: 1rem; }
 }
 
 @media (max-width: 480px) {
-    .posts-header .header-content {
-        padding: 1rem;
-    }
-
-    .posts-header .header-icon-wrapper {
-        width: 45px;
-        height: 45px;
-        font-size: 1.375rem;
-    }
-
-    .posts-header .header-text h2 {
-        font-size: 1.25rem;
-    }
+    .posts-header .header-content { padding: 1rem; }
+    .posts-header .header-icon-wrapper { width: 45px; height: 45px; font-size: 1.375rem; }
+    .posts-header .header-text h2 { font-size: 1.25rem; }
 }
 </style>
 {% endblock %}

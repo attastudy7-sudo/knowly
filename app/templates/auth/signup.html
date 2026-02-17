@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - EduShare</title>
+    <title>Sign Up - eDuShare</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -23,7 +23,7 @@
         <div class="hero-content">
             <div class="brand-logo-large"><i class="fas fa-graduation-cap"></i></div>
             <h1 class="hero-title">
-                Join <span class="gradient-text-animated"><i class="fas fa-graduation-cap"></i>EduShare</span> Today
+                Join <span class="gradient-text-animated"><i class="fas fa-graduation-cap"></i>eDuShare</span> Today
             </h1>
             <p class="hero-description">
                 Create your free account and connect with thousands of students sharing knowledge worldwide.
@@ -52,9 +52,8 @@
 
                     <!-- Username -->
                     <div class="form-group">
-                        <label class="form-label"><i class="fas fa-user"></i> {{ form.username.label.text }}</label>
                         <div class="input-wrapper">
-                            {{ form.username(class="form-input", placeholder="Choose a username") }}
+                            {{ form.username(class="form-input", placeholder="Username") }}
                             <span class="input-icon"><i class="fas fa-user"></i></span>
                         </div>
                         {% if form.username.errors %}
@@ -64,9 +63,8 @@
 
                     <!-- Email -->
                     <div class="form-group">
-                        <label class="form-label"><i class="fas fa-envelope"></i> {{ form.email.label.text }}</label>
                         <div class="input-wrapper">
-                            {{ form.email(class="form-input", placeholder="Enter your email") }}
+                            {{ form.email(class="form-input", placeholder="Email address") }}
                             <span class="input-icon"><i class="fas fa-envelope"></i></span>
                         </div>
                         {% if form.email.errors %}
@@ -76,9 +74,8 @@
 
                     <!-- Full Name -->
                     <div class="form-group">
-                        <label class="form-label"><i class="fas fa-id-card"></i> {{ form.full_name.label.text }}</label>
                         <div class="input-wrapper">
-                            {{ form.full_name(class="form-input", placeholder="Enter your full name") }}
+                            {{ form.full_name(class="form-input", placeholder="Full name") }}
                             <span class="input-icon"><i class="fas fa-id-card"></i></span>
                         </div>
                         {% if form.full_name.errors %}
@@ -88,9 +85,8 @@
 
                     <!-- Password -->
                     <div class="form-group">
-                        <label class="form-label"><i class="fas fa-lock"></i> {{ form.password.label.text }}</label>
                         <div class="input-wrapper">
-                            {{ form.password(class="form-input", placeholder="Create a password") }}
+                            {{ form.password(class="form-input", placeholder="Password") }}
                             <span class="input-icon"><i class="fas fa-lock"></i></span>
                             <button type="button" class="password-toggle" onclick="togglePassword('password')">
                                 <i class="fas fa-eye" id="password-icon"></i>
@@ -103,9 +99,8 @@
 
                     <!-- Confirm Password -->
                     <div class="form-group">
-                        <label class="form-label"><i class="fas fa-lock"></i> {{ form.confirm_password.label.text }}</label>
                         <div class="input-wrapper">
-                            {{ form.confirm_password(class="form-input", placeholder="Confirm your password") }}
+                            {{ form.confirm_password(class="form-input", placeholder="Confirm password") }}
                             <span class="input-icon"><i class="fas fa-lock"></i></span>
                             <button type="button" class="password-toggle" onclick="togglePassword('confirm_password')">
                                 <i class="fas fa-eye" id="confirm_password-icon"></i>
@@ -116,7 +111,7 @@
                         {% endif %}
                     </div>
 
-                    <!-- ✅ TERMS CHECKBOX WITH LINK -->
+                    <!-- Terms Checkbox -->
                     <div class="checkbox-wrapper">
                         <input type="checkbox" id="terms" name="terms">
                         <label for="terms">
@@ -130,13 +125,11 @@
                         </label>
                     </div>
 
-                    <!-- ✅ TERMS ERROR (shown if not checked) -->
                     <div id="terms-error" class="terms-error-msg" style="display:none;">
                         <i class="fas fa-exclamation-circle"></i>
                         You must agree to the Terms of Service to create an account.
                     </div>
 
-                    <!-- Submit Button -->
                     <button type="submit" class="btn-submit" id="submitBtn">
                         <span>Create Account</span>
                         <i class="fas fa-arrow-right"></i>
@@ -153,12 +146,11 @@
 
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { height: 100%; margin: 0; padding: 0; }
+html, body { height: 100%; }
 
 .auth-body {
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
+    height: 100vh;
+    overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background: #0a0e27;
 }
@@ -166,20 +158,14 @@ html, body { height: 100%; margin: 0; padding: 0; }
 .auth-split-layout {
     display: grid;
     grid-template-columns: 1.3fr 1fr;
-    min-height: 100vh;
     height: 100vh;
     width: 100%;
     position: relative;
     overflow: hidden;
 }
 
-.hero-bg {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    overflow: hidden;
-    z-index: 0;
-}
+/* Background */
+.hero-bg { position: absolute; inset: 0; overflow: hidden; z-index: 0; }
 
 .gradient-orb {
     position: absolute;
@@ -190,21 +176,19 @@ html, body { height: 100%; margin: 0; padding: 0; }
     will-change: transform;
 }
 
-.orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, #667eea, #764ba2); top: -10%; left: -10%; animation-delay: 0s; }
+.orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, #667eea, #764ba2); top: -10%; left: -10%; }
 .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #f093fb, #f5576c); bottom: -10%; right: -10%; animation-delay: 7s; }
 .orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, #4facfe, #00f2fe); top: 50%; right: 20%; animation-delay: 14s; }
 
 @keyframes float-orb {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    25% { transform: translate(30px, -30px) scale(1.1); }
-    50% { transform: translate(-20px, 20px) scale(0.9); }
-    75% { transform: translate(20px, 30px) scale(1.05); }
+    0%, 100% { transform: translate(0,0) scale(1); }
+    25% { transform: translate(30px,-30px) scale(1.1); }
+    50% { transform: translate(-20px,20px) scale(0.9); }
+    75% { transform: translate(20px,30px) scale(1.05); }
 }
 
 .grid-pattern {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    position: absolute; inset: 0;
     background-image:
         linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
@@ -213,50 +197,42 @@ html, body { height: 100%; margin: 0; padding: 0; }
 }
 
 @keyframes grid-move {
-    0% { transform: translate(0, 0); }
-    100% { transform: translate(50px, 50px); }
+    0% { transform: translate(0,0); }
+    100% { transform: translate(50px,50px); }
 }
 
+/* Hero side */
 .auth-hero-side {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
     padding: 3rem;
     color: white;
 }
 
-.hero-content { max-width: 550px; animation: slideRight 0.8s ease-out; }
+.hero-content { max-width: 500px; animation: slideRight 0.8s ease-out; }
 
 .brand-logo-large {
-    width: 80px; height: 80px;
+    width: 68px; height: 68px;
     background: rgba(255,255,255,0.15);
     backdrop-filter: blur(10px);
-    border-radius: 20px;
+    border-radius: 16px;
     border: 1px solid rgba(255,255,255,0.2);
     display: flex; align-items: center; justify-content: center;
-    font-size: 2.5rem;
-    margin-bottom: 2rem;
-    animation: scaleIn 0.6s ease-out;
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
 }
 
-@keyframes scaleIn {
-    from { transform: scale(0); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-
-.hero-title { font-size: 3rem; font-weight: 900; line-height: 1.2; margin-bottom: 1.5rem; }
+.hero-title { font-size: 2.5rem; font-weight: 900; line-height: 1.2; margin-bottom: 1.25rem; }
 
 .gradient-text-animated {
     display: inline-block;
     background: linear-gradient(90deg, #fff, #764ba2, #fff);
-    background-size: 200% 200%;
+    background-size: 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     animation: gradient-shift 4s ease infinite;
-    font-size: 3.5rem;
+    font-size: 2.875rem;
 }
 
 @keyframes gradient-shift {
@@ -264,155 +240,137 @@ html, body { height: 100%; margin: 0; padding: 0; }
     50% { background-position: 100% 50%; }
 }
 
-.hero-description { font-size: 1.125rem; line-height: 1.7; opacity: 0.95; margin-bottom: 3rem; }
+.hero-description { font-size: 1.0625rem; line-height: 1.65; opacity: 0.9; margin-bottom: 2rem; }
 
-.floating-elements { position: relative; height: 100px; }
+.floating-elements { position: relative; height: 80px; }
 
 .float-element {
     position: absolute;
-    width: 60px; height: 60px;
+    width: 50px; height: 50px;
     background: rgba(255,255,255,0.15);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 14px;
+    border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     animation: float-element 4s ease-in-out infinite;
     color: rgba(255,255,255,0.9);
 }
 
-.element-1 { top: 0; left: 0; animation-delay: 0s; }
+.element-1 { top: 0; left: 0; }
 .element-2 { top: 20%; left: 35%; animation-delay: 1.5s; }
 .element-3 { bottom: 0; right: 20%; animation-delay: 3s; }
 
 @keyframes float-element {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-15px); }
+    50% { transform: translateY(-12px); }
 }
 
+/* Form side — must fill height and not scroll */
 .auth-form-side {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem;
+    position: relative; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+    padding: 1.5rem 2rem;
     background: rgba(255,255,255,0.98);
-    backdrop-filter: blur(20px);
-    overflow-y: auto;
+    overflow: hidden;
 }
 
-.form-container { width: 100%; height: 100%; max-width: 450px; }
+.form-container { width: 100%; max-width: 420px; }
 .form-content { animation: slideUp 0.8s ease-out; }
 
-.form-header { text-align: center; margin-bottom: 2rem; }
+.form-header { text-align: center; margin-bottom: 1.25rem; }
 
 .form-icon {
-    width: 70px; height: 70px;
+    width: 52px; height: 52px;
     background: linear-gradient(135deg, #667eea, #764ba2);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 1.5rem;
-    font-size: 2rem;
+    margin: 0 auto 0.75rem;
+    font-size: 1.5rem;
     color: white;
-    animation: scaleIn 0.6s ease-out;
 }
 
-.form-title { font-size: 2rem; font-weight: 800; color: #1a202c; margin-bottom: 0.5rem; }
-.form-subtitle { color: #718096; font-size: 0.9375rem; }
+.form-title { font-size: 1.625rem; font-weight: 800; color: #1a202c; margin-bottom: 0.25rem; }
+.form-subtitle { color: #718096; font-size: 0.8375rem; }
 
-.auth-form { display: flex; flex-direction: column; gap: 1.25rem; }
-.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
-
-.form-label {
-    font-weight: 600;
-    color: #1a202c;
-    font-size: 0.9375rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
+/* Compact form — 5 fields + checkbox + button must all fit */
+.auth-form { display: flex; flex-direction: column; gap: 0.625rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.2rem; }
 
 .input-wrapper { position: relative; }
 
 .form-input {
     width: 100%;
-    padding: 0.875rem 1rem 0.875rem 3rem;
+    padding: 0.65rem 1rem 0.65rem 2.625rem;
     border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    font-size: 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
     transition: all 0.3s ease;
     background: #f7fafc;
+    color: #1a202c;
 }
 
 .form-input:focus {
     outline: none;
     border-color: #667eea;
     background: white;
-    box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
 }
 
 .input-icon {
     position: absolute;
-    left: 1rem;
-    top: 50%;
+    left: 0.8rem; top: 50%;
     transform: translateY(-50%);
     color: #a0aec0;
     pointer-events: none;
+    font-size: 0.8125rem;
 }
 
 .password-toggle {
     position: absolute;
-    right: 1rem;
-    top: 50%;
+    right: 0.7rem; top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
     color: #a0aec0;
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.25rem;
     transition: color 0.3s ease;
+    font-size: 0.8125rem;
 }
 
 .password-toggle:hover { color: #667eea; }
 
 .form-error {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    display: flex; align-items: center; gap: 0.375rem;
     color: #ef4444;
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
+    font-size: 0.75rem;
 }
 
-/* ── TERMS CHECKBOX ── */
+/* Terms checkbox */
 .checkbox-wrapper {
     display: flex;
     align-items: flex-start;
-    margin: 0.25rem 0;
+    margin: 0.125rem 0;
 }
 
 .checkbox-wrapper input[type="checkbox"] { display: none; }
 
 .checkbox-wrapper label {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
+    display: flex; align-items: flex-start; gap: 0.5rem;
     cursor: pointer;
-    font-size: 0.9375rem;
+    font-size: 0.8125rem;
     color: #718096;
 }
 
 .checkbox-custom {
-    width: 20px; height: 20px;
+    width: 17px; height: 17px;
     border: 2px solid #e2e8f0;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
     transition: all 0.3s ease;
     flex-shrink: 0;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 .checkbox-wrapper input[type="checkbox"]:checked + label .checkbox-custom {
@@ -425,10 +383,9 @@ html, body { height: 100%; margin: 0; padding: 0; }
     font-family: 'Font Awesome 6 Free';
     font-weight: 900;
     color: white;
-    font-size: 0.75rem;
+    font-size: 0.625rem;
 }
 
-/* ── TERMS LINK ── */
 .terms-link {
     color: #667eea;
     text-decoration: underline;
@@ -438,51 +395,44 @@ html, body { height: 100%; margin: 0; padding: 0; }
 
 .terms-link:hover { color: #764ba2; }
 
-/* ── TERMS ERROR MESSAGE ── */
 .terms-error-msg {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    display: flex; align-items: center; gap: 0.5rem;
     color: #991b1b;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     background: #fef2f2;
     border: 1px solid #fecaca;
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin-top: -0.5rem;
+    border-radius: 7px;
+    padding: 0.5rem 0.75rem;
 }
 
-/* ── SUBMIT BUTTON ── */
 .btn-submit {
     width: 100%;
-    padding: 1rem;
+    padding: 0.8rem;
     background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
     border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 1.125rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9625rem;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.625rem;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(102,126,234,0.4);
-    margin-top: 0.5rem;
+    box-shadow: 0 4px 15px rgba(102,126,234,0.35);
+    margin-top: 0.25rem;
 }
 
-.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.6); }
+.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.5); }
 .btn-submit:active { transform: translateY(0); }
 
 .form-footer {
     text-align: center;
-    margin-top: 2rem;
-    padding-top: 2rem;
+    margin-top: 0.875rem;
+    padding-top: 0.875rem;
     border-top: 1px solid #e2e8f0;
 }
 
-.form-footer p { color: #718096; font-size: 0.9375rem; }
+.form-footer p { color: #718096; font-size: 0.8375rem; }
 
 .link-primary { color: #667eea; text-decoration: none; font-weight: 600; transition: color 0.3s ease; }
 .link-primary:hover { color: #764ba2; }
@@ -493,26 +443,56 @@ html, body { height: 100%; margin: 0; padding: 0; }
 }
 
 @keyframes slideUp {
-    from { opacity: 0; transform: translateY(30px); }
+    from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Mobile — allow scrolling since 5 fields is a lot on small screens */
 @media (max-width: 768px) {
-    .auth-split-layout { grid-template-columns: 1fr; height: auto; min-height: 100vh; overflow-y: auto; }
+    .auth-body { height: auto; min-height: 100vh; overflow-y: auto; }
+
+    .auth-split-layout { grid-template-columns: 1fr; height: auto; min-height: 100vh; }
     .auth-hero-side { display: none; }
-    .auth-form-side { background: transparent; padding: 2rem 1rem; min-height: 100vh; }
-    .form-content { background: white; border-radius: 24px; padding: 2.5rem 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-    .form-container { width: 100%; max-width: 100%; }
-    .form-title { font-size: 1.75rem; }
-    .auth-form { gap: 1rem; }
+
+    .auth-form-side {
+        background: transparent;
+        padding: 2rem 1.25rem;
+        min-height: 100vh;
+        overflow-y: auto;
+        align-items: flex-start;
+        padding-top: 2.5rem;
+    }
+
+    .form-content {
+        background: white;
+        border-radius: 22px;
+        padding: 2rem 1.625rem;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        width: 100%;
+    }
+
+    .form-container { max-width: 100%; }
+
+    .form-header { margin-bottom: 1.5rem; }
+    .auth-form { gap: 0.875rem; }
+
+    .form-input {
+        padding: 0.8rem 1rem 0.8rem 2.75rem;
+        font-size: 0.9375rem;
+    }
+
+    .gradient-orb { filter: blur(60px); opacity: 0.4; }
+    .orb-1 { width: 280px; height: 280px; }
+    .orb-2 { width: 220px; height: 220px; }
+    .orb-3 { width: 180px; height: 180px; }
 }
 
 @media (max-width: 480px) {
     .auth-form-side { padding: 1.5rem 1rem; }
-    .form-content { padding: 2rem 1.5rem; border-radius: 20px; }
-    .form-icon { width: 60px; height: 60px; font-size: 1.75rem; }
+    .form-content { padding: 1.75rem 1.375rem; border-radius: 18px; }
+    .form-icon { width: 48px; height: 48px; font-size: 1.375rem; }
     .form-title { font-size: 1.5rem; }
-    .btn-submit { font-size: 1rem; padding: 0.875rem; }
+    .btn-submit { padding: 0.8125rem; font-size: 0.9375rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -539,11 +519,9 @@ function togglePassword(fieldId) {
     }
 }
 
-// ✅ ENFORCE TERMS ON SUBMIT
 document.getElementById('signupForm').addEventListener('submit', function(e) {
     const termsCheckbox = document.getElementById('terms');
     const termsError = document.getElementById('terms-error');
-
     if (!termsCheckbox.checked) {
         e.preventDefault();
         termsError.style.display = 'flex';
@@ -553,27 +531,22 @@ document.getElementById('signupForm').addEventListener('submit', function(e) {
     }
 });
 
-// Hide error when user checks the box
 document.getElementById('terms').addEventListener('change', function() {
-    if (this.checked) {
-        document.getElementById('terms-error').style.display = 'none';
-    }
+    if (this.checked) document.getElementById('terms-error').style.display = 'none';
 });
 
-// Input animation on focus
 document.querySelectorAll('.form-input').forEach(input => {
-    input.addEventListener('focus', function() { this.parentElement.style.transform = 'scale(1.02)'; });
+    input.addEventListener('focus', function() { this.parentElement.style.transform = 'scale(1.01)'; });
     input.addEventListener('blur', function() { this.parentElement.style.transform = 'scale(1)'; });
 });
 
-// Parallax for desktop
 if (window.innerWidth > 768) {
     document.addEventListener('mousemove', (e) => {
         const orbs = document.querySelectorAll('.gradient-orb');
         const x = e.clientX / window.innerWidth;
         const y = e.clientY / window.innerHeight;
-        orbs.forEach((orb, index) => {
-            const speed = (index + 1) * 15;
+        orbs.forEach((orb, i) => {
+            const speed = (i + 1) * 15;
             orb.style.transform = `translate(${(x - 0.5) * speed}px, ${(y - 0.5) * speed}px)`;
         });
     });
