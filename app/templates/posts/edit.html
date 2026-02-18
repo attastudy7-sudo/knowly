@@ -6,7 +6,10 @@
 <div class="create-container">
     <div class="create-card">
         <div class="create-header">
-            <h1><i class="fas fa-edit"></i> Edit Post</h1>
+            <div class="header-icon">
+                <i class="fas fa-edit"></i>
+            </div>
+            <h1>Edit Post</h1>
             <p>Update your post details</p>
         </div>
         
@@ -15,7 +18,7 @@
             
             <div class="form-group">
                 {{ form.title.label }}
-                {{ form.title(class="form-control") }}
+                {{ form.title(class="form-control", placeholder="Give your post a descriptive title") }}
                 {% if form.title.errors %}
                     <span class="error">{{ form.title.errors[0] }}</span>
                 {% endif %}
@@ -23,7 +26,7 @@
             
             <div class="form-group">
                 {{ form.description.label }}
-                {{ form.description(class="form-control textarea", rows=5) }}
+                {{ form.description(class="form-control textarea", rows=5, placeholder="Describe what you're sharing (optional)") }}
                 {% if form.description.errors %}
                     <span class="error">{{ form.description.errors[0] }}</span>
                 {% endif %}
@@ -37,32 +40,89 @@
                 {% endif %}
                 <small class="form-hint">Categorize your post for better discovery</small>
             </div>
-            
+
             {% if post.has_document and post.document %}
             <div class="current-document">
-                <h3>Current Document</h3>
-                <p><i class="fas fa-file-{{ post.document.file_type }}"></i> {{ post.document.original_filename }}</p>
+                <div class="current-doc-icon">
+                    <i class="fas fa-file-{{ post.document.file_type }}"></i>
+                </div>
+                <div class="current-doc-info">
+                    <h3>Current Document</h3>
+                    <p>{{ post.document.original_filename }}</p>
+                    <span class="doc-meta">
+                        {{ post.document.file_type.upper() }} &middot;
+                        {{ (post.document.file_size / 1024 / 1024)|round(2) }} MB
+                        {% if post.document.is_paid %}
+                        &middot; GHS {{ post.document.price }}
+                        {% else %}
+                        &middot; Free
+                        {% endif %}
+                    </span>
+                </div>
             </div>
             {% endif %}
             
             <div class="form-group">
                 <label for="document">
-                    <i class="fas fa-file-upload"></i> Replace Document (Optional)
+                    <i class="fas fa-file-upload"></i>
+                    {% if post.has_document and post.document %}Replace Document (Optional){% else %}Upload Document (Optional){% endif %}
                 </label>
                 <div class="file-upload-container">
                     {{ form.document(class="file-input", id="document", onchange="updateFileName(this)") }}
                     <label for="document" class="file-label">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <span id="file-name">Choose a new file to replace</span>
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <span id="file-name" class="file-name-text">
+                            {% if post.has_document and post.document %}Choose a new file to replace{% else %}Choose a file{% endif %}
+                        </span>
+                        <span class="file-types">PDF, DOCX, PPTX, TXT</span>
                     </label>
                 </div>
                 {% if form.document.errors %}
                     <span class="error">{{ form.document.errors[0] }}</span>
                 {% endif %}
+                <small class="form-hint"><i class="fas fa-info-circle"></i> Max file size: 5 MB</small>
+            </div>
+
+            <div class="payment-section">
+                <div class="payment-header">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <h3>Payment Options</h3>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    {{ form.is_paid() }}
+                    {{ form.is_paid.label }}
+                </div>
+
+                <div class="form-group" id="price-group"
+                     style="display: {% if post.document and post.document.is_paid %}block{% else %}none{% endif %};">
+                    {{ form.price.label }}
+                    <div class="price-input-wrapper">
+                        <span class="currency-symbol">GHS</span>
+                        {{ form.price(class="form-control price-input", placeholder="0.00") }}
+                    </div>
+                    <small class="form-hint">Set your price in GHS (e.g. 5.00)</small>
+                </div>
+            </div>
+
+            <div class="copyright-warning">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>
+                    <strong>No copyrighted material.</strong>
+                    Only upload your own personal notes, personal quizzes, AI-generated notes,
+                    explanations, or quizzes that other students may find helpful.
+                    Copyrighted textbooks, lecture slides, past exam papers, or any
+                    third-party protected content will be <strong>taken down immediately.</strong>
+                </span>
             </div>
             
             <div class="form-actions">
-                <a href="{{ url_for('posts.view', post_id=post.id) }}" class="btn btn-secondary">Cancel</a>
+                <a href="{{ url_for('posts.view', post_id=post.id) }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                    <span>Cancel</span>
+                </a>
                 {{ form.submit(value="Update Post", class="btn btn-primary") }}
             </div>
         </form>
@@ -74,146 +134,240 @@
     width: 100%;
     max-width: 800px;
     margin: 0 auto;
-    padding: var(--spacing-lg) var(--spacing-md);
+    padding: var(--spacing-xl) var(--spacing-md);
 }
 
 .create-card {
     background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-md);
+    border-radius: 24px;
+    border: 1px solid #667eea;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
     padding: var(--spacing-xl);
     width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.create-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
 }
 
 .create-header {
     text-align: center;
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: 2.5rem;
     padding-bottom: var(--spacing-lg);
     border-bottom: 1px solid var(--border-light);
+}
+
+.header-icon {
+    width: 70px; height: 70px;
+    margin: 0 auto 1rem;
+    background: #667eea;
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; color: white;
 }
 
 .create-header h1 {
     margin-bottom: var(--spacing-sm);
     color: var(--text-primary);
-    font-size: 1.75rem;
-    word-wrap: break-word;
+    font-size: 2rem; font-weight: 800;
 }
 
-.create-header p {
-    color: var(--text-secondary);
-    font-size: 0.9375rem;
+.create-header p { color: var(--text-secondary); font-size: 1rem; }
+
+.create-form { width: 100%; }
+
+.form-group { margin-bottom: 1.75rem; }
+
+.form-group label {
+    display: block; margin-bottom: 0.5rem;
+    font-weight: 600; color: var(--text-primary); font-size: 0.95rem;
 }
 
-.create-form {
-    width: 100%;
+.form-control {
+    width: 100%; padding: 1rem 1.25rem;
+    border: 2px solid var(--border); border-radius: 14px;
+    font-size: 1rem; transition: all 0.3s ease;
+    background: var(--bg-main); color: var(--text-primary);
 }
 
+.form-control:focus {
+    outline: none; border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    background: var(--bg-card);
+}
+
+.form-control.textarea {
+    resize: vertical; min-height: 140px; font-family: inherit;
+}
+
+.form-hint {
+    display: block; margin-top: 0.5rem;
+    font-size: 0.875rem; color: var(--text-secondary);
+}
+.form-hint i { margin-right: 0.25rem; color: #667eea; }
+
+/* Current document */
 .current-document {
-    background: var(--bg-hover);
-    padding: var(--spacing-md);
-    border-radius: var(--radius-md);
-    margin-bottom: var(--spacing-lg);
-    border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1.25rem; border-radius: 14px;
+    background: linear-gradient(135deg, rgba(102,126,234,.05), rgba(118,75,162,.05));
+    border: 1px solid rgba(102,126,234,.15);
+    margin-bottom: 1.5rem;
 }
 
-.current-document h3 {
-    margin-bottom: var(--spacing-sm);
-    font-size: 0.9375rem;
-    color: var(--text-primary);
+.current-doc-icon {
+    width: 52px; height: 52px; flex-shrink: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; color: white;
 }
 
-.current-document p {
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    margin: 0;
-    word-break: break-word;
+.current-doc-info { flex: 1; min-width: 0; }
+.current-doc-info h3 { font-size: .8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin: 0 0 .25rem; }
+.current-doc-info p  { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 0 0 .25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-meta { font-size: .8rem; color: var(--text-muted); }
+
+/* File upload */
+.file-upload-container { position: relative; }
+
+.file-input {
+    position: absolute; width: 0.1px; height: 0.1px;
+    opacity: 0; overflow: hidden; z-index: -1;
 }
 
-.form-actions {
-    display: flex;
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-xl);
+.file-label {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0.75rem; padding: 2rem;
+    background: linear-gradient(135deg, rgba(102,126,234,.05), rgba(118,75,162,.05));
+    border: 2px dashed var(--border); border-radius: 16px;
+    cursor: pointer; transition: all 0.3s ease; text-align: center;
 }
+
+.file-label:hover {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102,126,234,.1), rgba(118,75,162,.1));
+    transform: translateY(-2px);
+}
+
+.upload-icon {
+    width: 60px; height: 60px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.75rem; color: white;
+}
+
+.file-name-text { font-weight: 600; color: var(--text-primary); font-size: 1rem; }
+.file-types { font-size: 0.875rem; color: var(--text-secondary); }
+
+/* Payment section */
+.payment-section {
+    background: linear-gradient(135deg, rgba(102,126,234,.05), rgba(118,75,162,.05));
+    padding: 1.75rem; border-radius: 16px;
+    margin-top: 2rem; margin-bottom: 2rem;
+    border: 1px solid rgba(102,126,234,.1);
+}
+
+.payment-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
+.payment-header i { color: #10b981; font-size: 1.25rem; }
+.payment-header h3 { margin: 0; font-size: 1.125rem; font-weight: 700; color: var(--text-primary); }
+
+.checkbox-group { display: flex; align-items: center; gap: 0.75rem; }
+.checkbox-group input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+.checkbox-group label { margin: 0; cursor: pointer; font-weight: 500; }
+
+.price-input-wrapper { position: relative; }
+.currency-symbol {
+    position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%);
+    font-weight: 700; color: var(--text-secondary); font-size: 0.95rem; pointer-events: none;
+}
+.price-input { padding-left: 4rem !important; }
+
+/* Copyright warning */
+.copyright-warning {
+    display: flex; align-items: flex-start; gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    background: #fff1f1; border: 1px solid #fca5a5;
+    border-left: 3px solid #ef4444; border-radius: 10px;
+    margin-bottom: 1.5rem; color: #b91c1c;
+    font-size: 0.8rem; line-height: 1.5;
+}
+.copyright-warning i { flex-shrink: 0; margin-top: 0.15rem; font-size: 0.9rem; color: #ef4444; }
+.copyright-warning strong { color: #991b1b; }
+
+/* Form actions */
+.form-actions { display: flex; gap: 1rem; margin-top: 2.5rem; }
 
 .form-actions .btn {
-    flex: 1;
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    gap: 0.5rem; padding: 1rem 2rem; border: none; border-radius: 14px;
+    font-weight: 600; font-size: 1rem; cursor: pointer; transition: all 0.3s ease;
 }
 
-/* Mobile Responsive */
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white; box-shadow: 0 10px 30px rgba(102,126,234,.3);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(102,126,234,.4); }
+
+.btn-secondary {
+    background: var(--bg-main); color: var(--text-secondary);
+    border: 2px solid var(--border); text-decoration: none;
+}
+.btn-secondary:hover { background: var(--bg-hover); border-color: var(--text-secondary); }
+
+.error { display: block; color: #ef4444; font-size: 0.875rem; margin-top: 0.5rem; }
+
+/* Mobile */
 @media (max-width: 768px) {
-    .create-container {
-        padding: var(--spacing-sm);
-    }
-    
-    .create-card {
-        padding: var(--spacing-md);
-        border-radius: var(--radius-md);
-    }
-    
-    .create-header h1 {
-        font-size: 1.375rem;
-    }
-    
-    .create-header h1 i {
-        display: block;
-        margin-bottom: var(--spacing-xs);
-    }
-    
-    .create-header p {
-        font-size: 0.875rem;
-    }
-    
-    .current-document {
-        padding: var(--spacing-sm);
-    }
-    
-    .current-document p {
-        flex-direction: column;
-        align-items: flex-start;
-        font-size: 0.875rem;
-    }
-    
-    .form-actions {
-        flex-direction: column-reverse;
-    }
-    
-    .form-actions .btn {
-        width: 100%;
-    }
+    .create-container { padding: 1.5rem 1rem; }
+    .create-card { padding: 2rem 1.5rem; border-radius: 20px; }
+    .header-icon { width: 60px; height: 60px; font-size: 1.75rem; }
+    .create-header h1 { font-size: 1.5rem; }
+    .current-document { flex-direction: column; text-align: center; }
+    .current-doc-info p { white-space: normal; }
+    .file-label { padding: 1.75rem 1rem; }
+    .upload-icon { width: 50px; height: 50px; font-size: 1.5rem; }
+    .payment-section { padding: 1.5rem; }
+    .form-actions { flex-direction: column-reverse; gap: 0.75rem; margin-top: 2rem; }
+    .form-actions .btn { width: 100%; padding: 1rem; border-radius: 12px; }
 }
 
-/* Extra small screens */
 @media (max-width: 480px) {
-    .create-container {
-        padding: var(--spacing-xs);
-    }
-    
-    .create-card {
-        padding: var(--spacing-sm);
-    }
-    
-    .create-header {
-        margin-bottom: var(--spacing-md);
-        padding-bottom: var(--spacing-md);
-    }
-    
-    .file-label {
-        padding: var(--spacing-md);
-    }
-    
-    .file-label span {
-        font-size: 0.8125rem;
-    }
+    .create-container { padding: 0.6rem 0.35rem; }
+    .create-card { padding: 1.5rem 1.25rem; }
+    .create-header h1 { font-size: 1.375rem; }
+    .file-label { padding: 1.5rem 0.75rem; }
 }
 </style>
 
 <script>
 function updateFileName(input) {
-    const fileName = input.files[0]?.name || 'Choose a new file to replace';
-    document.getElementById('file-name').textContent = fileName;
+    const fileNameSpan = document.getElementById('file-name');
+    const fileTypesSpan = document.querySelector('.file-types');
+
+    if (input.files && input.files[0]) {
+        fileNameSpan.textContent = input.files[0].name;
+        fileTypesSpan.style.display = 'none';
+    } else {
+        fileNameSpan.textContent = '{% if post.has_document and post.document %}Choose a new file to replace{% else %}Choose a file{% endif %}';
+        fileTypesSpan.style.display = 'block';
+    }
+}
+
+// Show/hide price input based on is_paid checkbox
+const isPaidCheckbox = document.getElementById('is_paid');
+if (isPaidCheckbox) {
+    isPaidCheckbox.addEventListener('change', function() {
+        document.getElementById('price-group').style.display = this.checked ? 'block' : 'none';
+    });
 }
 </script>
 {% endblock %}
