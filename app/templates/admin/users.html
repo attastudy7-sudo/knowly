@@ -6,16 +6,21 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1><i class="fas fa-users"></i> Manage Users</h1>
-        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Back to Dashboard
-        </a>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+            <a href="{{ url_for('admin.moderation') }}" class="btn btn-primary">
+                <i class="fas fa-shield-alt"></i> Moderation Queue
+            </a>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
     </div>
-    
+
     <!-- Search Bar -->
     <div class="search-bar">
         <form action="{{ url_for('admin.users') }}" method="get">
             <div class="search-input-group">
-                <input type="text" name="search" value="{{ search }}" 
+                <input type="text" name="search" value="{{ search }}"
                        placeholder="Search users by username, email, or name..." class="form-control">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-search"></i> Search
@@ -26,7 +31,7 @@
             </div>
         </form>
     </div>
-    
+
     <!-- Users Table -->
     {% if users.items %}
     <div class="table-container">
@@ -47,9 +52,9 @@
                 <tr class="{% if not user.is_active %}inactive-row{% endif %}">
                     <td>
                         <div class="user-cell">
-                            <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_picture) }}" 
-                                 alt="{{ user.username }}"
-                                 onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
+                            {# Use Cloudinary profile_picture_url instead of local static path #}
+                            <img src="{{ user.profile_picture_url }}"
+                                 alt="{{ user.username }}">
                             <div>
                                 <strong>{{ user.username }}</strong>
                                 <small>{{ user.full_name or '-' }}</small>
@@ -68,21 +73,22 @@
                         {% endif %}
                     </td>
                     <td class="actions-cell">
-                        <a href="{{ url_for('users.profile', username=user.username) }}" 
+                        <a href="{{ url_for('users.profile', username=user.username) }}"
                            class="btn btn-sm btn-secondary" title="View Profile">
                             <i class="fas fa-eye"></i>
                         </a>
-                        
+
                         {% if user.id != current_user.id %}
-                        <form action="{{ url_for('admin.toggle_user_active', user_id=user.id) }}" 
+                        <form action="{{ url_for('admin.toggle_user_active', user_id=user.id) }}"
                               method="post" style="display: inline;">
-                            <button type="submit" class="btn btn-sm {% if user.is_active %}btn-warning{% else %}btn-success{% endif %}" 
+                            <button type="submit"
+                                    class="btn btn-sm {% if user.is_active %}btn-warning{% else %}btn-success{% endif %}"
                                     title="{% if user.is_active %}Deactivate{% else %}Activate{% endif %}">
                                 <i class="fas fa-{% if user.is_active %}ban{% else %}check-circle{% endif %}"></i>
                             </button>
                         </form>
-                        
-                        <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" 
+
+                        <form action="{{ url_for('admin.delete_user', user_id=user.id) }}"
                               method="post" style="display: inline;"
                               onsubmit="return confirm('Delete user {{ user.username }} and ALL their content? This cannot be undone!');">
                             <button type="submit" class="btn btn-sm btn-danger" title="Delete User">
@@ -98,7 +104,7 @@
             </tbody>
         </table>
     </div>
-    
+
     <!-- Pagination -->
     {% if users.has_prev or users.has_next %}
     <div class="pagination">
@@ -107,9 +113,9 @@
                 <i class="fas fa-chevron-left"></i> Previous
             </a>
         {% endif %}
-        
+
         <span class="page-info">Page {{ users.page }} of {{ users.pages }}</span>
-        
+
         {% if users.has_next %}
             <a href="{{ url_for('admin.users', page=users.next_num, search=search) }}" class="page-btn">
                 Next <i class="fas fa-chevron-right"></i>
@@ -117,7 +123,7 @@
         {% endif %}
     </div>
     {% endif %}
-    
+
     {% else %}
     <div class="empty-state">
         <i class="fas fa-users-slash"></i>
@@ -147,9 +153,7 @@
     align-items: center;
 }
 
-.search-input-group .form-control {
-    flex: 1;
-}
+.search-input-group .form-control { flex: 1; }
 
 .table-container {
     background: var(--bg-card);
@@ -158,14 +162,9 @@
     overflow-x: auto;
 }
 
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-}
+.data-table { width: 100%; border-collapse: collapse; }
 
-.data-table thead {
-    background: var(--bg-hover);
-}
+.data-table thead { background: var(--bg-hover); }
 
 .data-table th {
     padding: var(--spacing-md);
@@ -181,79 +180,37 @@
     border-bottom: 1px solid var(--border-light);
 }
 
-.data-table tr.inactive-row {
-    opacity: 0.6;
-}
+.data-table tr.inactive-row { opacity: 0.6; }
 
-.user-cell {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-}
+.user-cell { display: flex; align-items: center; gap: var(--spacing-sm); }
 
 .user-cell img {
-    width: 40px;
-    height: 40px;
+    width: 40px; height: 40px;
     border-radius: var(--radius-full);
     object-fit: cover;
 }
 
-.user-cell div {
-    display: flex;
-    flex-direction: column;
-}
-
-.user-cell small {
-    color: var(--text-muted);
-    font-size: 0.8125rem;
-}
+.user-cell div { display: flex; flex-direction: column; }
+.user-cell small { color: var(--text-muted); font-size: 0.8125rem; }
 
 .status-badge {
     display: inline-block;
     padding: 0.25rem var(--spacing-sm);
     border-radius: var(--radius-sm);
-    font-size: 0.8125rem;
-    font-weight: 600;
+    font-size: 0.8125rem; font-weight: 600;
 }
+.status-active   { background: var(--success); color: white; }
+.status-inactive { background: var(--danger);  color: white; }
 
-.status-active {
-    background: var(--success);
-    color: white;
-}
+.actions-cell { display: flex; gap: var(--spacing-xs); flex-wrap: wrap; }
 
-.status-inactive {
-    background: var(--danger);
-    color: white;
-}
-
-.actions-cell {
-    display: flex;
-    gap: var(--spacing-xs);
-    flex-wrap: wrap;
-}
-
-.btn-warning {
-    background: var(--warning);
-    color: white;
-}
-
-.btn-warning:hover {
-    background: #d97706;
-}
+.btn-warning { background: var(--warning); color: white; }
+.btn-warning:hover { background: #d97706; }
 
 @media (max-width: 768px) {
-    .search-input-group {
-        flex-direction: column;
-    }
-    
-    .data-table {
-        font-size: 0.875rem;
-    }
-    
-    .data-table th,
-    .data-table td {
-        padding: var(--spacing-sm);
-    }
+    .search-input-group { flex-direction: column; }
+    .data-table { font-size: 0.875rem; }
+    .data-table th, .data-table td { padding: var(--spacing-sm); }
 }
 </style>
 {% endblock %}

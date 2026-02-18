@@ -3,83 +3,258 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="create-container">
-    <div class="create-card">
-        <div class="create-header">
-            <h1><i class="fas fa-shopping-cart"></i> Checkout</h1>
-            <p>Payment integration coming soon</p>
-        </div>
-        
-        <div class="document-section" style="margin-bottom: var(--spacing-xl);">
-            <div class="document-info">
-                <i class="fas fa-file-{{ document.file_type }} file-icon"></i>
-                <div class="document-details">
-                    <h3>{{ document.original_filename }}</h3>
-                    <p>{{ document.post.title }}</p>
-                </div>
-                <span class="price-badge">${{ document.price }}</span>
+<div class="checkout-container">
+
+    <div class="checkout-card">
+
+        <!-- Header -->
+        <div class="checkout-header">
+            <div class="checkout-icon">
+                <i class="fas fa-lock"></i>
             </div>
+            <h1>Complete Your Purchase</h1>
+            <p>You're one step away from accessing this document</p>
         </div>
-        
-        <div class="payment-placeholder">
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
-                <div>
-                    <h3>Payment Integration - Coming Soon!</h3>
-                    <p>This feature is under development. Soon you'll be able to purchase documents using:</p>
-                    <ul style="margin-top: var(--spacing-md); padding-left: var(--spacing-lg);">
-                        <li><strong>Stripe</strong> - For international payments</li>
-                        <li><strong>Paystack</strong> - For African payments</li>
-                    </ul>
-                    <p style="margin-top: var(--spacing-md);">
-                        For now, all documents are free to download!
-                    </p>
+
+        <!-- Document Info -->
+        <div class="doc-preview">
+            <div class="doc-icon-wrap">
+                <i class="fas fa-file-{{ document.file_type }}"></i>
+            </div>
+            <div class="doc-details">
+                <h2 class="doc-name">{{ document.original_filename }}</h2>
+                <div class="doc-meta">
+                    <span><i class="fas fa-tag"></i> {{ document.file_type.upper() }}</span>
+                    <span><i class="fas fa-database"></i> {{ (document.file_size / 1024 / 1024)|round(2) }} MB</span>
+                    <span><i class="fas fa-download"></i> {{ document.download_count }} downloads</span>
                 </div>
             </div>
+            <div class="doc-price">
+                GHS {{ "%.2f"|format(document.price) }}
+            </div>
         </div>
-        
-        <div class="form-actions">
-            <a href="{{ url_for('posts.view', post_id=document.post.id) }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Post
-            </a>
-            <a href="{{ url_for('posts.download_document', document_id=document.id) }}" class="btn btn-primary">
-                <i class="fas fa-download"></i> Download for Free (Demo)
-            </a>
+
+        <!-- What you get -->
+        <div class="benefits">
+            <h3><i class="fas fa-check-circle"></i> What you get</h3>
+            <ul>
+                <li><i class="fas fa-check"></i> Instant access after payment</li>
+                <li><i class="fas fa-check"></i> Unlimited downloads</li>
+                <li><i class="fas fa-check"></i> Online preview</li>
+                <li><i class="fas fa-check"></i> Lifetime access to this document</li>
+            </ul>
         </div>
+
+        <!-- Order Summary -->
+        <div class="order-summary">
+            <div class="summary-row">
+                <span>Document</span>
+                <span>GHS {{ "%.2f"|format(document.price) }}</span>
+            </div>
+            <div class="summary-row summary-total">
+                <span>Total</span>
+                <span>GHS {{ "%.2f"|format(document.price) }}</span>
+            </div>
+        </div>
+
+        <!-- Pay Button — triggers Paystack inline popup -->
+        <button id="pay-btn" class="btn-pay" onclick="payWithPaystack()">
+            <i class="fas fa-lock"></i>
+            Pay GHS {{ "%.2f"|format(document.price) }} Securely
+        </button>
+
+        <!-- Fallback: redirect to Paystack hosted page -->
+        <form action="{{ url_for('payments.initiate', document_id=document.id) }}" method="post">
+            <button type="submit" class="btn-fallback">
+                Or pay via Paystack redirect <i class="fas fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <p class="secure-note">
+            <i class="fas fa-shield-alt"></i>
+            Payments are processed securely by Paystack.
+            Your card details are never stored on our servers.
+        </p>
+
+        <a href="{{ url_for('posts.view', post_id=document.post.id) }}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to post
+        </a>
+
     </div>
 </div>
 
+<!-- Paystack inline JS SDK -->
+<script src="https://js.paystack.co/v1/inline.js"></script>
+
+<script>
+function payWithPaystack() {
+    const btn = document.getElementById('pay-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening payment...';
+
+    const handler = PaystackPop.setup({
+        key:       '{{ paystack_public_key }}',
+        email:     '{{ current_user.email }}',
+        amount:    {{ amount_pesewas }},
+        currency:  'GHS',
+        ref:       'edushare_' + Math.floor(Math.random() * 1e9),
+        metadata: {
+            user_id:     {{ current_user.id }},
+            document_id: {{ document.id }},
+        },
+        callback: function(response) {
+            // Payment done — send reference to our verify route
+            window.location.href =
+                "{{ url_for('payments.verify', document_id=document.id) }}"
+                + '?reference=' + response.reference;
+        },
+        onClose: function() {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-lock"></i> Pay GHS {{ "%.2f"|format(document.price) }} Securely';
+        },
+    });
+
+    handler.openIframe();
+}
+</script>
+
 <style>
-.alert {
-    padding: var(--spacing-lg);
-    border-radius: var(--radius-md);
-    display: flex;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
+.checkout-container {
+    max-width: 560px;
+    margin: 2rem auto;
+    padding: 0 1rem;
 }
 
-.alert-info {
-    background: #dbeafe;
-    border: 1px solid #3b82f6;
-    color: #1e40af;
+.checkout-card {
+    background: var(--bg-card);
+    border-radius: 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    overflow: hidden;
 }
 
-.alert i {
-    font-size: 1.5rem;
-    flex-shrink: 0;
+/* Header */
+.checkout-header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    padding: 2.5rem 2rem 2rem;
+    text-align: center;
+    color: white;
+}
+.checkout-icon {
+    width: 64px; height: 64px;
+    background: rgba(255,255,255,.2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.75rem;
+    margin: 0 auto 1rem;
+}
+.checkout-header h1 { font-size: 1.5rem; font-weight: 800; margin: 0 0 .4rem; }
+.checkout-header p  { margin: 0; opacity: .85; font-size: .9rem; }
+
+/* Document preview */
+.doc-preview {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1.5rem 1.75rem;
+    border-bottom: 1px solid var(--border-light);
+}
+.doc-icon-wrap {
+    width: 52px; height: 52px; flex-shrink: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; color: white;
+}
+.doc-details { flex: 1; min-width: 0; }
+.doc-name {
+    font-size: 1rem; font-weight: 700; color: var(--text-primary);
+    margin: 0 0 .4rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.doc-meta {
+    display: flex; flex-wrap: wrap; gap: .75rem;
+    font-size: .78rem; color: var(--text-muted);
+}
+.doc-meta i { color: #667eea; margin-right: .25rem; }
+.doc-price {
+    font-size: 1.375rem; font-weight: 800;
+    color: #667eea; flex-shrink: 0;
 }
 
-.alert h3 {
-    margin-bottom: var(--spacing-sm);
+/* Benefits */
+.benefits {
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid var(--border-light);
+}
+.benefits h3 {
+    font-size: .85rem; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .06em;
+    margin: 0 0 .75rem;
+}
+.benefits h3 i { color: #10b981; margin-right: .4rem; }
+.benefits ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .45rem; }
+.benefits li { display: flex; align-items: center; gap: .6rem; font-size: .9rem; color: var(--text-secondary); }
+.benefits li i { color: #10b981; font-size: .8rem; }
+
+/* Order summary */
+.order-summary {
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid var(--border-light);
+}
+.summary-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: .9rem; color: var(--text-secondary);
+    padding: .35rem 0;
+}
+.summary-total {
+    font-size: 1.05rem; font-weight: 700;
+    color: var(--text-primary); border-top: 1px solid var(--border-light);
+    margin-top: .5rem; padding-top: .75rem;
 }
 
-.alert ul {
-    list-style: disc;
-    color: #1e40af;
+/* Pay button */
+.btn-pay {
+    display: flex; align-items: center; justify-content: center; gap: .6rem;
+    width: calc(100% - 3.5rem); margin: 1.5rem 1.75rem .75rem;
+    padding: 1rem; border-radius: 14px; border: none; cursor: pointer;
+    font-size: 1.05rem; font-weight: 700; color: white;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    box-shadow: 0 4px 16px rgba(102,126,234,.4);
+    transition: all .25s ease;
 }
+.btn-pay:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,.5); }
+.btn-pay:disabled { opacity: .7; cursor: not-allowed; transform: none; }
 
-.alert li {
-    margin-bottom: var(--spacing-xs);
+/* Fallback */
+.btn-fallback {
+    display: block; width: calc(100% - 3.5rem); margin: 0 1.75rem .5rem;
+    padding: .7rem; border-radius: 10px; border: 2px solid var(--border);
+    background: transparent; color: var(--text-muted);
+    font-size: .85rem; font-weight: 600; cursor: pointer;
+    transition: all .2s;
+}
+.btn-fallback:hover { border-color: #667eea; color: #667eea; }
+
+/* Secure note */
+.secure-note {
+    text-align: center; font-size: .8rem; color: var(--text-muted);
+    padding: .5rem 1.75rem; margin: 0;
+}
+.secure-note i { color: #10b981; margin-right: .3rem; }
+
+/* Back link */
+.back-link {
+    display: block; text-align: center; padding: .75rem;
+    font-size: .85rem; font-weight: 600;
+    color: var(--text-muted); text-decoration: none;
+    border-top: 1px solid var(--border-light); margin-top: .75rem;
+    transition: color .2s;
+}
+.back-link:hover { color: #667eea; }
+
+@media (max-width: 480px) {
+    .doc-preview { flex-wrap: wrap; }
+    .doc-price { width: 100%; text-align: right; }
+    .btn-pay, .btn-fallback { width: calc(100% - 2rem); margin-left: 1rem; margin-right: 1rem; }
 }
 </style>
 {% endblock %}

@@ -41,7 +41,7 @@
             </div>
         </div>
 
-        <!-- Bio — its own dedicated section with label -->
+        <!-- Bio -->
         <div class="profile-bio-wrapper">
             <div class="bio-section-label">
                 <i class="fas fa-user-circle"></i>
@@ -119,6 +119,7 @@
         </div>
 
         {% if posts.items %}
+        {# FIX #2: .posts-grid is now defined in CSS below so cards stack correctly #}
         <div class="posts-grid">
             {% for post in posts.items %}
                 <div class="post-card">
@@ -139,10 +140,12 @@
                         {% if post.has_document and post.document %}
                         <div class="document-badge">
                             <i class="fas fa-file-{{ post.document.file_type }}"></i>
-                            <span>{{ post.document.original_filename }}</span>
+                            {# FIX #2: .doc-filename now defined so long filenames truncate correctly #}
+                            <span class="doc-filename">{{ post.document.original_filename }}</span>
                             {% if post.document.is_paid %}
                                 <span class="price-tag">${{ post.document.price }}</span>
                             {% else %}
+                                {# FIX #2: .free-tag now has matching green pill style #}
                                 <span class="free-tag">Free</span>
                             {% endif %}
                         </div>
@@ -150,19 +153,31 @@
                     </div>
 
                     <div class="post-actions">
+                        {# FIX #3: Like button is interactive for authenticated users, static for guests #}
+                        {% if current_user.is_authenticated %}
+                        <form action="{{ url_for('posts.like', post_id=post.id) }}" method="post" class="action-form">
+                            <button type="submit" class="action-btn {% if post.is_liked_by(current_user) %}liked{% endif %}">
+                                <i class="fas fa-heart"></i>
+                                <span>{{ post.like_count() }}</span>
+                            </button>
+                        </form>
+                        {% else %}
                         <span class="action-btn">
                             <i class="fas fa-heart"></i>
                             <span>{{ post.like_count() }}</span>
                         </span>
-                        <span class="action-btn">
+                        {% endif %}
+
+                        <a href="{{ url_for('posts.view', post_id=post.id) }}" class="action-btn">
                             <i class="fas fa-comment"></i>
                             <span>{{ post.comment_count() }}</span>
-                        </span>
+                        </a>
+
                         {% if post.has_document and post.document %}
-                        <span class="action-btn">
+                        <a href="{{ url_for('posts.download_document', document_id=post.document.id) }}" class="action-btn">
                             <i class="fas fa-download"></i>
                             <span>{{ post.document.download_count }}</span>
-                        </span>
+                        </a>
                         {% endif %}
                     </div>
                 </div>
@@ -282,7 +297,7 @@
 .stat-value { display: block; font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
 .stat-label { display: block; font-size: 0.875rem; color: var(--text-muted); margin-top: var(--spacing-xs); }
 
-/* ── Bio — fully own section ── */
+/* Bio */
 .profile-bio-wrapper {
     padding: 1.5rem var(--spacing-xl);
     border-bottom: 1px solid var(--border);
@@ -296,10 +311,7 @@
     margin-bottom: 0.75rem;
 }
 
-.bio-section-label i {
-    font-size: 0.8rem;
-    color: #667eea;
-}
+.bio-section-label i { font-size: 0.8rem; color: #667eea; }
 
 .bio-section-label span {
     font-size: 0.72rem;
@@ -338,13 +350,7 @@
 }
 
 .profile-bio-empty i { color: #a0aec0; }
-
-.profile-bio-empty a {
-    color: #667eea;
-    text-decoration: none;
-    font-weight: 500;
-}
-
+.profile-bio-empty a { color: #667eea; text-decoration: none; font-weight: 500; }
 .profile-bio-empty a:hover { text-decoration: underline; }
 
 /* Action Buttons */
@@ -375,6 +381,142 @@
 
 /* Posts Section */
 .profile-posts { margin-bottom: var(--spacing-2xl); }
+
+/* FIX #2: Added .posts-grid so post cards stack with consistent spacing */
+.posts-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+}
+
+.post-card {
+    background: var(--bg-card);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 1rem 1.125rem;
+    transition: box-shadow 0.2s ease;
+}
+
+.post-card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); }
+
+.post-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.post-author {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    text-decoration: none;
+    min-width: 0;
+}
+
+.post-time { font-size: 0.75rem; color: var(--text-muted); }
+
+.post-content { margin-bottom: 0.75rem; }
+
+.post-link { text-decoration: none; display: block; }
+
+.post-title {
+    font-size: 0.975rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.375rem 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.post-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* FIX #2: document-badge now matches index.html exactly */
+.document-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(102, 126, 234, 0.06);
+    border: 1px solid rgba(102, 126, 234, 0.15);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+}
+
+/* FIX #2: .doc-filename added — truncates long filenames gracefully */
+.doc-filename {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.price-tag {
+    font-weight: 700;
+    color: #667eea;
+    flex-shrink: 0;
+}
+
+/* FIX #2: .free-tag now matches index.html — green pill with white text */
+.free-tag {
+    font-weight: 700;
+    background-color: #10b981;
+    color: white;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+/* Post Actions */
+.post-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.625rem;
+    border-top: 1px solid var(--border-light);
+}
+
+/* FIX #3: action-form needed for the like form layout */
+.action-form { margin: 0; }
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.375rem 0.625rem;
+    border-radius: 8px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.825rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+/* FIX #3: liked state for heart button */
+.action-btn.liked { color: #ef4444; }
+.action-btn.liked i { color: #ef4444; }
+
+/* Posts Header */
 .posts-header { margin-bottom: 2rem; }
 
 .posts-header .header-content {
@@ -403,6 +545,39 @@
 .posts-header .header-text h2 { margin: 0 0 0.25rem 0; font-size: 1.75rem; font-weight: 600; color: var(--text-primary); }
 .posts-subtitle { display: flex; align-items: center; gap: 0.5rem; margin: 0; color: var(--text-secondary); font-size: 0.95rem; }
 .posts-subtitle i { color: #667eea; }
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.page-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.page-btn:hover {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.page-info { padding: 0.75rem 1.25rem; color: var(--text-secondary); font-weight: 600; font-size: 0.95rem; }
 
 /* Empty State */
 .empty-state {
@@ -438,6 +613,7 @@
     .empty-icon i { font-size: 6rem; }
     .empty-state h3 { font-size: 1.375rem; }
     .empty-state p { font-size: 1rem; }
+    .post-card { padding: 0.875rem 1rem; border-radius: 12px; }
 }
 
 @media (max-width: 480px) {

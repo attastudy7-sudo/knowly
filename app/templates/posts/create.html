@@ -58,14 +58,13 @@
                 {% if form.document.errors %}
                     <span class="error">{{ form.document.errors[0] }}</span>
                 {% endif %}
-                <small class="form-hint"><i class="fas fa-info-circle"></i> Max file size: 16 MB</small>
+                <small class="form-hint"><i class="fas fa-info-circle"></i> Max file size: 5 MB</small>
             </div>
             
             <div class="payment-section">
                 <div class="payment-header">
-                    <i class="fas fa-sparkles"></i>
+                    <i class="fas fa-money-bill-wave"></i>
                     <h3>Payment Options</h3>
-                    <span class="coming-soon-badge">Coming Soon</span>
                 </div>
                 
                 <div class="form-group checkbox-group">
@@ -76,23 +75,23 @@
                 <div class="form-group" id="price-group" style="display: none;">
                     {{ form.price.label }}
                     <div class="price-input-wrapper">
-                        <span class="currency-symbol">$</span>
-                        {{ form.price(class="form-control price-input", placeholder="0.00", disabled=true) }}
+                        <span class="currency-symbol">GHS</span>
+                        {{ form.price(class="form-control price-input", placeholder="0.00") }}
                     </div>
-                    <small class="form-hint">Payment integration coming soon!</small>
+                    <small class="form-hint">Set your price in GHS (e.g. 5.00)</small>
                 </div>
             </div>
             
             <div class="copyright-warning">
-    <i class="fas fa-exclamation-circle"></i>
-    <span>
-        <strong>No copyrighted material.</strong>
-        Only upload your own personal notes, personal quizzes, AI-generated notes,
-        explanations, or quizzes that other students may find helpful.
-        Copyrighted textbooks, lecture slides, past exam papers, or any
-        third-party protected content will be <strong>taken down immediately.</strong>
-    </span>
-</div>
+                <i class="fas fa-exclamation-circle"></i>
+                <span>
+                    <strong>No copyrighted material.</strong>
+                    Only upload your own personal notes, personal quizzes, AI-generated notes,
+                    explanations, or quizzes that other students may find helpful.
+                    Copyrighted textbooks, lecture slides, past exam papers, or any
+                    third-party protected content will be <strong>taken down immediately.</strong>
+                </span>
+            </div>
 
             <div class="form-actions">
                 <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
@@ -116,7 +115,7 @@
 .create-card {
     background: var(--bg-card);
     border-radius: 24px;
-    border: 1px solid var(--border);
+    border: 1px solid #667eea;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
     padding: var(--spacing-xl);
     width: 100%;
@@ -124,7 +123,6 @@
     overflow: hidden;
 }
 
-/* Subtle gradient overlay */
 .create-card::before {
     content: '';
     position: absolute;
@@ -132,7 +130,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+    background: linear-gradient(90deg, #667eea, #764ba2);
     background-size: 200% 100%;
     animation: gradient-shift 3s ease infinite;
 }
@@ -153,15 +151,13 @@
     width: 70px;
     height: 70px;
     margin: 0 auto 1rem;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: #667eea;
     border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 2rem;
     color: white;
-    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    animation: float-icon 3s ease-in-out infinite;
 }
 
 .copyright-warning {
@@ -186,14 +182,7 @@
     color: #ef4444;
 }
 
-.copyright-warning strong {
-    color: #991b1b;
-}
-
-@keyframes float-icon {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-8px); }
-}
+.copyright-warning strong { color: #991b1b; }
 
 .create-header h1 {
     margin-bottom: var(--spacing-sm);
@@ -208,13 +197,9 @@
     font-size: 1rem;
 }
 
-.create-form {
-    width: 100%;
-}
+.create-form { width: 100%; }
 
-.form-group {
-    margin-bottom: 1.75rem;
-}
+.form-group { margin-bottom: 1.75rem; }
 
 .form-group label {
     display: block;
@@ -260,10 +245,8 @@
     color: #667eea;
 }
 
-/* File Upload Styling */
-.file-upload-container {
-    position: relative;
-}
+/* File Upload */
+.file-upload-container { position: relative; }
 
 .file-input {
     position: absolute;
@@ -307,10 +290,7 @@
     margin-bottom: 0.5rem;
 }
 
-.upload-icon i {
-    color: white;
-}
-
+.upload-icon i { color: white; }
 
 .file-name-text {
     font-weight: 600;
@@ -341,7 +321,7 @@
 }
 
 .payment-header i {
-    color: #f093fb;
+    color: #10b981;
     font-size: 1.25rem;
 }
 
@@ -350,18 +330,6 @@
     font-size: 1.125rem;
     font-weight: 700;
     color: var(--text-primary);
-    flex: 1;
-}
-
-.coming-soon-badge {
-    background: linear-gradient(135deg, #f093fb, #f5576c);
-    color: white;
-    padding: 0.375rem 0.875rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 .checkbox-group {
@@ -382,9 +350,7 @@
     font-weight: 500;
 }
 
-.price-input-wrapper {
-    position: relative;
-}
+.price-input-wrapper { position: relative; }
 
 .currency-symbol {
     position: absolute;
@@ -393,11 +359,12 @@
     transform: translateY(-50%);
     font-weight: 700;
     color: var(--text-secondary);
-    font-size: 1.125rem;
+    font-size: 0.95rem;
+    pointer-events: none;
 }
 
 .price-input {
-    padding-left: 2.5rem !important;
+    padding-left: 4rem !important;
 }
 
 /* Form Actions */
@@ -454,105 +421,31 @@
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
-    .create-container {
-        padding: 1.5rem 1rem;
-    }
-    
-    .create-card {
-        padding: 2rem 1.5rem;
-        border-radius: 20px;
-    }
-    
-    .header-icon {
-        width: 60px;
-        height: 60px;
-        font-size: 1.75rem;
-    }
-    
-    .create-header h1 {
-        font-size: 1.5rem;
-    }
-    
-    .create-header p {
-        font-size: 0.9rem;
-    }
-    
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-    
-    .form-control {
-        padding: 0.875rem 1rem;
-        font-size: 1rem;
-        border-radius: 12px;
-    }
-    
-    .file-label {
-        padding: 1.75rem 1rem;
-    }
-    
-    .upload-icon {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-    }
-    
-    .payment-section {
-        padding: 1.5rem;
-        border-radius: 14px;
-    }
-    
-    .payment-header h3 {
-        font-size: 1rem;
-    }
-    
-    .form-actions {
-        flex-direction: column-reverse;
-        gap: 0.75rem;
-        margin-top: 2rem;
-    }
-    
-    .form-actions .btn {
-        width: 100%;
-        padding: 1rem;
-        border-radius: 12px;
-    }
+    .create-container { padding: 1.5rem 1rem; }
+    .create-card { padding: 2rem 1.5rem; border-radius: 20px; }
+    .header-icon { width: 60px; height: 60px; font-size: 1.75rem; }
+    .create-header h1 { font-size: 1.5rem; }
+    .create-header p { font-size: 0.9rem; }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-control { padding: 0.875rem 1rem; font-size: 1rem; border-radius: 12px; }
+    .file-label { padding: 1.75rem 1rem; }
+    .upload-icon { width: 50px; height: 50px; font-size: 1.5rem; }
+    .payment-section { padding: 1.5rem; border-radius: 14px; }
+    .payment-header h3 { font-size: 1rem; }
+    .form-actions { flex-direction: column-reverse; gap: 0.75rem; margin-top: 2rem; }
+    .form-actions .btn { width: 100%; padding: 1rem; border-radius: 12px; }
 }
 
 @media (max-width: 480px) {
-    .create-container {
-        padding: 1rem 0.75rem;
-    }
-    
-    .create-card {
-        padding: 1.5rem 1rem;
-    }
-    
-    .create-header {
-        margin-bottom: 2rem;
-    }
-    
-    .header-icon {
-        width: 55px;
-        height: 55px;
-        font-size: 1.5rem;
-    }
-    
-    .create-header h1 {
-        font-size: 1.375rem;
-    }
-    
-    .file-label {
-        padding: 1.5rem 0.75rem;
-    }
-    
-    .file-name-text {
-        font-size: 0.9rem;
-    }
-    
-    .file-types {
-        font-size: 0.8rem;
-    }
+    .container { padding: .75rem 0.25rem; }
+    .create-container { padding: 0.6rem 0.35rem; }
+    .create-card { padding: 1.5rem 1.25rem; }
+    .create-header { margin-bottom: 2rem; }
+    .header-icon { width: 55px; height: 55px; font-size: 1.5rem; }
+    .create-header h1 { font-size: 1.375rem; }
+    .file-label { padding: 1.5rem 0.75rem; }
+    .file-name-text { font-size: 0.9rem; }
+    .file-types { font-size: 0.8rem; }
 }
 </style>
 
@@ -562,8 +455,7 @@ function updateFileName(input) {
     const fileTypesSpan = document.querySelector('.file-types');
     
     if (input.files && input.files[0]) {
-        const fileName = input.files[0].name;
-        fileNameSpan.textContent = fileName;
+        fileNameSpan.textContent = input.files[0].name;
         fileTypesSpan.style.display = 'none';
     } else {
         fileNameSpan.textContent = 'Choose a file';

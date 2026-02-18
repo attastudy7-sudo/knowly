@@ -1,5 +1,6 @@
 from datetime import datetime
-from flask import current_app, url_for
+import urllib.parse
+from flask import current_app
 from app import db, login_manager
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -16,6 +17,36 @@ followers = db.Table('followers',
     db.Column('follower_id', db.Integer, db.ForeignKey('profiles.id'), primary_key=True),
     db.Column('followed_id', db.Integer, db.ForeignKey('profiles.id'), primary_key=True)
 )
+
+# Palette cycled deterministically by username so each user always gets the same color
+_AVATAR_COLORS = [
+    "#667eea", "#764ba2", "#f093fb", "#f5576c",
+    "#4facfe", "#43e97b", "#fa709a", "#a18cd1",
+]
+
+
+def _initials_avatar_url(username: str, full_name: str | None) -> str:
+    """
+    Generate a data-URI SVG avatar from the user's initials.
+    Requires no files, no CDN, and works in any <img src="">.
+    """
+    if full_name and full_name.strip():
+        parts = full_name.strip().split()
+        initials = (parts[0][0] + parts[-1][0]).upper() if len(parts) >= 2 else parts[0][:2].upper()
+    else:
+        initials = username[:2].upper()
+
+    color = _AVATAR_COLORS[sum(ord(c) for c in username) % len(_AVATAR_COLORS)]
+
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">'
+        f'<circle cx="100" cy="100" r="100" fill="{color}"/>'
+        f'<text x="100" y="100" font-family="Inter,Arial,sans-serif" font-size="80" '
+        f'font-weight="700" fill="white" text-anchor="middle" '
+        f'dominant-baseline="central" letter-spacing="-2">{initials}</text>'
+        f'</svg>'
+    )
+    return f"data:image/svg+xml,{urllib.parse.quote(svg)}"
 
 
 class User(UserMixin, db.Model):
@@ -82,12 +113,21 @@ class User(UserMixin, db.Model):
         return self.following.count()
 
     @property
-    def profile_picture_url(self):
-        """Return the full Cloudinary URL for the user's profile picture."""
+    def profile_picture_url(self) -> str:
+        """
+        Return the user's profile picture URL.
+
+        - Has uploaded a picture → Cloudinary URL with fill crop
+        - No picture (new account / default.jpg) → SVG initials avatar
+        """
         if self.profile_picture and self.profile_picture != 'default.jpg':
             cloud_name = current_app.config['CLOUDINARY_CLOUD_NAME']
-            return f"https://res.cloudinary.com/{cloud_name}/image/upload/w_200,h_200,c_fill/{self.profile_picture}"
-        return url_for('static', filename='images/default.jpg')
+            return (
+                f"https://res.cloudinary.com/{cloud_name}"
+                f"/image/upload/w_200,h_200,c_fill/{self.profile_picture}"
+            )
+        # Fallback: generated initials avatar — no static file required
+        return _initials_avatar_url(self.username, self.full_name)
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -101,7 +141,6 @@ class Post(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Updated Foreign key to 'profiles.id'
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
     subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=True)
     has_document = db.Column(db.Boolean, default=False)
@@ -110,17 +149,15 @@ class Post(db.Model):
     comments = db.relationship('Comment', backref='post', lazy='dynamic', cascade='all, delete-orphan')
     likes = db.relationship('Like', backref='post', lazy='dynamic', cascade='all, delete-orphan')
     document = db.relationship('Document', backref='post', uselist=False)
-
+    status = db.Column(db.String(20), nullable=False, default='pending')
+    rejection_reason = db.Column(db.Text, nullable=True)
     def like_count(self):
-        """Return the count of likes for this post."""
         return self.likes.count()
 
     def comment_count(self):
-        """Return the count of comments for this post."""
         return self.comments.count()
 
     def is_liked_by(self, user):
-        """Check if a user has liked this post."""
         return self.likes.filter_by(user_id=user.id).first() is not None
 
     def __repr__(self):
@@ -133,7 +170,6 @@ class Comment(db.Model):
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
 
-    # Updated Foreign key to 'profiles.id'
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
 
@@ -143,7 +179,6 @@ class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    # Updated Foreign key to 'profiles.id'
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
     __table_args__ = (db.UniqueConstraint('user_id', 'post_id', name='unique_like'),)
@@ -189,20 +224,16 @@ class Document(db.Model):
 
     def has_access(self, user):
         """
-        Check if a user has access to this document.
         Free documents: everyone has access.
-        Paid documents: only if user has purchased it.
+        Paid documents: only if user has a completed purchase.
         """
         if not self.is_paid:
             return True
-
-        purchase = Purchase.query.filter_by(
+        return Purchase.query.filter_by(
             user_id=user.id,
             document_id=self.id,
             status='completed'
-        ).first()
-
-        return purchase is not None
+        ).first() is not None
 
     def __repr__(self):
         return f'<Document {self.original_filename}>'
@@ -223,7 +254,6 @@ class Subject(db.Model):
     posts = db.relationship('Post', backref='subject', lazy='dynamic')
 
     def update_post_count(self):
-        """Update the post count for this subject."""
         self.post_count = self.posts.count()
         db.session.commit()
 

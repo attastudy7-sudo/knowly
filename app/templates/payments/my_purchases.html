@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="purchases-container">
+
+    <div class="purchases-header">
+        <div class="header-icon">
+            <i class="fas fa-receipt"></i>
+        </div>
+        <div>
+            <h1>My Purchases</h1>
+            <p>Documents you have bought and have full access to</p>
+        </div>
+    </div>
+
+    {% if purchases %}
+    <div class="purchases-list">
+        {% for purchase in purchases %}
+        <div class="purchase-card">
+            <div class="purchase-icon">
+                <i class="fas fa-file-{{ purchase.document.file_type }}"></i>
+            </div>
+            <div class="purchase-info">
+                <h3 class="purchase-doc-name">{{ purchase.document.original_filename }}</h3>
+                <div class="purchase-meta">
+                    <span><i class="fas fa-calendar-alt"></i> {{ purchase.purchased_at.strftime('%b %d, %Y') }}</span>
+                    <span><i class="fas fa-credit-card"></i> {{ purchase.payment_method | title }}</span>
+                    <span><i class="fas fa-receipt"></i> GHS {{ "%.2f"|format(purchase.amount_paid) }}</span>
+                </div>
+            </div>
+            <div class="purchase-actions">
+                <a href="{{ url_for('posts.view', post_id=purchase.document.post.id) }}"
+                   class="btn-access">
+                    <i class="fas fa-eye"></i> View
+                </a>
+                <a href="{{ url_for('posts.download_document', document_id=purchase.document.id) }}"
+                   class="btn-download">
+                    <i class="fas fa-download"></i> Download
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="empty-purchases">
+        <div class="empty-icon"><i class="fas fa-shopping-bag"></i></div>
+        <h2>No purchases yet</h2>
+        <p>When you buy a document it will appear here with a direct download link.</p>
+        <a href="{{ url_for('main.explore') }}" class="btn-explore">
+            <i class="fas fa-compass"></i> Browse Documents
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+.purchases-container { max-width: 780px; margin: 0 auto; padding: var(--spacing-lg) var(--spacing-md); }
+
+.purchases-header {
+    display: flex; align-items: center; gap: 1.25rem;
+    padding: 1.5rem; margin-bottom: 2rem;
+    background: linear-gradient(135deg, rgba(102,126,234,.08), rgba(118,75,162,.08));
+    border: 1px solid rgba(102,126,234,.15); border-radius: 20px;
+}
+.header-icon {
+    width: 56px; height: 56px; flex-shrink: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; color: white;
+}
+.purchases-header h1 { margin: 0 0 .2rem; font-size: 1.5rem; font-weight: 800; color: var(--text-primary); }
+.purchases-header p  { margin: 0; color: var(--text-muted); font-size: .9rem; }
+
+.purchases-list { display: flex; flex-direction: column; gap: 1rem; }
+
+.purchase-card {
+    display: flex; align-items: center; gap: 1.25rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--bg-card); border-radius: 16px;
+    border: 1px solid var(--border);
+    transition: box-shadow .2s ease, transform .2s ease;
+}
+.purchase-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
+
+.purchase-icon {
+    width: 52px; height: 52px; flex-shrink: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; color: white;
+}
+
+.purchase-info { flex: 1; min-width: 0; }
+.purchase-doc-name {
+    font-size: 1rem; font-weight: 700; color: var(--text-primary);
+    margin: 0 0 .4rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.purchase-meta { display: flex; flex-wrap: wrap; gap: .75rem; font-size: .8rem; color: var(--text-muted); }
+.purchase-meta i { color: #667eea; margin-right: .25rem; }
+
+.purchase-actions { display: flex; gap: .5rem; flex-shrink: 0; }
+
+.btn-access, .btn-download {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .5rem 1rem; border-radius: 8px;
+    font-size: .85rem; font-weight: 600; text-decoration: none;
+    transition: all .2s;
+}
+.btn-access {
+    background: rgba(102,126,234,.1); color: #667eea;
+    border: 1px solid rgba(102,126,234,.25);
+}
+.btn-access:hover { background: #667eea; color: white; }
+
+.btn-download {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white; border: none;
+    box-shadow: 0 2px 8px rgba(102,126,234,.3);
+}
+.btn-download:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,.4); }
+
+.empty-purchases {
+    text-align: center; padding: 4rem 2rem;
+    background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border);
+}
+.empty-icon { font-size: 4rem; color: var(--text-muted); margin-bottom: 1.25rem; opacity: .4; }
+.empty-purchases h2 { font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-bottom: .5rem; }
+.empty-purchases p  { color: var(--text-muted); margin-bottom: 1.5rem; }
+.btn-explore {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .75rem 1.5rem; border-radius: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white; text-decoration: none; font-weight: 600;
+    box-shadow: 0 4px 12px rgba(102,126,234,.3);
+}
+.btn-explore:hover { transform: translateY(-2px); }
+
+@media (max-width: 600px) {
+    .purchase-card { flex-wrap: wrap; }
+    .purchase-actions { width: 100%; }
+    .btn-access, .btn-download { flex: 1; justify-content: center; }
+}
+</style>
+{% endblock %}

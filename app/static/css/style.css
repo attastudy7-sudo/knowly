@@ -41,6 +41,7 @@
     --radius-md: 0.5rem;
     --radius-lg: 0.75rem;
     --radius-xl: 1rem;
+    --radius-l: 0.05rem;
     --radius-full: 9999px;
     
     /* Shadows */
@@ -133,7 +134,7 @@ a:hover {
 .logo {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    /* gap: var(--spacing-sm); */
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--primary);
@@ -1514,12 +1515,12 @@ a:hover {
     content: "";
     position: absolute;
     top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
+    left: 3px;
+    right: 3px;
+    height: 1   px;
     background: var(--subject-color, var(--primary));
-    border-top-left-radius: var(--radius-xl);
-    border-top-right-radius: var(--radius-xl);
+    border-top-left-radius: var(--radius-l);
+    border-top-right-radius: var(--radius-l);
     opacity: 0.15;
 }
 
@@ -1796,7 +1797,7 @@ a:hover {
 .logo {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    /* gap: var(--spacing-sm); */
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--primary);
@@ -1804,6 +1805,10 @@ a:hover {
 
 .logo i {
     font-size: 1.75rem;
+    transform: rotate(-35deg);
+    margin-top: -5px;
+    overflow-x: visible;
+    margin-right: -3px;
 }
 
 .search-container {
@@ -3124,14 +3129,16 @@ a:hover {
 .post-card::before {
     content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    height: 6px;
     background: var(--subject-color, var(--primary));
     border-top-left-radius: var(--radius-xl);
     border-top-right-radius: var(--radius-xl);
-    opacity: 0.15;
+    margin-left: 2px;
+    margin-right: 2px;
+    opacity: 0.6;
 }
 
 /* Mobile Responsive (480px and below) */

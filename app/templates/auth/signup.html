@@ -23,7 +23,8 @@
         <div class="hero-content">
             <div class="brand-logo-large"><i class="fas fa-graduation-cap"></i></div>
             <h1 class="hero-title">
-                Join <span class="gradient-text-animated"><i class="fas fa-graduation-cap"></i>eDuShare</span> Today
+                Join <span class="gradient-text-animated">
+                    <div></div><i class="fas fa-graduation-cap"></i>eduShare</span> Today
             </h1>
             <p class="hero-description">
                 Create your free account and connect with thousands of students sharing knowledge worldwide.
@@ -75,7 +76,7 @@
                     <!-- Full Name -->
                     <div class="form-group">
                         <div class="input-wrapper">
-                            {{ form.full_name(class="form-input", placeholder="Full name") }}
+                            {{ form.full_name(class="form-input", placeholder="Full name (First and Last name)") }}
                             <span class="input-icon"><i class="fas fa-id-card"></i></span>
                         </div>
                         {% if form.full_name.errors %}
