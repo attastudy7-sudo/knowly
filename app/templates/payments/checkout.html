@@ -2,108 +2,143 @@
 
 {% block title %}{{ title }}{% endblock %}
 
+{# Remove the navbar entirely on checkout #}
+{% block navbar %}{% endblock %}
+
 {% block content %}
-<div class="checkout-container">
+<div class="checkout-page">
 
-    <div class="checkout-card">
-
-        <!-- Header -->
-        <div class="checkout-header">
-            <div class="checkout-icon">
-                <i class="fas fa-lock"></i>
-            </div>
-            <h1>Complete Your Purchase</h1>
-            <p>You're one step away from accessing this document</p>
+    <!-- Minimal top bar replaces navbar -->
+    <div class="checkout-topbar">
+        <a href="{{ url_for('main.index') }}" class="topbar-back">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to Home</span>
+        </a>
+        <div class="topbar-brand">
+            <i class="fas fa-graduation-cap"></i>
+            eDuShare
         </div>
+        <div class="topbar-secure">
+            <i class="fas fa-lock"></i>
+            <span>Secure Checkout</span>
+        </div>
+    </div>
 
-        <!-- Document Info -->
-        <div class="doc-preview">
-            <div class="doc-icon-wrap">
-                <i class="fas fa-file-{{ document.file_type }}"></i>
+    <div class="checkout-container">
+        <div class="checkout-card">
+
+            <!-- Header -->
+            <div class="checkout-header">
+                <div class="checkout-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h1>Complete Your Purchase</h1>
+                <p>You're one step away from accessing this document</p>
             </div>
-            <div class="doc-details">
-                <h2 class="doc-name">{{ document.original_filename }}</h2>
-                <div class="doc-meta">
-                    <span><i class="fas fa-tag"></i> {{ document.file_type.upper() }}</span>
-                    <span><i class="fas fa-database"></i> {{ (document.file_size / 1024 / 1024)|round(2) }} MB</span>
-                    <span><i class="fas fa-download"></i> {{ document.download_count }} downloads</span>
+
+            <!-- Document Info -->
+            <div class="doc-preview">
+                <div class="doc-icon-wrap">
+                    <i class="fas fa-file-{{ document.file_type }}"></i>
+                </div>
+                <div class="doc-details">
+                    <h2 class="doc-name">{{ document.original_filename }}</h2>
+                    <div class="doc-meta">
+                        <span><i class="fas fa-tag"></i> {{ document.file_type.upper() }}</span>
+                        <span><i class="fas fa-database"></i> {{ (document.file_size / 1024 / 1024)|round(2) }} MB</span>
+                        <span><i class="fas fa-download"></i> {{ document.download_count }} downloads</span>
+                    </div>
+                </div>
+                <div class="doc-price">GHS {{ "%.2f"|format(document.price) }}</div>
+            </div>
+
+            <!-- What you get -->
+            <div class="benefits">
+                <h3><i class="fas fa-check-circle"></i> What you get</h3>
+                <ul>
+                    <li><i class="fas fa-check"></i> Instant access after payment</li>
+                    <li><i class="fas fa-check"></i> Unlimited downloads</li>
+                    <li><i class="fas fa-check"></i> Online preview</li>
+                    <li><i class="fas fa-check"></i> Lifetime access to this document</li>
+                </ul>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="order-summary">
+                <div class="summary-row">
+                    <span>Document</span>
+                    <span>GHS {{ "%.2f"|format(document.price) }}</span>
+                </div>
+                <div class="summary-row summary-total">
+                    <span>Total</span>
+                    <span>GHS {{ "%.2f"|format(document.price) }}</span>
                 </div>
             </div>
-            <div class="doc-price">
-                GHS {{ "%.2f"|format(document.price) }}
+
+            <!-- Pay section -->
+            <div class="pay-section">
+                <button id="pay-btn" class="btn-pay" onclick="payWithPaystack()">
+                    <i class="fas fa-lock"></i>
+                    Pay GHS {{ "%.2f"|format(document.price) }} Securely
+                </button>
+
+                <form action="{{ url_for('payments.initiate', document_id=document.id) }}" method="post">
+                    <button type="submit" class="btn-fallback">
+                        Or pay via Paystack redirect <i class="fas fa-arrow-right"></i>
+                    </button>
+                </form>
+
+                <p class="secure-note">
+                    <i class="fas fa-shield-alt"></i>
+                    Payments processed securely by Paystack. Your card details are never stored.
+                </p>
             </div>
+
+            {% if document.post %}
+            <a href="{{ url_for('posts.view', post_id=document.post.id) }}" class="back-to-post">
+                <i class="fas fa-arrow-left"></i> Back to post
+            </a>
+            {% endif %}
+
         </div>
-
-        <!-- What you get -->
-        <div class="benefits">
-            <h3><i class="fas fa-check-circle"></i> What you get</h3>
-            <ul>
-                <li><i class="fas fa-check"></i> Instant access after payment</li>
-                <li><i class="fas fa-check"></i> Unlimited downloads</li>
-                <li><i class="fas fa-check"></i> Online preview</li>
-                <li><i class="fas fa-check"></i> Lifetime access to this document</li>
-            </ul>
-        </div>
-
-        <!-- Order Summary -->
-        <div class="order-summary">
-            <div class="summary-row">
-                <span>Document</span>
-                <span>GHS {{ "%.2f"|format(document.price) }}</span>
-            </div>
-            <div class="summary-row summary-total">
-                <span>Total</span>
-                <span>GHS {{ "%.2f"|format(document.price) }}</span>
-            </div>
-        </div>
-
-        <!-- Pay Button — triggers Paystack inline popup -->
-        <button id="pay-btn" class="btn-pay" onclick="payWithPaystack()">
-            <i class="fas fa-lock"></i>
-            Pay GHS {{ "%.2f"|format(document.price) }} Securely
-        </button>
-
-        <!-- Fallback: redirect to Paystack hosted page -->
-        <form action="{{ url_for('payments.initiate', document_id=document.id) }}" method="post">
-            <button type="submit" class="btn-fallback">
-                Or pay via Paystack redirect <i class="fas fa-arrow-right"></i>
-            </button>
-        </form>
-
-        <p class="secure-note">
-            <i class="fas fa-shield-alt"></i>
-            Payments are processed securely by Paystack.
-            Your card details are never stored on our servers.
-        </p>
-
-        <a href="{{ url_for('posts.view', post_id=document.post.id) }}" class="back-link">
-            <i class="fas fa-arrow-left"></i> Back to post
-        </a>
-
     </div>
 </div>
 
-<!-- Paystack inline JS SDK -->
 <script src="https://js.paystack.co/v1/inline.js"></script>
-
 <script>
 function payWithPaystack() {
-    const btn = document.getElementById('pay-btn');
+    const btn    = document.getElementById('pay-btn');
+    const key    = '{{ paystack_public_key }}';
+    const email  = '{{ current_user.email }}';
+    const amount = {{ amount_pesewas }};
+
+    if (!key || key === 'None' || !key.startsWith('pk_')) {
+        alert('Payment configuration error. Please contact support.');
+        return;
+    }
+    if (!email || email === 'None') {
+        alert('Could not read your account email. Please log out and back in.');
+        return;
+    }
+    if (!amount || amount <= 0) {
+        alert('Invalid payment amount. Please contact support.');
+        return;
+    }
+
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening payment...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening payment…';
 
     const handler = PaystackPop.setup({
-        key:       '{{ paystack_public_key }}',
-        email:     '{{ current_user.email }}',
-        amount:    {{ amount_pesewas }},
-        currency:  'GHS',
-        ref:       'edushare_' + Math.floor(Math.random() * 1e9),
+        key:      key,
+        email:    email,
+        amount:   amount,
+        currency: 'GHS',
+        ref:      'edushare_' + Math.floor(Math.random() * 1e9),
         metadata: {
             user_id:     {{ current_user.id }},
             document_id: {{ document.id }},
         },
         callback: function(response) {
-            // Payment done — send reference to our verify route
             window.location.href =
                 "{{ url_for('payments.verify', document_id=document.id) }}"
                 + '?reference=' + response.reference;
@@ -119,142 +154,267 @@ function payWithPaystack() {
 </script>
 
 <style>
+.checkout-page {
+    min-height: 100vh;
+    background: var(--bg-main);
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Top bar ── */
+.checkout-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1.5rem;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 0 var(--border-light), 0 1px 6px rgba(0, 0, 0, 0.04);
+}
+
+.topbar-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 0.45rem 0.875rem;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    transition: all var(--transition-fast);
+}
+.topbar-back:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+}
+.topbar-brand i {
+    color: var(--primary);
+}
+
+.topbar-secure {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #10b981;
+}
+
+/* ── Card ── */
 .checkout-container {
-    max-width: 560px;
+    max-width: 480px;
     margin: 2rem auto;
     padding: 0 1rem;
+    width: 100%;
 }
 
 .checkout-card {
     background: var(--bg-card);
-    border-radius: 24px;
+    border-radius: 14px;
     border: 1px solid var(--border);
-    box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    box-shadow: var(--shadow-md);
     overflow: hidden;
 }
 
 /* Header */
 .checkout-header {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    padding: 2.5rem 2rem 2rem;
+    background: var(--primary);
+    padding: 1.75rem 1.5rem 1.5rem;
     text-align: center;
-    color: white;
+    color: #fff;
 }
 .checkout-icon {
-    width: 64px; height: 64px;
-    background: rgba(255,255,255,.2);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.75rem;
-    margin: 0 auto 1rem;
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin: 0 auto 0.75rem;
 }
-.checkout-header h1 { font-size: 1.5rem; font-weight: 800; margin: 0 0 .4rem; }
-.checkout-header p  { margin: 0; opacity: .85; font-size: .9rem; }
+.checkout-header h1 { font-size: 1.2rem; font-weight: 800; margin: 0 0 0.275rem; letter-spacing: -0.02em; }
+.checkout-header p  { margin: 0; opacity: 0.85; font-size: 0.825rem; }
 
-/* Document preview */
+/* Doc preview */
 .doc-preview {
-    display: flex; align-items: center; gap: 1rem;
-    padding: 1.5rem 1.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 1.125rem 1.25rem;
     border-bottom: 1px solid var(--border-light);
 }
 .doc-icon-wrap {
-    width: 52px; height: 52px; flex-shrink: 0;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; color: white;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    background: var(--primary);
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
 }
 .doc-details { flex: 1; min-width: 0; }
 .doc-name {
-    font-size: 1rem; font-weight: 700; color: var(--text-primary);
-    margin: 0 0 .4rem;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.275rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
 }
-.doc-meta {
-    display: flex; flex-wrap: wrap; gap: .75rem;
-    font-size: .78rem; color: var(--text-muted);
-}
-.doc-meta i { color: #667eea; margin-right: .25rem; }
-.doc-price {
-    font-size: 1.375rem; font-weight: 800;
-    color: #667eea; flex-shrink: 0;
-}
+.doc-meta { display: flex; flex-wrap: wrap; gap: 0.45rem; font-size: 0.72rem; color: var(--text-muted); }
+.doc-meta i { color: var(--primary); margin-right: 0.1rem; }
+.doc-price { font-size: 1.1rem; font-weight: 800; color: var(--primary); flex-shrink: 0; }
 
 /* Benefits */
 .benefits {
-    padding: 1.25rem 1.75rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--border-light);
 }
 .benefits h3 {
-    font-size: .85rem; font-weight: 700; color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: .06em;
-    margin: 0 0 .75rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 0.625rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
 }
-.benefits h3 i { color: #10b981; margin-right: .4rem; }
-.benefits ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .45rem; }
-.benefits li { display: flex; align-items: center; gap: .6rem; font-size: .9rem; color: var(--text-secondary); }
-.benefits li i { color: #10b981; font-size: .8rem; }
+.benefits h3 i { color: #10b981; }
+.benefits ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.benefits li { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-secondary); }
+.benefits li i { color: #10b981; font-size: 0.72rem; }
 
 /* Order summary */
 .order-summary {
-    padding: 1.25rem 1.75rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--border-light);
 }
 .summary-row {
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: .9rem; color: var(--text-secondary);
-    padding: .35rem 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    padding: 0.25rem 0;
 }
 .summary-total {
-    font-size: 1.05rem; font-weight: 700;
-    color: var(--text-primary); border-top: 1px solid var(--border-light);
-    margin-top: .5rem; padding-top: .75rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    border-top: 1px solid var(--border-light);
+    margin-top: 0.375rem;
+    padding-top: 0.625rem;
 }
 
-/* Pay button */
+/* Pay section */
+.pay-section { padding: 1.125rem 1.25rem 0.75rem; }
+
 .btn-pay {
-    display: flex; align-items: center; justify-content: center; gap: .6rem;
-    width: calc(100% - 3.5rem); margin: 1.5rem 1.75rem .75rem;
-    padding: 1rem; border-radius: 14px; border: none; cursor: pointer;
-    font-size: 1.05rem; font-weight: 700; color: white;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    box-shadow: 0 4px 16px rgba(102,126,234,.4);
-    transition: all .25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--primary);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.28);
+    transition: all var(--transition-fast);
+    margin-bottom: 0.5rem;
 }
-.btn-pay:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,.5); }
-.btn-pay:disabled { opacity: .7; cursor: not-allowed; transform: none; }
+.btn-pay:hover:not(:disabled) {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.36);
+}
+.btn-pay:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
 
-/* Fallback */
 .btn-fallback {
-    display: block; width: calc(100% - 3.5rem); margin: 0 1.75rem .5rem;
-    padding: .7rem; border-radius: 10px; border: 2px solid var(--border);
-    background: transparent; color: var(--text-muted);
-    font-size: .85rem; font-weight: 600; cursor: pointer;
-    transition: all .2s;
+    display: block;
+    width: 100%;
+    padding: 0.575rem;
+    border-radius: 9px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
 }
-.btn-fallback:hover { border-color: #667eea; color: #667eea; }
+.btn-fallback:hover { border-color: var(--primary); color: var(--primary); }
 
-/* Secure note */
 .secure-note {
-    text-align: center; font-size: .8rem; color: var(--text-muted);
-    padding: .5rem 1.75rem; margin: 0;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin: 0.625rem 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
 }
-.secure-note i { color: #10b981; margin-right: .3rem; }
+.secure-note i { color: #10b981; }
 
-/* Back link */
-.back-link {
-    display: block; text-align: center; padding: .75rem;
-    font-size: .85rem; font-weight: 600;
-    color: var(--text-muted); text-decoration: none;
-    border-top: 1px solid var(--border-light); margin-top: .75rem;
-    transition: color .2s;
+/* Back to post */
+.back-to-post {
+    display: block;
+    text-align: center;
+    padding: 0.75rem;
+    font-size: 0.825rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-top: 1px solid var(--border-light);
+    transition: color var(--transition-fast);
 }
-.back-link:hover { color: #667eea; }
+.back-to-post:hover { color: var(--primary); }
+
+.top-nav {
+    display: none
+}
+
+.top-nav .logo {
+    display: none;
+}
 
 @media (max-width: 480px) {
+    .checkout-container { padding: 0 0.75rem; margin: 1rem auto; }
+    .topbar-secure span { display: none; }
     .doc-preview { flex-wrap: wrap; }
     .doc-price { width: 100%; text-align: right; }
-    .btn-pay, .btn-fallback { width: calc(100% - 2rem); margin-left: 1rem; margin-right: 1rem; }
 }
 </style>
 {% endblock %}

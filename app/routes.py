@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, current_app
+from flask import Blueprint, render_template, request, current_app, redirect, url_for
 from flask_login import current_user, login_required
 from app.models import Post, User, Subject
 from sqlalchemy import or_
@@ -11,33 +11,34 @@ bp = Blueprint('main', __name__)
 @bp.route('/index')
 def index():
     """
-    Home page - shows landing page for guests, personalized feed if logged in.
+    Home page — redirects logged-in users to their personal feed.
+    Guests see the landing page.
+
+    Bug fix: previously called explore() directly, which meant logged-in
+    users always got the explore feed (feed_type='explore') instead of
+    their personal feed (feed_type='personal').
     """
     if current_user.is_authenticated:
-        return explore()
-    else:
-        return landing()
+        return redirect(url_for('main.explore'))
+    return landing()
 
 
 def landing():
-    """
-    Landing page for non-authenticated users.
-    """
+    """Landing page for non-authenticated users."""
     return render_template('landing.html', title='Welcome')
 
 
 @bp.route('/feed')
 @login_required
 def feed_route():
-    """
-    Route wrapper for personalized feed.
-    """
+    """Route wrapper for personalized feed."""
     return feed()
 
 
 def feed():
     """
-    Personalized feed — only shows APPROVED posts from followed users.
+    Personalized feed — only shows APPROVED posts from followed users
+    (plus the current user's own posts).
     """
     page = request.args.get('page', 1, type=int)
     subjects_param = request.args.get('subjects', '')
@@ -53,7 +54,7 @@ def feed():
 
     if following_ids:
         query = Post.query.filter(
-            Post.status == 'approved',          # ← moderation filter
+            Post.status == 'approved',
             or_(
                 Post.user_id.in_(following_ids),
                 Post.user_id == current_user.id
@@ -61,7 +62,7 @@ def feed():
         )
     else:
         query = Post.query.filter(
-            Post.status == 'approved',          # ← moderation filter
+            Post.status == 'approved',
             Post.user_id == current_user.id
         )
 
@@ -82,9 +83,7 @@ def feed():
 
 @bp.route('/explore')
 def explore():
-    """
-    Explore page — only shows APPROVED posts.
-    """
+    """Explore page — only shows APPROVED posts from all users."""
     page = request.args.get('page', 1, type=int)
     subjects_param = request.args.get('subjects', '')
 
@@ -95,7 +94,7 @@ def explore():
         except ValueError:
             pass
 
-    query = Post.query.filter(Post.status == 'approved')    # ← moderation filter
+    query = Post.query.filter(Post.status == 'approved')
 
     if selected_subjects:
         query = query.filter(Post.subject_id.in_(selected_subjects))

@@ -3,371 +3,536 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="create-container">
-    <div class="create-card">
-        <div class="create-header">
-            <div class="header-icon">
-                <i class="fas fa-edit"></i>
+<div class="edit-wrapper">
+    <div class="edit-card">
+
+        <!-- Header -->
+        <div class="edit-header">
+            <div class="edit-header-icon">
+                <i class="fas fa-pen-nib"></i>
             </div>
-            <h1>Edit Post</h1>
-            <p>Update your post details</p>
+            <div>
+                <h1>Edit Post</h1>
+                <p>Make changes to your post — it will go back to review after saving</p>
+            </div>
         </div>
-        
-        <form method="post" enctype="multipart/form-data" class="create-form" novalidate>
+
+        <form method="post" enctype="multipart/form-data" class="edit-form" novalidate>
             {{ form.hidden_tag() }}
-            
-            <div class="form-group">
-                {{ form.title.label }}
-                {{ form.title(class="form-control", placeholder="Give your post a descriptive title") }}
+
+            <!-- Title -->
+            <div class="field-group">
+                {{ form.title.label(class="field-label") }}
+                {{ form.title(class="field-input", placeholder="Give your post a descriptive title") }}
                 {% if form.title.errors %}
-                    <span class="error">{{ form.title.errors[0] }}</span>
+                    <span class="field-error"><i class="fas fa-exclamation-circle"></i> {{ form.title.errors[0] }}</span>
                 {% endif %}
-            </div>
-            
-            <div class="form-group">
-                {{ form.description.label }}
-                {{ form.description(class="form-control textarea", rows=5, placeholder="Describe what you're sharing (optional)") }}
-                {% if form.description.errors %}
-                    <span class="error">{{ form.description.errors[0] }}</span>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                {{ form.subject.label }}
-                {{ form.subject(class="form-control") }}
-                {% if form.subject.errors %}
-                    <span class="error">{{ form.subject.errors[0] }}</span>
-                {% endif %}
-                <small class="form-hint">Categorize your post for better discovery</small>
             </div>
 
-            {% if post.has_document and post.document %}
-            <div class="current-document">
-                <div class="current-doc-icon">
-                    <i class="fas fa-file-{{ post.document.file_type }}"></i>
+            <!-- Description — Markdown editor -->
+            <div class="field-group">
+                {{ form.description.label(class="field-label") }}
+
+                <div class="md-editor-wrapper">
+                    <div class="md-toolbar" role="toolbar" aria-label="Formatting options">
+                        <div class="md-toolbar-group">
+                            <button type="button" class="md-btn" data-action="bold"   title="Bold (Ctrl+B)">      <i class="fas fa-bold"></i></button>
+                            <button type="button" class="md-btn" data-action="italic" title="Italic (Ctrl+I)">    <i class="fas fa-italic"></i></button>
+                            <button type="button" class="md-btn" data-action="strike" title="Strikethrough">      <i class="fas fa-strikethrough"></i></button>
+                        </div>
+                        <div class="md-toolbar-sep"></div>
+                        <div class="md-toolbar-group">
+                            <button type="button" class="md-btn" data-action="h2"    title="Heading">             <i class="fas fa-heading"></i></button>
+                            <button type="button" class="md-btn" data-action="quote" title="Blockquote">          <i class="fas fa-quote-left"></i></button>
+                            <button type="button" class="md-btn" data-action="code"  title="Inline code">         <i class="fas fa-code"></i></button>
+                        </div>
+                        <div class="md-toolbar-sep"></div>
+                        <div class="md-toolbar-group">
+                            <button type="button" class="md-btn" data-action="ul"   title="Bullet list">          <i class="fas fa-list-ul"></i></button>
+                            <button type="button" class="md-btn" data-action="ol"   title="Numbered list">        <i class="fas fa-list-ol"></i></button>
+                            <button type="button" class="md-btn" data-action="link" title="Insert link (Ctrl+K)"> <i class="fas fa-link"></i></button>
+                        </div>
+                        <div class="md-toolbar-sep"></div>
+                        <div class="md-toolbar-group">
+                            <button type="button" class="md-btn md-btn--preview" data-action="preview" title="Toggle preview">
+                                <i class="fas fa-eye"></i> <span>Preview</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="md-panes">
+                        {{ form.description(
+                            id="md-textarea",
+                            class="md-textarea",
+                            placeholder="Describe what you're sharing…\n\nMarkdown supported: **bold**, *italic*, ## headings, - lists, > quotes, `code`, [links](url)"
+                        ) }}
+                        <div class="md-preview prose-content" id="md-preview" hidden>
+                            <div class="md-preview-empty">
+                                <i class="fas fa-eye-slash"></i>
+                                <span>Nothing to preview yet</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="md-footer">
+                        <span class="md-hint"><i class="fab fa-markdown"></i> Markdown supported</span>
+                        <span class="md-char-count" id="md-char-count">0 chars</span>
+                    </div>
                 </div>
-                <div class="current-doc-info">
-                    <h3>Current Document</h3>
-                    <p>{{ post.document.original_filename }}</p>
-                    <span class="doc-meta">
-                        {{ post.document.file_type.upper() }} &middot;
-                        {{ (post.document.file_size / 1024 / 1024)|round(2) }} MB
-                        {% if post.document.is_paid %}
-                        &middot; GHS {{ post.document.price }}
-                        {% else %}
-                        &middot; Free
-                        {% endif %}
-                    </span>
+
+                {% if form.description.errors %}
+                    <span class="field-error"><i class="fas fa-exclamation-circle"></i> {{ form.description.errors[0] }}</span>
+                {% endif %}
+            </div>
+
+            <!-- Subject -->
+            <div class="field-group">
+                {{ form.subject.label(class="field-label") }}
+                {{ form.subject(class="field-input field-select") }}
+                {% if form.subject.errors %}
+                    <span class="field-error"><i class="fas fa-exclamation-circle"></i> {{ form.subject.errors[0] }}</span>
+                {% endif %}
+                <span class="field-hint"><i class="fas fa-tag"></i> Categorize your post for better discovery</span>
+            </div>
+
+            <!-- Current document preview -->
+            {% if post.has_document and post.document %}
+            <div class="current-doc-banner">
+                <div class="current-doc-left">
+                    <div class="current-doc-icon">
+                        <i class="fas fa-file-{{ post.document.file_type }}"></i>
+                    </div>
+                    <div class="current-doc-meta">
+                        <span class="current-doc-label">Current Document</span>
+                        <span class="current-doc-name">{{ post.document.original_filename }}</span>
+                        <span class="current-doc-info">
+                            {{ post.document.file_type.upper() }}
+                            &middot; {{ (post.document.file_size / 1024 / 1024)|round(2) }} MB
+                            {% if post.document.is_paid %}
+                                &middot; <span class="paid-chip">GHS {{ "%.2f"|format(post.document.price) }}</span>
+                            {% else %}
+                                &middot; <span class="free-chip">Free</span>
+                            {% endif %}
+                        </span>
+                    </div>
                 </div>
             </div>
             {% endif %}
-            
-            <div class="form-group">
-                <label for="document">
-                    <i class="fas fa-file-upload"></i>
-                    {% if post.has_document and post.document %}Replace Document (Optional){% else %}Upload Document (Optional){% endif %}
+
+            <!-- File upload -->
+            <div class="field-group">
+                <label class="field-label">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    {% if post.has_document and post.document %}Replace Document{% else %}Upload Document{% endif %}
+                    <span class="optional-tag">optional</span>
                 </label>
-                <div class="file-upload-container">
-                    {{ form.document(class="file-input", id="document", onchange="updateFileName(this)") }}
-                    <label for="document" class="file-label">
-                        <div class="upload-icon">
+                <div class="drop-zone">
+                    {{ form.document(class="drop-input", id="document", onchange="updateFileName(this)") }}
+                    <label for="document" class="drop-label">
+                        <div class="drop-icon">
                             <i class="fas fa-cloud-upload-alt"></i>
                         </div>
-                        <span id="file-name" class="file-name-text">
-                            {% if post.has_document and post.document %}Choose a new file to replace{% else %}Choose a file{% endif %}
+                        <span class="drop-text" id="file-name">
+                            {% if post.has_document and post.document %}Click to replace current file{% else %}Click to choose a file{% endif %}
                         </span>
-                        <span class="file-types">PDF, DOCX, PPTX, TXT</span>
+                        <span class="drop-formats">PDF · DOCX · PPTX · TXT &nbsp;·&nbsp; Max 5 MB</span>
                     </label>
                 </div>
                 {% if form.document.errors %}
-                    <span class="error">{{ form.document.errors[0] }}</span>
+                    <span class="field-error"><i class="fas fa-exclamation-circle"></i> {{ form.document.errors[0] }}</span>
                 {% endif %}
-                <small class="form-hint"><i class="fas fa-info-circle"></i> Max file size: 5 MB</small>
             </div>
 
-            <div class="payment-section">
-                <div class="payment-header">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <h3>Payment Options</h3>
-                </div>
-
-                <div class="form-group checkbox-group">
-                    {{ form.is_paid() }}
-                    {{ form.is_paid.label }}
-                </div>
-
-                <div class="form-group" id="price-group"
-                     style="display: {% if post.document and post.document.is_paid %}block{% else %}none{% endif %};">
-                    {{ form.price.label }}
-                    <div class="price-input-wrapper">
-                        <span class="currency-symbol">GHS</span>
-                        {{ form.price(class="form-control price-input", placeholder="0.00") }}
+{% if show_pricing %}
+            <!-- Pricing -->
+            <div class="pricing-section">                <div class="pricing-section-header">
+                    <div class="pricing-icon">
+                        <i class="fas fa-tag"></i>
                     </div>
-                    <small class="form-hint">Set your price in GHS (e.g. 5.00)</small>
+                    <div>
+                        <h3>Pricing</h3>
+                        <p>Charge for this document or keep it free</p>
+                    </div>
+                </div>
+
+                <div class="toggle-row">
+                    <div class="toggle-left">
+                        <span class="toggle-title">Paid Document</span>
+                        <span class="toggle-sub">Readers must purchase to download</span>
+                    </div>
+                    <label class="toggle-switch">
+                        {{ form.is_paid(id="is_paid") }}
+                        <span class="toggle-track">
+                            <span class="toggle-thumb"></span>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="price-row" id="price-group"
+                     style="display:{% if post.document and post.document.is_paid %}flex{% else %}none{% endif %};">
+                    {{ form.price.label(class="field-label") }}
+                    <div class="price-field">
+                        <span class="price-currency">GHS</span>
+                        {{ form.price(class="field-input price-input", placeholder="0.00") }}
+                    </div>
+                    <span class="field-hint">Minimum recommended: GHS 1.00</span>
                 </div>
             </div>
 
-            <div class="copyright-warning">
-                <i class="fas fa-exclamation-circle"></i>
-                <span>
+{% endif %}
+
+            <!-- Copyright notice -->            <div class="notice-bar">
+                <i class="fas fa-shield-alt notice-icon"></i>
+                <div>
                     <strong>No copyrighted material.</strong>
-                    Only upload your own personal notes, personal quizzes, AI-generated notes,
-                    explanations, or quizzes that other students may find helpful.
-                    Copyrighted textbooks, lecture slides, past exam papers, or any
-                    third-party protected content will be <strong>taken down immediately.</strong>
-                </span>
+                    Only upload your own notes, quizzes, or AI-generated content.
+                    Copyrighted textbooks, lecture slides, or past exam papers will be
+                    <strong>removed immediately.</strong>
+                </div>
             </div>
-            
-            <div class="form-actions">
-                <a href="{{ url_for('posts.view', post_id=post.id) }}" class="btn btn-secondary">
-                    <i class="fas fa-times"></i>
-                    <span>Cancel</span>
+
+            <!-- Actions -->
+            <div class="edit-actions">
+                <a href="{{ url_for('posts.view', post_id=post.id) }}" class="btn-cancel">
+                    <i class="fas fa-arrow-left"></i> Cancel
                 </a>
-                {{ form.submit(value="Update Post", class="btn btn-primary") }}
+                {{ form.submit(value="Save Changes", class="btn-save") }}
             </div>
         </form>
     </div>
 </div>
 
 <style>
-.create-container {
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: var(--spacing-xl) var(--spacing-md);
-}
+/* ── Wrapper & Card ── */
+.edit-wrapper { max-width: 720px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+.edit-card { background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 4px 24px rgba(0,0,0,0.06); overflow: hidden; }
 
-.create-card {
-    background: var(--bg-card);
-    border-radius: 24px;
-    border: 1px solid #667eea;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
-    padding: var(--spacing-xl);
-    width: 100%;
-    position: relative;
+/* ── Header ── */
+.edit-header { display: flex; align-items: center; gap: 1rem; padding: 1.75rem 2rem; background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%); color: white; }
+.edit-header-icon { width: 52px; height: 52px; background: rgba(255,255,255,0.2); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.375rem; flex-shrink: 0; backdrop-filter: blur(8px); }
+.edit-header h1 { margin: 0 0 0.2rem; font-size: 1.375rem; font-weight: 800; letter-spacing: -0.02em; }
+.edit-header p { margin: 0; font-size: 0.825rem; opacity: 0.82; }
+
+/* ── Form body ── */
+.edit-form { padding: 2rem; display: flex; flex-direction: column; gap: 1.375rem; }
+
+/* ── Field groups ── */
+.field-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.field-label { font-size: 0.85rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.35rem; }
+.field-label i { color: var(--primary); font-size: 0.8rem; }
+.optional-tag { margin-left: auto; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); background: var(--bg-hover); padding: 0.15rem 0.5rem; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em; }
+.field-input { padding: 0.8rem 1rem; border: 1.5px solid var(--border); border-radius: 10px; font-size: 0.9rem; background: var(--bg-main); color: var(--text-primary); transition: border-color 0.18s, box-shadow 0.18s, background 0.18s; width: 100%; font-family: inherit; }
+.field-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); background: var(--bg-card); }
+.field-textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
+.field-select { cursor: pointer; }
+.field-hint { font-size: 0.775rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem; }
+.field-hint i { color: var(--primary); }
+.field-error { font-size: 0.78rem; color: #ef4444; display: flex; align-items: center; gap: 0.3rem; }
+
+/* ── Markdown editor ── */
+.md-editor-wrapper {
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
     overflow: hidden;
+    background: var(--bg-main);
+    transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
 }
-
-.create-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-}
-
-.create-header {
-    text-align: center;
-    margin-bottom: 2.5rem;
-    padding-bottom: var(--spacing-lg);
-    border-bottom: 1px solid var(--border-light);
-}
-
-.header-icon {
-    width: 70px; height: 70px;
-    margin: 0 auto 1rem;
-    background: #667eea;
-    border-radius: 20px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem; color: white;
-}
-
-.create-header h1 {
-    margin-bottom: var(--spacing-sm);
-    color: var(--text-primary);
-    font-size: 2rem; font-weight: 800;
-}
-
-.create-header p { color: var(--text-secondary); font-size: 1rem; }
-
-.create-form { width: 100%; }
-
-.form-group { margin-bottom: 1.75rem; }
-
-.form-group label {
-    display: block; margin-bottom: 0.5rem;
-    font-weight: 600; color: var(--text-primary); font-size: 0.95rem;
-}
-
-.form-control {
-    width: 100%; padding: 1rem 1.25rem;
-    border: 2px solid var(--border); border-radius: 14px;
-    font-size: 1rem; transition: all 0.3s ease;
-    background: var(--bg-main); color: var(--text-primary);
-}
-
-.form-control:focus {
-    outline: none; border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+.md-editor-wrapper:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
     background: var(--bg-card);
 }
 
-.form-control.textarea {
-    resize: vertical; min-height: 140px; font-family: inherit;
-}
+.md-toolbar { display: flex; align-items: center; gap: 0.2rem; padding: 0.5rem 0.625rem; background: var(--bg-card); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.md-toolbar-group { display: flex; gap: 0.1rem; }
+.md-toolbar-sep { width: 1px; height: 18px; background: var(--border); margin: 0 0.2rem; flex-shrink: 0; align-self: center; }
 
-.form-hint {
-    display: block; margin-top: 0.5rem;
-    font-size: 0.875rem; color: var(--text-secondary);
-}
-.form-hint i { margin-right: 0.25rem; color: #667eea; }
+.md-btn { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.5rem; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-muted); font-size: 0.8rem; cursor: pointer; transition: all 0.15s; line-height: 1; -webkit-tap-highlight-color: transparent; }
+.md-btn:hover { background: var(--bg-secondary, rgba(0,0,0,0.04)); border-color: var(--border); color: var(--text-primary); }
+.md-btn.active { background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.25); color: var(--primary); }
+.md-btn--preview { font-size: 0.775rem; font-weight: 600; }
+.md-btn--preview span { font-size: 0.775rem; }
 
-/* Current document */
-.current-document {
-    display: flex; align-items: center; gap: 1rem;
-    padding: 1.25rem; border-radius: 14px;
-    background: linear-gradient(135deg, rgba(102,126,234,.05), rgba(118,75,162,.05));
-    border: 1px solid rgba(102,126,234,.15);
-    margin-bottom: 1.5rem;
-}
+.md-panes { position: relative; }
 
-.current-doc-icon {
-    width: 52px; height: 52px; flex-shrink: 0;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; color: white;
-}
+.md-textarea { display: block; width: 100%; min-height: 130px; padding: 0.875rem 1rem; border: none; background: transparent; font-size: 0.9rem; font-family: 'Fira Code','Consolas','Monaco',monospace; color: var(--text-primary); resize: vertical; outline: none; box-sizing: border-box; line-height: 1.7; tab-size: 2; }
+.md-textarea::placeholder { color: var(--text-muted); font-family: inherit; font-size: 0.875rem; white-space: pre-line; }
 
-.current-doc-info { flex: 1; min-width: 0; }
-.current-doc-info h3 { font-size: .8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin: 0 0 .25rem; }
-.current-doc-info p  { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 0 0 .25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.doc-meta { font-size: .8rem; color: var(--text-muted); }
+.md-preview { min-height: 130px; padding: 0.875rem 1rem; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.75; }
+.md-preview[hidden] { display: none; }
+.md-preview-empty { display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.875rem; padding: 1.5rem 0; }
 
-/* File upload */
-.file-upload-container { position: relative; }
+.md-footer { display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.75rem; background: var(--bg-card); border-top: 1px solid var(--border); }
+.md-hint { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; }
+.md-hint i { margin-right: 0.25rem; }
+.md-char-count { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.md-char-count.warn { color: #f59e0b; }
+.md-char-count.over { color: #dc2626; font-weight: 700; }
 
-.file-input {
-    position: absolute; width: 0.1px; height: 0.1px;
-    opacity: 0; overflow: hidden; z-index: -1;
-}
+/* ── Prose styles (preview pane) ── */
+.prose-content { word-wrap: break-word; overflow-wrap: break-word; }
+.prose-content p { margin: 0 0 0.875rem; line-height: 1.75; }
+.prose-content p:last-child { margin-bottom: 0; }
+.prose-content h1,.prose-content h2,.prose-content h3,.prose-content h4,.prose-content h5,.prose-content h6 { font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em; margin: 1.25rem 0 0.5rem; line-height: 1.25; }
+.prose-content h1 { font-size: 1.5rem; } .prose-content h2 { font-size: 1.25rem; } .prose-content h3 { font-size: 1.1rem; }
+.prose-content strong { font-weight: 700; color: var(--text-primary); }
+.prose-content em { font-style: italic; }
+.prose-content a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+.prose-content a:hover { color: var(--primary-dark, #4f46e5); }
+.prose-content ul, .prose-content ol { margin: 0.5rem 0 0.875rem 1.375rem; display: flex; flex-direction: column; gap: 0.3rem; padding: 0; }
+.prose-content ul { list-style: disc; } .prose-content ol { list-style: decimal; }
+.prose-content ul li, .prose-content ol li { padding-left: 0.25rem; line-height: 1.65; }
+.prose-content blockquote { border-left: 3px solid var(--primary); margin: 0.75rem 0; padding: 0.5rem 0 0.5rem 1rem; background: rgba(99,102,241,0.05); border-radius: 0 8px 8px 0; color: var(--text-secondary); font-style: italic; }
+.prose-content code { background: var(--bg-secondary, rgba(0,0,0,0.05)); border: 1px solid var(--border); border-radius: 5px; padding: 0.15em 0.4em; font-size: 0.85em; font-family: 'Fira Code','Consolas',monospace; color: var(--primary-dark, #4f46e5); }
+.prose-content pre { background: #1e1b2e; border-radius: 10px; padding: 1rem 1.25rem; overflow-x: auto; margin: 0.75rem 0; }
+.prose-content pre code { background: none; border: none; padding: 0; color: #e2e8f0; font-size: 0.85rem; }
+.prose-content hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+.prose-content img { max-width: 100%; border-radius: 8px; margin: 0.5rem 0; }
+.prose-content table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.875rem; }
+.prose-content th { background: rgba(99,102,241,0.07); font-weight: 700; color: var(--text-primary); padding: 0.5rem 0.75rem; border: 1px solid var(--border); text-align: left; }
+.prose-content td { padding: 0.45rem 0.75rem; border: 1px solid var(--border); color: var(--text-secondary); }
+.prose-content tr:nth-child(even) td { background: rgba(99,102,241,0.03); }
 
-.file-label {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 0.75rem; padding: 2rem;
-    background: linear-gradient(135deg, rgba(102,126,234,.05), rgba(118,75,162,.05));
-    border: 2px dashed var(--border); border-radius: 16px;
-    cursor: pointer; transition: all 0.3s ease; text-align: center;
-}
+/* ── Current doc banner ── */
+.current-doc-banner { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(79,70,229,0.04)); border: 1.5px solid rgba(99,102,241,0.18); border-radius: 12px; }
+.current-doc-left { display: flex; align-items: center; gap: 0.875rem; min-width: 0; }
+.current-doc-icon { width: 42px; height: 42px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.125rem; color: #fff; flex-shrink: 0; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+.current-doc-meta { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.current-doc-label { font-size: 0.68rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.07em; }
+.current-doc-name { font-size: 0.875rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 360px; }
+.current-doc-info { font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+.paid-chip { background: rgba(99,102,241,0.12); color: var(--primary); font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 20px; font-size: 0.72rem; }
+.free-chip { background: rgba(16,185,129,0.12); color: #10b981; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 20px; font-size: 0.72rem; }
 
-.file-label:hover {
-    border-color: #667eea;
-    background: linear-gradient(135deg, rgba(102,126,234,.1), rgba(118,75,162,.1));
-    transform: translateY(-2px);
-}
+/* ── Drop zone ── */
+.drop-zone { position: relative; }
+.drop-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.drop-label { display: flex; flex-direction: column; align-items: center; gap: 0.625rem; padding: 2rem 1.5rem; border: 2px dashed var(--border); border-radius: 12px; cursor: pointer; background: var(--bg-main); transition: all 0.2s ease; text-align: center; }
+.drop-label:hover { border-color: var(--primary); background: rgba(99,102,241,0.04); transform: translateY(-2px); }
+.drop-icon { width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary), #4f46e5); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: #fff; box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+.drop-text { font-weight: 700; font-size: 0.9rem; color: var(--text-primary); }
+.drop-formats { font-size: 0.775rem; color: var(--text-muted); }
 
-.upload-icon {
-    width: 60px; height: 60px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.75rem; color: white;
-}
+/* ── Pricing ── */
+.pricing-section { background: var(--bg-main); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; }
+.pricing-section-header { display: flex; align-items: center; gap: 0.875rem; padding: 1.1rem 1.25rem; border-bottom: 1px solid var(--border-light); background: rgba(99,102,241,0.03); }
+.pricing-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #fff; }
+.pricing-section-header h3 { margin: 0 0 0.1rem; font-size: 0.95rem; font-weight: 800; color: var(--text-primary); }
+.pricing-section-header p { margin: 0; font-size: 0.775rem; color: var(--text-muted); }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; }
+.toggle-left { display: flex; flex-direction: column; gap: 0.15rem; }
+.toggle-title { font-size: 0.875rem; font-weight: 700; color: var(--text-primary); }
+.toggle-sub { font-size: 0.775rem; color: var(--text-muted); }
+.toggle-switch { position: relative; display: inline-block; cursor: pointer; }
+.toggle-switch input { display: none; }
+.toggle-track { display: block; width: 46px; height: 26px; background: var(--border); border-radius: 13px; transition: background 0.2s; position: relative; }
+.toggle-thumb { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+.toggle-switch input:checked ~ .toggle-track { background: var(--primary); }
+.toggle-switch input:checked ~ .toggle-track .toggle-thumb { transform: translateX(20px); }
+.price-row { flex-direction: column; gap: 0.4rem; padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border-light); padding-top: 1rem; }
+.price-field { position: relative; }
+.price-currency { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-weight: 800; color: var(--text-secondary); font-size: 0.875rem; pointer-events: none; z-index: 1; }
+.price-input { padding-left: 3.75rem !important; font-weight: 700; }
 
-.file-name-text { font-weight: 600; color: var(--text-primary); font-size: 1rem; }
-.file-types { font-size: 0.875rem; color: var(--text-secondary); }
+/* ── Notice bar ── */
+.notice-bar { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.875rem 1.125rem; background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #ef4444; border-radius: 10px; font-size: 0.8rem; color: #b91c1c; line-height: 1.55; }
+.notice-icon { color: #ef4444; font-size: 1rem; margin-top: 0.1rem; flex-shrink: 0; }
+.notice-bar strong { color: #991b1b; }
 
-/* Payment section */
-.payment-section {
-    background: linear-gradient(135deg, rgba(102,126,234,.05), rgba(118,75,162,.05));
-    padding: 1.75rem; border-radius: 16px;
-    margin-top: 2rem; margin-bottom: 2rem;
-    border: 1px solid rgba(102,126,234,.1);
-}
+/* ── Actions ── */
+.edit-actions { display: flex; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border-light); margin-top: 0.25rem; }
+.btn-cancel { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.8rem 1.5rem; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-secondary); font-weight: 600; font-size: 0.9rem; text-decoration: none; transition: all 0.18s; white-space: nowrap; }
+.btn-cancel:hover { border-color: var(--primary); color: var(--primary); background: rgba(99,102,241,0.05); }
+.btn-save { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0.8rem 2rem; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--primary), #4f46e5); color: #fff; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: all 0.18s; box-shadow: 0 4px 14px rgba(99,102,241,0.35); letter-spacing: -0.01em; }
+.btn-save:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,0.45); }
+.btn-save:active { transform: translateY(0); }
 
-.payment-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
-.payment-header i { color: #10b981; font-size: 1.25rem; }
-.payment-header h3 { margin: 0; font-size: 1.125rem; font-weight: 700; color: var(--text-primary); }
-
-.checkbox-group { display: flex; align-items: center; gap: 0.75rem; }
-.checkbox-group input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
-.checkbox-group label { margin: 0; cursor: pointer; font-weight: 500; }
-
-.price-input-wrapper { position: relative; }
-.currency-symbol {
-    position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%);
-    font-weight: 700; color: var(--text-secondary); font-size: 0.95rem; pointer-events: none;
-}
-.price-input { padding-left: 4rem !important; }
-
-/* Copyright warning */
-.copyright-warning {
-    display: flex; align-items: flex-start; gap: 0.6rem;
-    padding: 0.75rem 1rem;
-    background: #fff1f1; border: 1px solid #fca5a5;
-    border-left: 3px solid #ef4444; border-radius: 10px;
-    margin-bottom: 1.5rem; color: #b91c1c;
-    font-size: 0.8rem; line-height: 1.5;
-}
-.copyright-warning i { flex-shrink: 0; margin-top: 0.15rem; font-size: 0.9rem; color: #ef4444; }
-.copyright-warning strong { color: #991b1b; }
-
-/* Form actions */
-.form-actions { display: flex; gap: 1rem; margin-top: 2.5rem; }
-
-.form-actions .btn {
-    flex: 1; display: flex; align-items: center; justify-content: center;
-    gap: 0.5rem; padding: 1rem 2rem; border: none; border-radius: 14px;
-    font-weight: 600; font-size: 1rem; cursor: pointer; transition: all 0.3s ease;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white; box-shadow: 0 10px 30px rgba(102,126,234,.3);
-}
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(102,126,234,.4); }
-
-.btn-secondary {
-    background: var(--bg-main); color: var(--text-secondary);
-    border: 2px solid var(--border); text-decoration: none;
-}
-.btn-secondary:hover { background: var(--bg-hover); border-color: var(--text-secondary); }
-
-.error { display: block; color: #ef4444; font-size: 0.875rem; margin-top: 0.5rem; }
-
-/* Mobile */
-@media (max-width: 768px) {
-    .create-container { padding: 1.5rem 1rem; }
-    .create-card { padding: 2rem 1.5rem; border-radius: 20px; }
-    .header-icon { width: 60px; height: 60px; font-size: 1.75rem; }
-    .create-header h1 { font-size: 1.5rem; }
-    .current-document { flex-direction: column; text-align: center; }
-    .current-doc-info p { white-space: normal; }
-    .file-label { padding: 1.75rem 1rem; }
-    .upload-icon { width: 50px; height: 50px; font-size: 1.5rem; }
-    .payment-section { padding: 1.5rem; }
-    .form-actions { flex-direction: column-reverse; gap: 0.75rem; margin-top: 2rem; }
-    .form-actions .btn { width: 100%; padding: 1rem; border-radius: 12px; }
-}
-
-@media (max-width: 480px) {
-    .create-container { padding: 0.6rem 0.35rem; }
-    .create-card { padding: 1.5rem 1.25rem; }
-    .create-header h1 { font-size: 1.375rem; }
-    .file-label { padding: 1.5rem 0.75rem; }
+/* ── Responsive ── */
+@media (max-width: 640px) {
+    .edit-wrapper { padding: 1rem 0.75rem 3rem; }
+    .edit-card { border-radius: 16px; }
+    .edit-header { padding: 1.375rem 1.25rem; }
+    .edit-header h1 { font-size: 1.2rem; }
+    .edit-form { padding: 1.25rem; gap: 1.1rem; }
+    .current-doc-banner { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+    .current-doc-name { max-width: 100%; white-space: normal; }
+    .edit-actions { flex-direction: column-reverse; }
+    .btn-cancel { justify-content: center; }
+    .drop-label { padding: 1.5rem 1rem; }
+    .toggle-row { flex-wrap: wrap; gap: 0.75rem; }
+    .md-toolbar-sep:nth-child(6) { display: none; }
+    .md-btn--preview span { display: none; }
 }
 </style>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script>
+/* ── File name display ── */
 function updateFileName(input) {
-    const fileNameSpan = document.getElementById('file-name');
-    const fileTypesSpan = document.querySelector('.file-types');
-
+    const label = document.getElementById('file-name');
     if (input.files && input.files[0]) {
-        fileNameSpan.textContent = input.files[0].name;
-        fileTypesSpan.style.display = 'none';
+        label.textContent = input.files[0].name;
+        document.querySelector('.drop-formats').style.display = 'none';
+        document.querySelector('.drop-icon').style.background = 'linear-gradient(135deg, #10b981, #059669)';
     } else {
-        fileNameSpan.textContent = '{% if post.has_document and post.document %}Choose a new file to replace{% else %}Choose a file{% endif %}';
-        fileTypesSpan.style.display = 'block';
+        label.textContent = '{% if post.has_document and post.document %}Click to replace current file{% else %}Click to choose a file{% endif %}';
+        document.querySelector('.drop-formats').style.display = 'block';
+        document.querySelector('.drop-icon').style.background = 'linear-gradient(135deg, var(--primary), #4f46e5)';
     }
 }
 
-// Show/hide price input based on is_paid checkbox
-const isPaidCheckbox = document.getElementById('is_paid');
-if (isPaidCheckbox) {
-    isPaidCheckbox.addEventListener('change', function() {
-        document.getElementById('price-group').style.display = this.checked ? 'block' : 'none';
+/* ── Subject validation ── */
+const subjectSelect = document.getElementById('subject');
+function validateSubject() {
+    if (!subjectSelect) return true;
+    const group = subjectSelect.closest('.field-group');
+    const existing = group.querySelector('.subject-error');
+    const invalid = !subjectSelect.value || subjectSelect.value === '0' || subjectSelect.value === '';
+    if (invalid) {
+        subjectSelect.style.borderColor = '#ef4444';
+        if (!existing) {
+            const err = document.createElement('span');
+            err.className = 'field-error subject-error';
+            err.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please select a subject.';
+            group.appendChild(err);
+        }
+        return false;
+    }
+    subjectSelect.style.borderColor = '';
+    if (existing) existing.remove();
+    return true;
+}
+if (subjectSelect) subjectSelect.addEventListener('change', () => validateSubject());
+
+const editForm = document.querySelector('.edit-form');
+if (editForm) {
+    editForm.addEventListener('submit', e => {
+        if (!validateSubject()) {
+            e.preventDefault();
+            subjectSelect.focus();
+            subjectSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     });
 }
+
+/* ── Paid toggle ── */
+const isPaidCheckbox = document.getElementById('is_paid');
+const priceGroup = document.getElementById('price-group');
+if (isPaidCheckbox) {
+    isPaidCheckbox.addEventListener('change', function () {
+        priceGroup.style.display = this.checked ? 'flex' : 'none';
+    });
+}
+
+/* ── Markdown editor ── */
+(function () {
+    marked.setOptions({ breaks: true, gfm: true });
+    const renderer = new marked.Renderer();
+    renderer.link = (href, title, text) => {
+        const ext = href && (href.startsWith('http://') || href.startsWith('https://'));
+        return `<a href="${href}"${title ? ` title="${title}"` : ''}${ext ? ' target="_blank" rel="noopener noreferrer"' : ''}>${text}</a>`;
+    };
+    marked.use({ renderer });
+
+    const textarea  = document.getElementById('md-textarea');
+    const preview   = document.getElementById('md-preview');
+    const charCount = document.getElementById('md-char-count');
+    const MAX       = 5000;
+
+    if (!textarea) return;
+
+    function updateCount() {
+        const n = textarea.value.length;
+        charCount.textContent = n.toLocaleString() + ' chars';
+        charCount.className = 'md-char-count' + (n > MAX ? ' over' : n > MAX * 0.85 ? ' warn' : '');
+    }
+    textarea.addEventListener('input', updateCount);
+    updateCount();
+
+    const ACTIONS = {
+        bold:    { wrap: ['**','**'], placeholder: 'bold text'   },
+        italic:  { wrap: ['*', '*'], placeholder: 'italic text' },
+        strike:  { wrap: ['~~','~~'],placeholder: 'struck text' },
+        code:    { wrap: ['`', '`'], placeholder: 'code'        },
+        h2:      { line: '## ',      placeholder: 'Heading'     },
+        quote:   { line: '> ',       placeholder: 'Blockquote'  },
+        ul:      { line: '- ',       placeholder: 'List item'   },
+        ol:      { line: '1. ',      placeholder: 'List item'   },
+        link:    { special: 'link' },
+    };
+
+    function insertMarkdown(action) {
+        const cfg = ACTIONS[action]; if (!cfg) return;
+        const start = textarea.selectionStart, end = textarea.selectionEnd;
+        const sel = textarea.value.slice(start, end);
+        let before = textarea.value.slice(0, start), after = textarea.value.slice(end);
+        let insert = '', cursor = 0;
+        if (cfg.special === 'link') {
+            const url = prompt('Enter URL:', 'https://'); if (!url) return;
+            insert = `[${sel || 'link text'}](${url})`; cursor = insert.length;
+        } else if (cfg.wrap) {
+            const [o, c] = cfg.wrap;
+            insert = sel ? (sel.startsWith(o) && sel.endsWith(c) ? sel.slice(o.length, -c.length) : o+sel+c) : o+cfg.placeholder+c;
+            cursor = insert.length;
+        } else if (cfg.line) {
+            if (before.length && !before.endsWith('\n')) before += '\n';
+            if (after.length && !after.startsWith('\n')) after = '\n' + after;
+            insert = (sel || cfg.placeholder).split('\n').map(l => cfg.line + l).join('\n');
+            cursor = insert.length;
+        }
+        textarea.value = before + insert + after;
+        textarea.selectionStart = before.length;
+        textarea.selectionEnd   = before.length + cursor;
+        textarea.focus();
+        textarea.dispatchEvent(new Event('input'));
+    }
+
+    document.querySelectorAll('.md-btn[data-action]').forEach(btn => {
+        if (btn.dataset.action !== 'preview') btn.addEventListener('click', () => insertMarkdown(btn.dataset.action));
+    });
+
+    textarea.addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === 'b') { e.preventDefault(); insertMarkdown('bold');   }
+            if (e.key === 'i') { e.preventDefault(); insertMarkdown('italic'); }
+            if (e.key === 'k') { e.preventDefault(); insertMarkdown('link');   }
+        }
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const s = textarea.selectionStart;
+            textarea.value = textarea.value.slice(0, s) + '  ' + textarea.value.slice(textarea.selectionEnd);
+            textarea.selectionStart = textarea.selectionEnd = s + 2;
+        }
+    });
+
+    const previewBtn = document.querySelector('.md-btn--preview');
+    let previewOpen = false;
+
+    function renderPreview() {
+        const html = marked.parse(textarea.value || '');
+        preview.innerHTML = html.trim()
+            ? html
+            : '<div class="md-preview-empty"><i class="fas fa-eye-slash"></i><span>Nothing to preview yet</span></div>';
+    }
+
+    previewBtn && previewBtn.addEventListener('click', () => {
+        previewOpen = !previewOpen;
+        if (previewOpen) {
+            renderPreview();
+            textarea.hidden = true;
+            preview.hidden  = false;
+            previewBtn.classList.add('active');
+            previewBtn.querySelector('span').textContent = 'Edit';
+            previewBtn.querySelector('i').className = 'fas fa-pen';
+        } else {
+            textarea.hidden = false;
+            preview.hidden  = true;
+            previewBtn.classList.remove('active');
+            previewBtn.querySelector('span').textContent = 'Preview';
+            previewBtn.querySelector('i').className = 'fas fa-eye';
+            textarea.focus();
+        }
+    });
+})();
 </script>
 {% endblock %}

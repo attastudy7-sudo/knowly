@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta property="og:image" content="https://res.cloudinary.com/dvufjcpw7/image/upload/v1771464708/edushare_oqvbt9.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to eDuShare</title>
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <meta property="og:image" content="https://edusearch-io.onrender.com/assets/cap.png">
         <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
@@ -27,20 +28,23 @@
         <div class="hero-container">
             <div class="hero-content">
                 <!-- Badge -->
-                <div class="hero-badge">
-                    <span class="badge-dot"></span>
-                    <span>Join 5,000+ Students Learning Together</span>
-                </div>
-                
-                <!-- Main Title with Gradient -->
-                <h1 class="hero-title">
-                    <h1>Welcome to </h1><div class=logo><i class="fas fa-graduation-cap"></i><span>eDuShare</span></div>
-                        </h1></span>
-                    Your Study Hub for
-                    <span class="gradient-text-animated">
-                        <span class="text-rotate">Success</span>
-                    </span>
-                </h1>
+                <!-- REPLACE the broken hero title block -->
+<div class="hero-badge">
+    <span class="badge-dot"></span>
+    <span>Join 5,000+ Students Learning Together</span>
+</div>
+
+<div class="logo hero-logo">
+    <i class="fas fa-graduation-cap"></i>
+    <span>eDuShare</span>
+</div>
+
+<h1 class="hero-title">
+    Welcome to Your Study Hub for
+    <span class="gradient-text-animated">
+        <span class="text-rotate">Success</span>
+    </span>
+</h1>
                 
                 <!-- Subtitle -->
                 <p class="hero-description">
@@ -1475,6 +1479,377 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* ══════════════════════════════════════════
+   MOBILE-FIRST RESPONSIVE SYSTEM
+   ══════════════════════════════════════════ */
+
+/* ── Base resets that apply across all mobile ── */
+.modern-landing { overflow-x: hidden; }
+
+.hero-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-bottom: 1rem;
+}
+.hero-logo i {
+    font-size: 1.75rem;
+    color: white;
+    transform: rotate(-35deg);
+}
+.hero-logo span {
+    font-size: 2rem;
+    font-weight: 800;
+    color: white;
+}
+
+/* ════════════════
+   XS — up to 480px
+   ════════════════ */
+@media (max-width: 480px) {
+
+    /* Hero */
+    .modern-hero { padding: 1.25rem 0.875rem 5rem; min-height: 100svh; }
+
+    .hero-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        padding: 0;
+        text-align: center;
+    }
+
+    .hero-badge {
+        width: auto;              /* remove hardcoded 110% */
+        max-width: 100%;
+        font-size: 0.78rem;
+        padding: 0.4rem 0.875rem;
+        margin-bottom: 1.25rem;
+        justify-content: center;
+    }
+
+    .hero-logo i  { font-size: 1.5rem; }
+    .hero-logo span { font-size: 1.75rem; }
+
+    .hero-title {
+        font-size: 1.875rem;
+        line-height: 1.2;
+        margin-bottom: 1rem;
+    }
+
+    .hero-description {
+        font-size: 0.9375rem;
+        line-height: 1.7;
+        margin-bottom: 1.5rem;
+        /* remove excessive top margin from inline rule */
+        margin-top: 0 !important;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1.75rem;
+    }
+    .btn-modern {
+        width: 100%;
+        justify-content: center;
+        padding: 0.875rem 1.5rem;
+        font-size: 1rem;
+        border-radius: 14px;
+    }
+
+    .trust-badges {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        width: 100%;            /* not 110% */
+        margin: 0;
+    }
+    .trust-item {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        font-size: 0.75rem;
+        gap: 0.25rem;
+    }
+    .trust-item i { font-size: 1rem; }
+
+    .hero-visual { display: none; }
+
+    .scroll-indicator { display: none; }
+
+    /* Bento */
+    .bento-features { padding: 3rem 0.875rem; }
+    .section-title { font-size: 1.625rem; }
+    .section-subtitle { font-size: 0.9375rem; }
+    .section-header { margin-bottom: 2rem; }
+
+    .bento-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .bento-card.large,
+    .bento-card.small { grid-column: span 1; min-height: auto; }
+    .bento-card { padding: 1.375rem; border-radius: 16px; }
+    .bento-card.large { padding: 1.375rem; }
+
+    .bento-content h3 { font-size: 1.25rem; }
+    .bento-content p  { font-size: 0.875rem; }
+    .bento-icon { width: 48px; height: 48px; font-size: 1.5rem; margin-bottom: 1rem; }
+    .bento-icon-small { width: 42px; height: 42px; font-size: 1.25rem; margin-bottom: 0.75rem; }
+
+    .search-demo { margin-top: 1rem; }
+    .search-bar-demo { padding: 0.75rem 1rem; font-size: 0.875rem; }
+    .avatars-demo { margin-top: 1rem; justify-content: center; }
+    .avatar-circle, .avatar-plus { width: 48px; height: 48px; }
+
+    /* Stats */
+    .stats-showcase { padding: 3rem 0.875rem; }
+    .stats-grid-modern {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    .stat-card-modern { padding: 1.25rem; border-radius: 16px; }
+    .stat-icon-wrapper { width: 52px; height: 52px; font-size: 1.5rem; margin-bottom: 1rem; }
+    .stat-number { font-size: 2rem; }
+    .stat-label { font-size: 0.875rem; }
+
+    /* Testimonials */
+    .testimonials-section { padding: 3rem 0.875rem; }
+    .testimonials-carousel { grid-template-columns: 1fr; gap: 1rem; }
+    .testimonial-card { padding: 1.375rem; border-radius: 16px; }
+    .testimonial-text { font-size: 0.9375rem; }
+
+    /* CTA */
+    .final-cta { padding: 3.5rem 1rem; }
+    .cta-title { font-size: 1.75rem; margin-bottom: 1rem; }
+    .cta-description { font-size: 1rem; margin-bottom: 2rem; }
+    .btn-cta {
+        width: 100%;
+        justify-content: center;
+        padding: 1.125rem 1.5rem;
+        font-size: 1rem;
+        border-radius: 14px;
+    }
+    .cta-features { flex-direction: column; align-items: center; gap: 0.75rem; }
+    .cta-feature-item { font-size: 0.875rem; }
+}
+
+/* ════════════════════
+   SM — 481px to 640px
+   ════════════════════ */
+@media (min-width: 481px) and (max-width: 640px) {
+
+    .modern-hero { padding: 2rem 1.25rem 5rem; }
+
+    .hero-container {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        padding: 0;
+        text-align: center;
+    }
+
+    .hero-badge { width: auto; max-width: 100%; justify-content: center; }
+
+    .hero-title { font-size: 2.25rem; margin-bottom: 1.25rem; }
+    .hero-description { font-size: 1rem; margin-top: 0 !important; margin-bottom: 1.75rem; }
+
+    .hero-actions { flex-direction: column; gap: 0.75rem; margin-bottom: 2rem; }
+    .btn-modern { width: 100%; justify-content: center; font-size: 1rem; }
+
+    .trust-badges {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        width: 100%;
+        margin: 0;
+        gap: 0.5rem;
+    }
+    .trust-item { flex-direction: column; align-items: center; text-align: center; font-size: 0.8rem; }
+
+    .hero-visual { display: none; }
+
+    /* Bento 2-col for small cards */
+    .bento-features { padding: 3.5rem 1.25rem; }
+    .bento-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .bento-card.large { grid-column: span 2; min-height: auto; }
+    .bento-card.small { grid-column: span 1; }
+
+    .stats-showcase { padding: 3.5rem 1.25rem; }
+    .stats-grid-modern { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+
+    .testimonials-section { padding: 3.5rem 1.25rem; }
+    .testimonials-carousel { grid-template-columns: 1fr; }
+
+    .final-cta { padding: 4rem 1.25rem; }
+    .cta-title { font-size: 2rem; }
+    .cta-description { font-size: 1.0625rem; }
+    .btn-cta { width: 100%; justify-content: center; font-size: 1.0625rem; }
+    .cta-features { flex-direction: column; align-items: center; gap: 0.75rem; }
+}
+
+/* ════════════════════
+   MD — 641px to 768px
+   ════════════════════ */
+@media (min-width: 641px) and (max-width: 768px) {
+
+    .modern-hero { padding: 2rem 1.5rem 5rem; }
+
+    .hero-container {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        padding: 0;
+        text-align: center;
+    }
+
+    .hero-badge { width: auto; max-width: 480px; margin-left: auto; margin-right: auto; }
+
+    .hero-title { font-size: 2.75rem; }
+    .hero-description { font-size: 1.0625rem; margin-top: 0 !important; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+    .hero-actions { flex-direction: row; justify-content: center; flex-wrap: wrap; gap: 0.875rem; }
+    .btn-modern { width: auto; padding: 0.9rem 1.75rem; }
+
+    .trust-badges { justify-content: center; width: 100%; margin: 0; gap: 1.5rem; }
+    .trust-item { font-size: 0.875rem; }
+
+    .hero-visual { display: none; }
+
+    /* Bento */
+    .bento-features { padding: 4rem 1.5rem; }
+    .bento-grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+    .bento-card.large { grid-column: span 2; min-height: 300px; }
+    .bento-card.small { grid-column: span 1; }
+
+    /* Stats */
+    .stats-showcase { padding: 4rem 1.5rem; }
+    .stats-grid-modern { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+
+    /* Testimonials */
+    .testimonials-section { padding: 4rem 1.5rem; }
+    .testimonials-carousel { grid-template-columns: 1fr; }
+
+    /* CTA */
+    .final-cta { padding: 5rem 1.5rem; }
+    .cta-title { font-size: 2.5rem; }
+    .cta-description { font-size: 1.125rem; margin-bottom: 2.5rem; }
+    .btn-cta { padding: 1.25rem 2.5rem; font-size: 1.125rem; }
+    .cta-features { gap: 1.5rem; }
+}
+
+/* ════════════════════════
+   LG — 769px to 1024px
+   ════════════════════════ */
+@media (min-width: 769px) and (max-width: 1024px) {
+
+    .hero-container {
+        grid-template-columns: 1fr 1fr;
+        gap: 2.5rem;
+        padding: 0 1rem;
+    }
+
+    .hero-title { font-size: 3rem; }
+    .hero-description { font-size: 1.0625rem; }
+    .hero-badge { width: auto; }
+    .trust-badges { width: 100%; margin: 0; gap: 1.25rem; }
+
+    .hero-visual { display: block; height: 460px; }
+    .stack-card { width: 230px; height: 150px; padding: 1.375rem; }
+    .stack-card h4 { font-size: 1.5rem; }
+
+    /* Bento — 3 col intermediate */
+    .bento-features { padding: 5rem 1.5rem; }
+    .bento-grid { grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+    .bento-card.large { grid-column: span 2; min-height: 340px; }
+
+    /* Stats */
+    .stats-showcase { padding: 5rem 1.5rem; }
+    .stats-grid-modern { grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+    .stat-number { font-size: 2.5rem; }
+
+    /* Testimonials */
+    .testimonials-section { padding: 5rem 1.5rem; }
+    .testimonials-carousel { grid-template-columns: repeat(2, 1fr); }
+
+    /* CTA */
+    .final-cta { padding: 6rem 1.5rem; }
+    .cta-title { font-size: 3rem; }
+}
+
+/* ════════════════════════
+   XL — 1025px to 1279px
+   ════════════════════════ */
+@media (min-width: 1025px) and (max-width: 1279px) {
+
+    .hero-title { font-size: 3.75rem; }
+    .hero-container { gap: 3rem; }
+    .hero-visual { height: 540px; }
+    .stack-card { width: 255px; }
+
+    .bento-grid { grid-template-columns: repeat(4, 1fr); }
+    .bento-card.large { min-height: 360px; }
+
+    .stats-grid-modern { grid-template-columns: repeat(4, 1fr); }
+    .testimonials-carousel { grid-template-columns: repeat(3, 1fr); }
+
+    .cta-title { font-size: 3.25rem; }
+}
+
+/* ════════════════════════
+   2XL — 1280px and above
+   ════════════════════════ */
+@media (min-width: 1280px) {
+    .hero-title { font-size: 4.5rem; }
+    .hero-container { gap: 4rem; padding: 0 2rem; }
+    .hero-visual { height: 600px; }
+
+    .bento-grid { grid-template-columns: repeat(4, 1fr); }
+    .bento-card.large { min-height: 400px; }
+
+    .stats-grid-modern { grid-template-columns: repeat(4, 1fr); }
+    .testimonials-carousel { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ════════════════════════
+   Touch device optimizations
+   ════════════════════════ */
+@media (hover: none) and (pointer: coarse) {
+    /* Remove hover transforms — they stick on touch */
+    .bento-card:hover,
+    .stat-card-modern:hover,
+    .testimonial-card:hover { transform: none; box-shadow: none; }
+    .btn-modern.primary:hover { transform: none; }
+    .btn-modern.secondary:hover { transform: none; }
+    .btn-cta:hover { transform: none; }
+    .stack-card:hover { transform: none; }
+
+    /* Ensure tap targets are at least 48px */
+    .btn-modern { min-height: 48px; }
+    .btn-cta    { min-height: 52px; }
+
+    /* Disable mouse parallax — irrelevant on touch */
+    .gradient-orb { transform: none !important; }
+}
+
+/* ════════════════════════
+   Reduced motion
+   ════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+    .gradient-orb,
+    .grid-pattern,
+    .stack-card,
+    .floating-element,
+    .badge-dot,
+    .result-item,
+    .avatar-circle,
+    .stat-progress,
+    .gradient-text-animated,
+    .btn-modern.primary::before,
+    .btn-cta.primary-glow,
+    .wheel {
+        animation: none !important;
+        transition: none !important;
     }
 }
 </style>

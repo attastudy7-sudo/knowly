@@ -1,16 +1,69 @@
+import hashlib
+import hmac
+import time
+import urllib.parse
+
 import cloudinary.uploader
-from flask import render_template, redirect, url_for, flash, request, current_app
+import cloudinary.utils
+import requests as req
+
+from flask import (
+    Response, render_template, redirect, stream_with_context,
+    url_for, flash, request, current_app, jsonify,
+)
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
+
 from app import db
 from app.posts import bp
 from app.forms import CreatePostForm, CommentForm
 from app.models import Post, Document, Comment, Like, Subject
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
 def allowed_file(filename, allowed_extensions):
-    """Check if file extension is allowed."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
+
+
+def _pricing_allowed() -> bool:
+    """
+    BACKDOOR: Returns True if the current user is allowed to set a price.
+
+    By default only admins can set prices. To temporarily open pricing to
+    ALL users (e.g. during a promotion or while testing), set this env var:
+
+        ALLOW_ALL_PRICING=1
+
+    in your .env or hosting environment, then restart the app. Remove it to
+    revert to admin-only pricing.
+
+    To check: is the current user an admin?
+    Adjust 'is_admin' below to match your actual User model field name.
+    """
+    # Backdoor — open to everyone when env flag is set
+    if current_app.config.get('ALLOW_ALL_PRICING'):
+        return True
+    # Normal path — admins only
+    return current_user.is_authenticated and current_user.is_admin
+
+
+def _apply_pricing(document, form):
+    """
+    Set is_paid/price on a Document from form data, but only if the current
+    user is allowed to set pricing. Regular users always get free documents.
+    """
+    if _pricing_allowed() and form.is_paid.data:
+        try:
+            price = float(form.price.data) if form.price.data else 0.0
+        except (ValueError, TypeError):
+            price = 0.0
+        document.is_paid = True
+        document.price   = round(price, 2)
+    else:
+        # Regular user — silently force free regardless of form values
+        document.is_paid = False
+        document.price   = 0.0
 
 
 def upload_document_to_cloudinary(file, form):
@@ -23,20 +76,25 @@ def upload_document_to_cloudinary(file, form):
             file,
             folder='edushare/documents',
             resource_type='auto',
+            type='upload',
             use_filename=True,
             unique_filename=True,
             format=file_ext,
         )
 
-        return Document(
+        document = Document(
             filename=result['public_id'],
             original_filename=original_filename,
             file_path=result['secure_url'],
             file_type=file_ext,
             file_size=result.get('bytes', 0),
-            is_paid=form.is_paid.data or False,
-            price=float(form.price.data) if form.price.data else 0.0
+            is_paid=False,
+            price=0.0,
         )
+        # Apply pricing rules (admin-only enforcement happens here)
+        _apply_pricing(document, form)
+        return document
+
     except Exception as e:
         current_app.logger.error(f"Cloudinary upload failed: {e}")
         flash('File upload failed. Please try again.', 'danger')
@@ -44,7 +102,6 @@ def upload_document_to_cloudinary(file, form):
 
 
 def delete_document_from_cloudinary(document):
-    """Delete a document from Cloudinary by its public_id."""
     try:
         resource_type = 'image' if document.file_type in {'png', 'jpg', 'jpeg', 'gif', 'webp'} else 'raw'
         cloudinary.uploader.destroy(document.filename, resource_type=resource_type)
@@ -52,15 +109,43 @@ def delete_document_from_cloudinary(document):
         current_app.logger.warning(f"Failed to delete Cloudinary file '{document.filename}': {e}")
 
 
+def _signed_proxy_token(document_id: int, expires: int, secret: bytes) -> str:
+    return hmac.new(secret, f'{document_id}:{expires}'.encode(), hashlib.sha256).hexdigest()
+
+
+def _stream_from_cloudinary(document, as_attachment: bool = False):
+    try:
+        upstream = req.get(document.file_path, stream=True, timeout=20)
+        upstream.raise_for_status()
+    except Exception as e:
+        current_app.logger.error(
+            f"Cloudinary fetch failed for document {document.id} "
+            f"({document.file_path}): {e}"
+        )
+        return None, None
+
+    content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
+    headers = {}
+
+    if as_attachment:
+        safe_name = urllib.parse.quote(document.original_filename or 'download')
+        headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{safe_name}"
+
+    if 'Content-Length' in upstream.headers:
+        headers['Content-Length'] = upstream.headers['Content-Length']
+
+    return (
+        stream_with_context(upstream.iter_content(chunk_size=8192)),
+        dict(status=200, content_type=content_type, headers=headers),
+    )
+
+
+# ── Post CRUD ─────────────────────────────────────────────────────────────────
+
 @bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
-    """
-    Create a new post. New posts are set to 'pending' and must be
-    approved by an admin before appearing in the public feed.
-    """
     form = CreatePostForm()
-
     subjects = Subject.query.filter_by(is_active=True).order_by(Subject.order, Subject.name).all()
     form.subject.choices = [(0, 'Select a subject (optional)')] + [(s.id, s.name) for s in subjects]
 
@@ -69,7 +154,7 @@ def create():
             title=form.title.data,
             description=form.description.data,
             author=current_user,
-            status='pending',               # ← all new posts start as pending
+            status='pending',
         )
 
         if form.subject.data and form.subject.data != 0:
@@ -86,11 +171,10 @@ def create():
                     db.session.add(document)
                     db.session.flush()
                     post.has_document = True
-                    post.document_id = document.id
+                    post.document_id  = document.id
 
         db.session.add(post)
         db.session.commit()
-
         flash(
             'Your post has been submitted and is awaiting admin approval. '
             'It will appear in the feed once reviewed.',
@@ -98,25 +182,20 @@ def create():
         )
         return redirect(url_for('main.index'))
 
-    return render_template('posts/create.html', title='Create Post', form=form)
+    return render_template('posts/create.html', title='Create Post', form=form,
+                           show_pricing=_pricing_allowed())
 
 
 @bp.route('/<int:post_id>')
 def view(post_id):
-    """
-    View a single post. Author can always view their own post regardless
-    of status; others only see approved posts.
-    """
     post = Post.query.get_or_404(post_id)
 
-    # Non-authors can only view approved posts
     if post.status != 'approved':
         if not current_user.is_authenticated or current_user.id != post.user_id:
             flash('This post is not available.', 'warning')
             return redirect(url_for('main.index'))
 
     comment_form = CommentForm()
-
     page = request.args.get('page', 1, type=int)
     comments = post.comments.order_by(Comment.created_at.desc()).paginate(
         page=page,
@@ -134,10 +213,6 @@ def view(post_id):
 @bp.route('/<int:post_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit(post_id):
-    """
-    Edit an existing post (only by the author).
-    Re-submitting an approved post resets it to pending for re-review.
-    """
     post = Post.query.get_or_404(post_id)
 
     if post.author != current_user:
@@ -145,63 +220,99 @@ def edit(post_id):
         return redirect(url_for('posts.view', post_id=post.id))
 
     form = CreatePostForm()
-
     subjects = Subject.query.filter_by(is_active=True).order_by(Subject.order, Subject.name).all()
     form.subject.choices = [(0, 'Select a subject (optional)')] + [(s.id, s.name) for s in subjects]
 
     if form.validate_on_submit():
-        post.title = form.title.data
-        post.description = form.description.data
-        post.status = 'pending'             # ← edited posts go back to pending
-        post.rejection_reason = None        # clear any previous rejection reason
+        post.title            = form.title.data
+        post.description      = form.description.data
+        post.status           = 'pending'
+        post.rejection_reason = None
 
-        old_subject_id = post.subject_id
-        if form.subject.data and form.subject.data != 0:
-            post.subject_id = form.subject.data
-        else:
-            post.subject_id = None
+        old_subject_id  = post.subject_id
+        post.subject_id = form.subject.data if (form.subject.data and form.subject.data != 0) else None
 
         if old_subject_id != post.subject_id:
             if old_subject_id:
-                old_subject = db.session.get(Subject, old_subject_id)
-                if old_subject:
-                    old_subject.post_count = old_subject.posts.count()
+                old_sub = db.session.get(Subject, old_subject_id)
+                if old_sub:
+                    old_sub.post_count = old_sub.posts.count()
             if post.subject_id:
-                new_subject = db.session.get(Subject, post.subject_id)
-                if new_subject:
-                    new_subject.post_count = new_subject.posts.count() + 1
+                new_sub = db.session.get(Subject, post.subject_id)
+                if new_sub:
+                    new_sub.post_count = new_sub.posts.count() + 1
 
-        if form.document.data and form.document.data.filename:
+        # Validate price only if this user is allowed to set pricing
+        if _pricing_allowed() and form.is_paid.data:
+            try:
+                submitted_price = float(form.price.data) if form.price.data else 0.0
+            except (ValueError, TypeError):
+                submitted_price = 0.0
+
+            if submitted_price <= 0:
+                flash('Please enter a valid price greater than 0 for paid documents.', 'danger')
+                return render_template('posts/edit.html', title='Edit Post', form=form,
+                                       post=post, show_pricing=_pricing_allowed())
+
+            final_is_paid = True
+            final_price   = round(submitted_price, 2)
+        else:
+            # Regular user — keep existing paid status if it was set by admin,
+            # or force free if there was no existing document.
+            if post.document:
+                final_is_paid = post.document.is_paid
+                final_price   = post.document.price
+            else:
+                final_is_paid = False
+                final_price   = 0.0
+
+        new_file = form.document.data
+        if new_file and new_file.filename:
+            if not allowed_file(new_file.filename, current_app.config['ALLOWED_DOCUMENT_EXTENSIONS']):
+                flash('Invalid file type.', 'danger')
+                return render_template('posts/edit.html', title='Edit Post', form=form,
+                                       post=post, show_pricing=_pricing_allowed())
+
             if post.document:
                 delete_document_from_cloudinary(post.document)
                 db.session.delete(post.document)
+                db.session.flush()
 
-            file = form.document.data
-            if allowed_file(file.filename, current_app.config['ALLOWED_DOCUMENT_EXTENSIONS']):
-                document = upload_document_to_cloudinary(file, form)
-                if document:
-                    db.session.add(document)
-                    db.session.flush()
-                    post.has_document = True
-                    post.document_id = document.id
+            document = upload_document_to_cloudinary(new_file, form)
+            if document:
+                document.is_paid = final_is_paid
+                document.price   = final_price
+                db.session.add(document)
+                db.session.flush()
+                post.has_document = True
+                post.document_id  = document.id
+
+        elif post.document:
+            # No new file — update pricing only if allowed
+            if _pricing_allowed():
+                post.document.is_paid = final_is_paid
+                post.document.price   = final_price
 
         db.session.commit()
         flash('Your post has been updated and is awaiting re-approval.', 'info')
         return redirect(url_for('posts.view', post_id=post.id))
 
     elif request.method == 'GET':
-        form.title.data = post.title
+        form.title.data       = post.title
         form.description.data = post.description
         if post.subject_id:
             form.subject.data = post.subject_id
+        if post.document:
+            form.is_paid.data = post.document.is_paid
+            form.price.data   = post.document.price if post.document.is_paid else None
 
-    return render_template('posts/edit.html', title='Edit Post', form=form, post=post)
+    return render_template('posts/edit.html', title='Edit Post', form=form,
+                           post=post, show_pricing=_pricing_allowed())
 
 
 @bp.route('/<int:post_id>/delete', methods=['POST'])
 @login_required
 def delete(post_id):
-    """Delete a post (only by the author)."""
     post = Post.query.get_or_404(post_id)
 
     if post.author != current_user:
@@ -213,17 +324,16 @@ def delete(post_id):
 
     db.session.delete(post)
     db.session.commit()
-
     flash('Your post has been deleted.', 'success')
     return redirect(url_for('main.index'))
 
 
+# ── Social actions ────────────────────────────────────────────────────────────
+
 @bp.route('/<int:post_id>/like', methods=['POST'])
 @login_required
 def like(post_id):
-    """Like or unlike a post."""
     post = Post.query.get_or_404(post_id)
-
     existing_like = Like.query.filter_by(user_id=current_user.id, post_id=post.id).first()
 
     if existing_like:
@@ -231,8 +341,7 @@ def like(post_id):
         db.session.commit()
         flash('Post unliked.', 'info')
     else:
-        new_like = Like(user_id=current_user.id, post_id=post.id)
-        db.session.add(new_like)
+        db.session.add(Like(user_id=current_user.id, post_id=post.id))
         db.session.commit()
         flash('Post liked!', 'success')
 
@@ -242,27 +351,26 @@ def like(post_id):
 @bp.route('/<int:post_id>/comment', methods=['POST'])
 @login_required
 def comment(post_id):
-    """Add a comment to a post."""
     post = Post.query.get_or_404(post_id)
     form = CommentForm()
 
     if form.validate_on_submit():
-        new_comment = Comment(
+        db.session.add(Comment(
             content=form.content.data,
             author=current_user,
-            post=post
-        )
-        db.session.add(new_comment)
+            post=post,
+        ))
         db.session.commit()
         flash('Your comment has been posted!', 'success')
 
     return redirect(url_for('posts.view', post_id=post.id))
 
 
+# ── Document routes ───────────────────────────────────────────────────────────
+
 @bp.route('/document/<int:document_id>/download')
 @login_required
 def download_document(document_id):
-    """Download a document from Cloudinary."""
     document = Document.query.get_or_404(document_id)
 
     if not document.has_access(current_user):
@@ -272,51 +380,72 @@ def download_document(document_id):
     document.download_count += 1
     db.session.commit()
 
-    image_types = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    body, kwargs = _stream_from_cloudinary(document, as_attachment=True)
+    if body is None:
+        flash('Could not fetch file from storage. Please try again.', 'danger')
+        return redirect(url_for('posts.view', post_id=document.post.id))
 
-    if document.file_type.lower() in image_types:
-        download_url = document.file_path.replace('/upload/', '/upload/fl_attachment/')
-    else:
-        download_url = document.file_path.replace('/raw/upload/', '/raw/upload/fl_attachment/')
-
-    return redirect(download_url)
+    return Response(body, **kwargs)
 
 
 @bp.route('/document/<int:document_id>/preview')
 @login_required
 def preview_document(document_id):
-    """Preview a document inline via its Cloudinary URL."""
     document = Document.query.get_or_404(document_id)
 
     if not document.has_access(current_user):
-        flash('You need to purchase this document to view it.', 'warning')
-        return redirect(url_for('payments.checkout', document_id=document.id))
+        return jsonify({'error': 'access_denied'}), 403
 
-    previewable = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'docx', 'pptx', 'doc', 'ppt', 'xlsx', 'xls'}
-    if document.file_type.lower() not in previewable:
-        flash('Preview is only available for PDF and image files.', 'info')
-        return redirect(url_for('posts.download_document', document_id=document.id))
-
-    image_types = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-    pdf_types   = {'pdf'}
-    gdocs_types = {'docx', 'pptx', 'doc', 'ppt', 'xlsx', 'xls'}
+    previewable = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp',
+                   'docx', 'pptx', 'doc', 'ppt', 'xlsx', 'xls'}
     ext = document.file_type.lower()
 
-    if ext in image_types:
-        return redirect(document.file_path)
+    if ext not in previewable:
+        return jsonify({'error': 'not_previewable'}), 400
 
-    elif ext in pdf_types:
-        inline_url = document.file_path.replace('/raw/upload/', '/raw/upload/fl_inline/')
-        return redirect(inline_url)
+    if ext in {'png', 'jpg', 'jpeg', 'gif', 'webp'}:
+        return jsonify({'type': 'image', 'url': document.file_path}), 200
 
-    elif ext in gdocs_types:
-        import urllib.parse
-        viewer_url = 'https://docs.google.com/viewer?embedded=true&url=' + urllib.parse.quote(document.file_path, safe='')
-        from flask import json
-        return current_app.response_class(
-            response=json.dumps({'viewer_url': viewer_url, 'type': 'gdocs'}),
-            status=200,
-            mimetype='application/json'
-        )
+    expires = int(time.time()) + 300
+    secret  = current_app.config['SECRET_KEY'].encode()
+    token   = _signed_proxy_token(document_id, expires, secret)
 
-    return redirect(document.file_path)
+    proxy_url = url_for(
+        'posts.proxy_document',
+        document_id=document.id,
+        token=token,
+        expires=expires,
+        _external=True,
+    )
+    viewer_url = (
+        'https://docs.google.com/viewer?embedded=true&url='
+        + urllib.parse.quote(proxy_url, safe='')
+    )
+    return jsonify({'type': 'gdocs', 'viewer_url': viewer_url}), 200
+
+
+@bp.route('/document/<int:document_id>/proxy')
+def proxy_document(document_id):
+    token   = request.args.get('token', '')
+    expires = request.args.get('expires', '')
+
+    try:
+        exp_ts = int(expires)
+    except (ValueError, TypeError):
+        return 'Bad request', 400
+
+    if int(time.time()) > exp_ts:
+        return 'Preview link expired — please click Preview again', 410
+
+    secret   = current_app.config['SECRET_KEY'].encode()
+    expected = _signed_proxy_token(document_id, exp_ts, secret)
+    if not hmac.compare_digest(expected, token):
+        return 'Forbidden', 403
+
+    document = Document.query.get_or_404(document_id)
+
+    body, kwargs = _stream_from_cloudinary(document, as_attachment=False)
+    if body is None:
+        return 'Could not fetch file from storage', 502
+
+    return Response(body, **kwargs)

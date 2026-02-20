@@ -69,12 +69,14 @@ class User(UserMixin, db.Model):
     # Account metadata
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
-
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)  # ← add this
+    
     # Relationships
     posts = db.relationship('Post', backref='author', lazy='dynamic', cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='author', lazy='dynamic', cascade='all, delete-orphan')
     likes = db.relationship('Like', backref='user', lazy='dynamic', cascade='all, delete-orphan')
 
+    
     # Self-referential many-to-many for follows
     following = db.relationship(
         'User',
@@ -148,9 +150,11 @@ class Post(db.Model):
 
     comments = db.relationship('Comment', backref='post', lazy='dynamic', cascade='all, delete-orphan')
     likes = db.relationship('Like', backref='post', lazy='dynamic', cascade='all, delete-orphan')
-    document = db.relationship('Document', backref='post', uselist=False)
+    # FIXED: use back_populates + explicit foreign_keys to avoid ambiguity
+    document = db.relationship('Document', back_populates='post', foreign_keys=[document_id], uselist=False)
     status = db.Column(db.String(20), nullable=False, default='pending')
     rejection_reason = db.Column(db.Text, nullable=True)
+
     def like_count(self):
         return self.likes.count()
 
@@ -221,6 +225,9 @@ class Document(db.Model):
     price = db.Column(db.Float, default=0.0)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     download_count = db.Column(db.Integer, default=0)
+
+    # FIXED: explicit reverse side of the Post.document relationship
+    post = db.relationship('Post', back_populates='document', foreign_keys='Post.document_id', uselist=False)
 
     def has_access(self, user):
         """

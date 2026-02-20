@@ -2,6 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from config import Config
+from flask_migrate import Migrate
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -19,6 +20,8 @@ def create_app(config_class=Config):
     # Initialize extensions with app
     db.init_app(app)
     login_manager.init_app(app)
+    migrate = Migrate(app, db)  # ← add this after db is initialized
+
 
     # Initialize Cloudinary
     import cloudinary

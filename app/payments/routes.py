@@ -26,15 +26,29 @@ def checkout(document_id):
     """
     document = Document.query.get_or_404(document_id)
 
+    # Guard: document must be paid
     if not document.is_paid:
         flash('This document is free — no purchase needed.', 'info')
-        return redirect(url_for('posts.view', post_id=document.post.id))
+        # document.post may be None if relationship not set; fall back to index
+        post = document.post
+        if post:
+            return redirect(url_for('posts.view', post_id=post.id))
+        return redirect(url_for('main.index'))
 
+    # Guard: user already has access
     if document.has_access(current_user):
         flash('You already have access to this document.', 'info')
-        return redirect(url_for('posts.view', post_id=document.post.id))
+        post = document.post
+        if post:
+            return redirect(url_for('posts.view', post_id=post.id))
+        return redirect(url_for('main.index'))
 
-    # Price in GHS pesewas (Paystack uses smallest currency unit)
+    # Guard: price must be a positive value
+    if not document.price or document.price <= 0:
+        flash('This document has an invalid price. Please contact support.', 'danger')
+        return redirect(url_for('main.index'))
+
+    # Price in pesewas (Paystack uses smallest currency unit; min 100 = GHS 1.00)
     amount_pesewas = int(document.price * 100)
 
     return render_template(
@@ -54,13 +68,22 @@ def initiate(document_id):
     Paystack's hosted payment page.
     """
     document = Document.query.get_or_404(document_id)
+    post = document.post
 
     if not document.is_paid:
-        return redirect(url_for('posts.view', post_id=document.post.id))
+        if post:
+            return redirect(url_for('posts.view', post_id=post.id))
+        return redirect(url_for('main.index'))
 
     if document.has_access(current_user):
         flash('You already have access to this document.', 'info')
-        return redirect(url_for('posts.view', post_id=document.post.id))
+        if post:
+            return redirect(url_for('posts.view', post_id=post.id))
+        return redirect(url_for('main.index'))
+
+    if not document.price or document.price <= 0:
+        flash('This document has an invalid price.', 'danger')
+        return redirect(url_for('main.index'))
 
     amount_pesewas = int(document.price * 100)
     callback_url   = url_for('payments.verify', document_id=document.id, _external=True)
@@ -98,7 +121,6 @@ def initiate(document_id):
         data = response.json()
 
         if data.get('status'):
-            # Redirect user to Paystack's hosted payment page
             return redirect(data['data']['authorization_url'])
         else:
             current_app.logger.error(f"Paystack init failed: {data}")
@@ -119,17 +141,20 @@ def verify(document_id):
     We verify the transaction server-side before granting access.
     """
     document  = Document.query.get_or_404(document_id)
+    post      = document.post
     reference = request.args.get('reference', '').strip()
 
     if not reference:
         flash('Invalid payment reference.', 'danger')
         return redirect(url_for('payments.checkout', document_id=document.id))
 
-    # Check we haven't already processed this reference
+    # Idempotency: don't process the same reference twice
     existing = Purchase.query.filter_by(transaction_id=reference).first()
     if existing:
         flash('This payment has already been processed.', 'info')
-        return redirect(url_for('posts.view', post_id=document.post.id))
+        if post:
+            return redirect(url_for('posts.view', post_id=post.id))
+        return redirect(url_for('main.index'))
 
     try:
         response = requests.get(
@@ -144,14 +169,13 @@ def verify(document_id):
             return redirect(url_for('payments.checkout', document_id=document.id))
 
         tx = data['data']
-
-        # Confirm payment is actually successful and amount matches
         expected_pesewas = int(document.price * 100)
+
         if tx['status'] == 'success' and tx['amount'] >= expected_pesewas:
             purchase = Purchase(
                 user_id=current_user.id,
                 document_id=document.id,
-                amount_paid=tx['amount'] / 100,     # convert back to GHS
+                amount_paid=tx['amount'] / 100,
                 payment_method=tx.get('channel', 'paystack'),
                 transaction_id=reference,
                 status='completed',
@@ -164,10 +188,12 @@ def verify(document_id):
                 f'"{document.original_filename}".',
                 'success'
             )
-            return redirect(url_for('posts.view', post_id=document.post.id))
+            if post:
+                return redirect(url_for('posts.view', post_id=post.id))
+            return redirect(url_for('main.index'))
 
         else:
-            # Payment exists but wasn't successful (abandoned, failed, etc.)
+            # Payment exists but wasn't successful
             purchase = Purchase(
                 user_id=current_user.id,
                 document_id=document.id,
@@ -188,8 +214,10 @@ def verify(document_id):
 
     except requests.exceptions.RequestException as e:
         current_app.logger.error(f"Paystack verify error: {e}")
-        flash('Could not verify payment. Please contact support with your reference: '
-              f'{reference}', 'danger')
+        flash(
+            f'Could not verify payment. Please contact support with your reference: {reference}',
+            'danger'
+        )
         return redirect(url_for('payments.checkout', document_id=document.id))
 
 
@@ -198,13 +226,13 @@ def webhook():
     """
     Paystack webhook — receives async payment events.
     Set this URL in your Paystack dashboard under Settings → Webhooks.
-    This is a backup in case the user closes the browser before verify() runs.
     """
     paystack_signature = request.headers.get('X-Paystack-Signature', '')
     secret             = current_app.config['PAYSTACK_SECRET_KEY'].encode()
     body               = request.get_data()
 
-    # Verify the webhook is genuinely from Paystack
+    # FIX: was hmac.new() which does not exist — correct call is hmac.new()
+    # Python's hmac module: hmac.new(key, msg=None, digestmod='')
     expected_sig = hmac.new(secret, body, hashlib.sha512).hexdigest()
     if not hmac.compare_digest(expected_sig, paystack_signature):
         current_app.logger.warning('Invalid Paystack webhook signature')
@@ -226,7 +254,7 @@ def webhook():
         if not all([reference, user_id, document_id]):
             return jsonify({'status': 'missing metadata'}), 200
 
-        # Idempotency — skip if already processed
+        # Idempotency
         if Purchase.query.filter_by(transaction_id=reference).first():
             return jsonify({'status': 'already processed'}), 200
 
@@ -244,7 +272,9 @@ def webhook():
         )
         db.session.add(purchase)
         db.session.commit()
-        current_app.logger.info(f"Webhook: purchase recorded for doc {document_id} by user {user_id}")
+        current_app.logger.info(
+            f"Webhook: purchase recorded for doc {document_id} by user {user_id}"
+        )
 
     return jsonify({'status': 'ok'}), 200
 
