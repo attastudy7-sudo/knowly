@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
 
@@ -10,6 +11,7 @@ from config import Config
 db = SQLAlchemy()
 login_manager = LoginManager()
 mail = Mail()
+csrf = CSRFProtect()
 
 
 def register_error_handlers(app):
@@ -29,6 +31,15 @@ def register_error_handlers(app):
         return render_template('errors/404.html'), 500
 
 
+def register_template_context(app):
+    @app.context_processor
+    def inject_template_defaults():
+        return dict(
+            show_suggestions=False,
+            suggested_users={'same_school': [], 'same_programme': [], 'random': []}
+        )
+
+
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -40,6 +51,7 @@ def create_app(config_class=Config):
     db.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
+    csrf.init_app(app)
     Migrate(app, db)
 
     # ── Cloudinary ────────────────────────────────────────────────────────────
@@ -122,9 +134,6 @@ def create_app(config_class=Config):
     from app import routes
     app.register_blueprint(routes.bp)
 
-    from flask_wtf.csrf import CSRFProtect
-    csrf = CSRFProtect(app)
-
     # ── Database ──────────────────────────────────────────────────────────────
     with app.app_context():
         try:
@@ -133,6 +142,7 @@ def create_app(config_class=Config):
             print(f"Database already initialized: {e}")
 
     register_error_handlers(app)
+    register_template_context(app)
     return app
 
 

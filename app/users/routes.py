@@ -38,8 +38,9 @@ def save_education():
     if programme:
         current_user.programme = programme
     db.session.commit()
-    return redirect(request.referrer or url_for('main.feed_route'))
-
+    response = redirect(request.referrer or url_for('main.explore'))
+    response.delete_cookie('education_skipped')  # let the overlay reappear if they revisit
+    return response
 
 @bp.route('/edit-profile', methods=['GET', 'POST'])
 @login_required

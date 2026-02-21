@@ -87,7 +87,6 @@
 
     /* ── NAV RIGHT ── */
     .nav-right { display: flex; align-items: center; gap: 0.375rem; margin-left: auto; flex-shrink: 0; min-width: 0; }
-    /* Ensure nav buttons are never resized by page-level .btn rules */
     .nav-right > * { flex-shrink: 0; box-sizing: border-box; }
     .nav-icon-btn { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; color: #6b7280; text-decoration: none; background: transparent; border: 1.5px solid transparent; transition: all 0.18s ease; cursor: pointer; }
     .nav-icon-btn:hover { background: #f3f4f6; color: var(--primary); border-color: rgba(99,102,241,0.18); }
@@ -110,6 +109,34 @@
     .profile-dropdown { display: none; position: absolute; top: calc(100% + 10px); right: 0; width: 230px; background: #fff; border: 1px solid rgba(99,102,241,0.12); border-radius: 16px; box-shadow: 0 8px 32px rgba(99,102,241,0.14), 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; z-index: 300; animation: navDropIn 0.2s cubic-bezier(0.16,1,0.3,1); transform-origin: top right; }
     .profile-dropdown.open { display: block; }
     @keyframes navDropIn { from { opacity:0; transform: scale(0.94) translateY(-6px); } to { opacity:1; transform: scale(1) translateY(0); } }
+
+    .suggestion-tabs {
+        display: flex; gap: 0.4rem;
+        margin-bottom: 1rem;
+        background: var(--search-bg, #f3f4f6);
+        padding: 0.3rem; border-radius: 10px;
+    }
+    .ob-tab {
+        flex: 1; padding: 0.45rem 0.4rem;
+        border: none; background: none;
+        border-radius: 8px; cursor: pointer;
+        font-size: 0.75rem; font-weight: 600;
+        color: #6b7280; transition: all 0.2s;
+        font-family: var(--font-body);
+    }
+    .ob-tab.active { background: var(--primary, #6366f1); color: white; }
+    .sug-list { max-height: 280px; overflow-y: auto; }
+    .sug-list.hidden { display: none; }
+    .sug-item {
+        display: flex; align-items: center;
+        gap: 0.75rem; padding: 0.65rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .sug-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .sug-info { flex: 1; min-width: 0; }
+    .sug-name { display: block; font-weight: 700; font-size: 0.875rem; color: #111827; }
+    .sug-meta { display: block; font-size: 0.72rem; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sug-empty { text-align: center; color: #9ca3af; font-size: 0.875rem; padding: 1.5rem 0; }
 
     .dropdown-header { display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1rem 0.875rem; background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(139,92,246,0.06) 100%); border-bottom: 1px solid rgba(99,102,241,0.08); }
     .dropdown-avatar { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; border: 2px solid rgba(99,102,241,0.18); flex-shrink: 0; }
@@ -144,9 +171,9 @@
     @media (max-width: 768px) { .main-content { padding-bottom: 68px; } }
     {% endif %}
 
-    /* ── BOTTOM NAV — hidden by default, shown only on mobile ── */
+    /* ── BOTTOM NAV ── */
     .bottom-nav {
-        display: none; /* hidden on desktop */
+        display: none;
         position: fixed;
         bottom: 0; left: 0; right: 0;
         z-index: 200;
@@ -161,7 +188,6 @@
         padding: 0 0.25rem;
         gap: 0;
     }
-    /* Only show on mobile */
     @media (max-width: 768px) {
         .bottom-nav { display: grid; }
     }
@@ -344,44 +370,137 @@
     </nav>
     {% endif %}
 
+    {#
+        Education onboarding overlay.
+        Only rendered when the user hasn't set school AND programme yet.
+        Suppression on skip is handled via a cookie (education_skipped=1, expires 30 days)
+        so it reliably survives page refreshes and new tabs — unlike sessionStorage.
+    #}
     {% if current_user.is_authenticated and not current_user.school and not current_user.programme %}
-<div class="onboarding-overlay" id="onboardingOverlay">
-    <div class="onboarding-card">
-        <div class="onboarding-icon">
-            <i class="fas fa-graduation-cap"></i>
+    <div class="onboarding-overlay" id="onboardingOverlay">
+        <div class="onboarding-card">
+            <div class="onboarding-icon">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h2>Complete Your Profile</h2>
+            <p>Tell us where you study so you can connect with students from your school!</p>
+
+            <form method="post" action="{{ url_for('users.save_education') }}" class="onboarding-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- School -->
+                <div class="onboarding-field">
+                    <label><i class="fas fa-university"></i> School / University</label>
+                    <input type="text" id="ob-school-search" placeholder="Search your university..." class="ob-input" autocomplete="off">
+                    <input type="hidden" name="school" id="ob-school-value">
+                    <div class="ob-dropdown" id="ob-school-dropdown"></div>
+                </div>
+
+                <!-- Programme -->
+                <div class="onboarding-field">
+                    <label><i class="fas fa-book"></i> Programme / Course</label>
+                    <input type="text" id="ob-programme-search" placeholder="Search your programme..." class="ob-input" autocomplete="off">
+                    <input type="hidden" name="programme" id="ob-programme-value">
+                    <div class="ob-dropdown" id="ob-programme-dropdown"></div>
+                </div>
+
+                <button type="submit" class="ob-submit">Save & Continue</button>
+                <button type="button" class="ob-skip" onclick="skipOnboarding()">Skip for now</button>
+            </form>
         </div>
-        <h2>Complete Your Profile</h2>
-        <p>Tell us where you study so you can connect with students from your school!</p>
-
-        <form method="post" action="{{ url_for('users.save_education') }}" class="onboarding-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-            <!-- School -->
-            <div class="onboarding-field">
-                <label><i class="fas fa-university"></i> School / University</label>
-                <input type="text" id="ob-school-search" placeholder="Search your university..." class="ob-input" autocomplete="off">
-                <input type="hidden" name="school" id="ob-school-value">
-                <div class="ob-dropdown" id="ob-school-dropdown"></div>
-            </div>
-
-            <!-- Programme -->
-            <div class="onboarding-field">
-                <label><i class="fas fa-book"></i> Programme / Course</label>
-                <input type="text" id="ob-programme-search" placeholder="Search your programme..." class="ob-input" autocomplete="off">
-                <input type="hidden" name="programme" id="ob-programme-value">
-                <div class="ob-dropdown" id="ob-programme-dropdown"></div>
-            </div>
-
-            <button type="submit" class="ob-submit">Save & Continue</button>
-            <button type="button" class="ob-skip" onclick="skipOnboarding()">Skip for now</button>
-        </form>
     </div>
-</div>
-{% endif %}
+    {% endif %}
+
+    {#
+        People-you-might-know overlay.
+        `show_suggestions` is set server-side (in main.py) and flipped to False
+        after the first view via session['suggestions_shown'], so this block only
+        renders once per login session regardless of page refreshes.
+    #}
+    {% if current_user.is_authenticated and show_suggestions %}
+    <div class="onboarding-overlay" id="suggestionOverlay">
+        <div class="onboarding-card">
+            <div class="onboarding-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <h2>People you might know 👋🏽</h2>
+            <p>Connect with students from your school or programme</p>
+
+            <div class="suggestion-tabs">
+                <button class="ob-tab active" onclick="switchSugTab('school', this)">
+                    <i class="fas fa-university"></i> Same School
+                </button>
+                <button class="ob-tab" onclick="switchSugTab('programme', this)">
+                    <i class="fas fa-graduation-cap"></i> Same Programme
+                </button>
+                <button class="ob-tab" onclick="switchSugTab('random', this)">
+                    <i class="fas fa-random"></i> Discover
+                </button>
+            </div>
+
+            <div class="sug-list" id="sug-school">
+                {% for u in suggested_users.same_school %}
+                <div class="sug-item">
+                    <img src="{{ u.profile_picture_url }}" class="sug-avatar" alt="{{ u.username }}">
+                    <div class="sug-info">
+                        <span class="sug-name">{{ u.full_name or u.username }}</span>
+                        <span class="sug-meta">{{ u.school }}</span>
+                    </div>
+                    <form action="{{ url_for('users.follow', username=u.username) }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="ob-submit" style="padding:0.4rem 1rem;font-size:0.8rem;">Follow</button>
+                    </form>
+                </div>
+                {% else %}
+                <p class="sug-empty">No students from your school yet — be the pioneer! 🚀</p>
+                {% endfor %}
+            </div>
+
+            <div class="sug-list hidden" id="sug-programme">
+                {% for u in suggested_users.same_programme %}
+                <div class="sug-item">
+                    <img src="{{ u.profile_picture_url }}" class="sug-avatar" alt="{{ u.username }}">
+                    <div class="sug-info">
+                        <span class="sug-name">{{ u.full_name or u.username }}</span>
+                        <span class="sug-meta">{{ u.programme }}</span>
+                    </div>
+                    <form action="{{ url_for('users.follow', username=u.username) }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="ob-submit" style="padding:0.4rem 1rem;font-size:0.8rem;">Follow</button>
+                    </form>
+                </div>
+                {% else %}
+                <p class="sug-empty">No one from your programme yet!</p>
+                {% endfor %}
+            </div>
+
+            <div class="sug-list hidden" id="sug-random">
+                {% for u in suggested_users.random %}
+                <div class="sug-item">
+                    <img src="{{ u.profile_picture_url }}" class="sug-avatar" alt="{{ u.username }}">
+                    <div class="sug-info">
+                        <span class="sug-name">{{ u.full_name or u.username }}</span>
+                        <span class="sug-meta">@{{ u.username }}</span>
+                    </div>
+                    <form action="{{ url_for('users.follow', username=u.username) }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="ob-submit" style="padding:0.4rem 1rem;font-size:0.8rem;">Follow</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" class="ob-skip" onclick="closeSuggestions()">Maybe later</button>
+        </div>
+    </div>
+    {% endif %}
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script>
-    /* ── Dark mode — global so onclick="toggleDarkMode()" works ── */
+    /* ─────────────────────────────────────────────────────────────────────
+       DARK MODE
+       Persisted in localStorage so it survives across sessions/tabs.
+    ───────────────────────────────────────────────────────────────────── */
     function updateDarkToggleUI(theme) {
         const icon  = document.getElementById('darkToggleIcon');
         const label = document.getElementById('darkToggleLabel');
@@ -403,7 +522,7 @@
         updateDarkToggleUI(next);
     }
 
-    /* Apply saved theme immediately before page renders */
+    /* Apply saved theme immediately before first paint */
     (function () {
         const saved = localStorage.getItem('edushare-theme');
         if (saved) {
@@ -412,7 +531,64 @@
         }
     })();
 
-    /* ── Everything else stays scoped ── */
+    /* ─────────────────────────────────────────────────────────────────────
+       COOKIE HELPERS
+       Used instead of sessionStorage so skip/dismiss state persists
+       across page refreshes and new tabs within the same browser.
+    ───────────────────────────────────────────────────────────────────── */
+    function setCookie(name, value, days) {
+        const expires = new Date(Date.now() + days * 864e5).toUTCString();
+        document.cookie = name + '=' + encodeURIComponent(value) +
+                          '; expires=' + expires + '; path=/; SameSite=Lax';
+    }
+
+    function getCookie(name) {
+        return document.cookie.split('; ').reduce(function(acc, part) {
+            const [k, v] = part.split('=');
+            return k === name ? decodeURIComponent(v) : acc;
+        }, null);
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────
+       EDUCATION ONBOARDING OVERLAY
+       Skip sets a 30-day cookie so the overlay won't re-appear on
+       subsequent page loads until the cookie expires or they save their info.
+    ───────────────────────────────────────────────────────────────────── */
+    function skipOnboarding() {
+        document.getElementById('onboardingOverlay').style.display = 'none';
+        setCookie('education_skipped', '1', 30);
+    }
+
+    /* Hide immediately on page load if the user already skipped */
+    (function () {
+        const overlay = document.getElementById('onboardingOverlay');
+        if (overlay && getCookie('education_skipped') === '1') {
+            overlay.style.display = 'none';
+        }
+    })();
+
+    /* ─────────────────────────────────────────────────────────────────────
+       SUGGESTIONS OVERLAY
+       `show_suggestions` is already gated server-side (session flag), so
+       this overlay only reaches the DOM once per login session. The
+       "Maybe later" button simply hides it for the remainder of the page
+       visit — no extra client-side persistence needed.
+    ───────────────────────────────────────────────────────────────────── */
+    function closeSuggestions() {
+        const el = document.getElementById('suggestionOverlay');
+        if (el) el.style.display = 'none';
+    }
+
+    function switchSugTab(tab, btn) {
+        document.querySelectorAll('.sug-list').forEach(function(el) { el.classList.add('hidden'); });
+        document.querySelectorAll('.ob-tab').forEach(function(el) { el.classList.remove('active'); });
+        document.getElementById('sug-' + tab).classList.remove('hidden');
+        btn.classList.add('active');
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────
+       PROFILE DROPDOWN + SCROLL + FLASH AUTO-DISMISS
+    ───────────────────────────────────────────────────────────────────── */
     (function () {
         const trigger  = document.getElementById('profileTrigger');
         const dropdown = document.getElementById('profileDropdown');
@@ -437,7 +613,7 @@
 
         const nav = document.getElementById('topNav');
         if (nav) {
-            const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+            const onScroll = function() { nav.classList.toggle('scrolled', window.scrollY > 8); };
             window.addEventListener('scroll', onScroll, { passive: true });
             onScroll();
         }
@@ -452,84 +628,75 @@
         });
     })();
 
-    function skipOnboarding() {
-    document.getElementById('onboardingOverlay').style.display = 'none';
-    // Remember skip for this session
-    sessionStorage.setItem('education_skipped', '1');
-}
+    /* ─────────────────────────────────────────────────────────────────────
+       AUTOCOMPLETE DROPDOWNS  (school / programme onboarding)
+    ───────────────────────────────────────────────────────────────────── */
+    function setupObDropdown(searchId, dropdownId, valueId, items) {
+        const search   = document.getElementById(searchId);
+        const dropdown = document.getElementById(dropdownId);
+        const value    = document.getElementById(valueId);
+        if (!search) return;
 
-// Don't show again if skipped this session
-if (sessionStorage.getItem('education_skipped')) {
-    const overlay = document.getElementById('onboardingOverlay');
-    if (overlay) overlay.style.display = 'none';
-}
+        search.addEventListener('input', function() {
+            const q = this.value.toLowerCase();
+            const filtered = items.filter(function(i) { return i.toLowerCase().includes(q); });
+            dropdown.innerHTML = '';
+            value.value = this.value;
 
-function setupObDropdown(searchId, dropdownId, valueId, items) {
-    const search = document.getElementById(searchId);
-    const dropdown = document.getElementById(dropdownId);
-    const value = document.getElementById(valueId);
-    if (!search) return;
-
-    search.addEventListener('input', function() {
-        const q = this.value.toLowerCase();
-        const filtered = items.filter(i => i.toLowerCase().includes(q));
-        dropdown.innerHTML = '';
-        value.value = this.value;
-
-        if (filtered.length && q) {
-            filtered.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'ob-dropdown-item';
-                div.textContent = item;
-                div.addEventListener('click', () => {
-                    search.value = item;
-                    value.value = item;
-                    dropdown.classList.remove('open');
+            if (filtered.length && q) {
+                filtered.forEach(function(item) {
+                    const div = document.createElement('div');
+                    div.className = 'ob-dropdown-item';
+                    div.textContent = item;
+                    div.addEventListener('click', function() {
+                        search.value = item;
+                        value.value  = item;
+                        dropdown.classList.remove('open');
+                    });
+                    dropdown.appendChild(div);
                 });
-                dropdown.appendChild(div);
-            });
-            dropdown.classList.add('open');
-        } else {
-            dropdown.classList.remove('open');
-        }
-    });
+                dropdown.classList.add('open');
+            } else {
+                dropdown.classList.remove('open');
+            }
+        });
 
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('#' + searchId) && !e.target.closest('#' + dropdownId)) {
-            dropdown.classList.remove('open');
-        }
-    });
-}
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#' + searchId) && !e.target.closest('#' + dropdownId)) {
+                dropdown.classList.remove('open');
+            }
+        });
+    }
 
-const GHANA_UNIVERSITIES = [
-    "University of Ghana", "KNUST", "University of Cape Coast",
-    "University for Development Studies", "GIMPA", "Ashesi University",
-    "Central University", "Valley View University", "Methodist University Ghana",
-    "UPSA", "GCTU", "Accra Technical University", "Ho Technical University",
-    "Kumasi Technical University", "Takoradi Technical University",
-    "Koforidua Technical University", "Sunyani Technical University",
-    "Cape Coast Technical University", "Wa Technical University",
-    "Bolgatanga Technical University", "University of Health and Allied Sciences",
-    "Ghana Institute of Journalism", "NAFTI", "Regent University College",
-    "C.K. Tedam University", "SD Dombo University", "Other"
-];
+    var GHANA_UNIVERSITIES = [
+        "University of Ghana", "KNUST", "University of Cape Coast",
+        "University for Development Studies", "GIMPA", "Ashesi University",
+        "Central University", "Valley View University", "Methodist University Ghana",
+        "UPSA", "GCTU", "Accra Technical University", "Ho Technical University",
+        "Kumasi Technical University", "Takoradi Technical University",
+        "Koforidua Technical University", "Sunyani Technical University",
+        "Cape Coast Technical University", "Wa Technical University",
+        "Bolgatanga Technical University", "University of Health and Allied Sciences",
+        "Ghana Institute of Journalism", "NAFTI", "Regent University College",
+        "C.K. Tedam University", "SD Dombo University", "Other"
+    ];
 
-const GHANA_PROGRAMMES = [
-    "BSc Computer Science", "BSc Information Technology", "BSc Computer Engineering",
-    "BSc Electrical Engineering", "BSc Mechanical Engineering", "BSc Civil Engineering",
-    "BSc Chemical Engineering", "BA Economics", "BSc Business Administration",
-    "BSc Accounting", "BSc Marketing", "BA English", "BA History",
-    "BSc Mathematics", "BSc Statistics", "BSc Physics", "BSc Chemistry",
-    "BSc Biology", "BSc Biochemistry", "BSc Nursing", "BSc Pharmacy",
-    "MBChB Medicine and Surgery", "LLB Law", "BSc Agriculture",
-    "BSc Education", "BA Communication Studies", "BSc Psychology",
-    "BSc Sociology", "BSc Political Science", "BSc Architecture",
-    "BSc Quantity Surveying", "BSc Land Economy", "MBA",
-    "MSc Computer Science", "MSc Engineering", "Other"
-];
+    var GHANA_PROGRAMMES = [
+        "BSc Computer Science", "BSc Information Technology", "BSc Computer Engineering",
+        "BSc Electrical Engineering", "BSc Mechanical Engineering", "BSc Civil Engineering",
+        "BSc Chemical Engineering", "BA Economics", "BSc Business Administration",
+        "BSc Accounting", "BSc Marketing", "BA English", "BA History",
+        "BSc Mathematics", "BSc Statistics", "BSc Physics", "BSc Chemistry",
+        "BSc Biology", "BSc Biochemistry", "BSc Nursing", "BSc Pharmacy",
+        "MBChB Medicine and Surgery", "LLB Law", "BSc Agriculture",
+        "BSc Education", "BA Communication Studies", "BSc Psychology",
+        "BSc Sociology", "BSc Political Science", "BSc Architecture",
+        "BSc Quantity Surveying", "BSc Land Economy", "MBA",
+        "MSc Computer Science", "MSc Engineering", "Other"
+    ];
 
-setupObDropdown('ob-school-search', 'ob-school-dropdown', 'ob-school-value', GHANA_UNIVERSITIES);
-setupObDropdown('ob-programme-search', 'ob-programme-dropdown', 'ob-programme-value', GHANA_PROGRAMMES);
+    setupObDropdown('ob-school-search',    'ob-school-dropdown',    'ob-school-value',    GHANA_UNIVERSITIES);
+    setupObDropdown('ob-programme-search', 'ob-programme-dropdown', 'ob-programme-value', GHANA_PROGRAMMES);
     </script>
     {% block extra_js %}{% endblock %}
 </body>

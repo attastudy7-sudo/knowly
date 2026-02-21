@@ -15,7 +15,7 @@
 <div class="modern-landing">
 
   <!-- ═══════════════════════════════════════════
-       HERO — UNTOUCHED
+       HERO
   ═══════════════════════════════════════════ -->
   <section class="modern-hero">
     <div class="hero-bg">
@@ -29,26 +29,25 @@
       <div class="hero-content">
         <div class="hero-badge">
           <span class="badge-dot"></span>
-          <span>Join 5,000+ Students Learning Together</span>
+          <span id="hero-badge-text">Now live — join the founding community</span>
         </div>
         <div class="logo hero-logo">
           <i class="fas fa-graduation-cap"></i>
           <span>eDuShare</span>
         </div>
         <h1 class="hero-title">
-          Welcome to Your<br>
-          Study Hub for
+          Your Study Hub for
           <span class="gradient-text-animated">
             <span class="text-rotate" id="rotating-word">Success</span>
           </span>
         </h1>
         <p class="hero-description">
-          Share notes, collaborate with peers, and access thousands of study materials.
-          All in one beautiful platform designed for students, by students.
+          Share notes, collaborate with peers, and access study materials from students across Ghana.
+          Built for students, by students.
         </p>
         <div class="hero-actions">
-          <a href="{{ url_for('auth.login') }}" class="btn-modern primary">
-            <span>Start Learning Free</span>
+          <a href="{{ url_for('auth.signup') }}" class="btn-modern primary">
+            <span>Join Free — Be a Founder</span>
             <i class="fas fa-arrow-right"></i>
           </a>
           <a href="{{ url_for('main.explore') }}" class="btn-modern secondary">
@@ -64,13 +63,14 @@
       </div>
       <div class="hero-visual" id="heroVisual">
         <div class="hub-glow"></div>
+        <!-- Cards updated by JS from /api/stats -->
         <div class="float-card card-1">
           <div class="fc-header">
-            <div class="fc-icon fc-purple"><i class="fas fa-book-open"></i></div>
+            <div class="fc-icon fc-purple"><i class="fas fa-file-alt"></i></div>
             <div class="fc-badge">Live</div>
           </div>
-          <div class="fc-stat">10,000+</div>
-          <div class="fc-label">Study Materials</div>
+          <div class="fc-stat" id="hero-docs">—</div>
+          <div class="fc-label">Documents Shared</div>
           <div class="fc-bar"><div class="fc-bar-fill" style="width:85%"></div></div>
           <div class="fc-sparkline">
             <svg viewBox="0 0 80 28" fill="none">
@@ -88,30 +88,30 @@
           <div class="fc-header">
             <div class="fc-icon fc-pink"><i class="fas fa-users"></i></div>
           </div>
-          <div class="fc-stat">5,000+</div>
-          <div class="fc-label">Active Students</div>
+          <div class="fc-stat" id="hero-users">—</div>
+          <div class="fc-label">Students Joined</div>
           <div class="fc-avatars">
             <div class="fc-av" style="background:linear-gradient(135deg,#667eea,#764ba2)">A</div>
-            <div class="fc-av" style="background:linear-gradient(135deg,#f093fb,#f5576c)">B</div>
-            <div class="fc-av" style="background:linear-gradient(135deg,#4facfe,#00f2fe)">C</div>
-            <div class="fc-av fc-av-more">+49</div>
+            <div class="fc-av" style="background:linear-gradient(135deg,#f093fb,#f5576c)">K</div>
+            <div class="fc-av" style="background:linear-gradient(135deg,#4facfe,#00f2fe)">E</div>
+            <div class="fc-av fc-av-more" id="hero-users-more">+</div>
           </div>
         </div>
         <div class="float-card card-3">
           <div class="fc-icon fc-blue fc-icon-lg"><i class="fas fa-graduation-cap"></i></div>
-          <div class="fc-stat-sm">50+</div>
+          <div class="fc-stat-sm" id="hero-subjects">—</div>
           <div class="fc-label-sm">Subjects</div>
         </div>
         <div class="float-card card-4">
           <div class="fc-header">
             <div class="fc-icon fc-green"><i class="fas fa-heart"></i></div>
-            <span class="fc-trend"><i class="fas fa-arrow-up"></i> 24%</span>
+            <span class="fc-trend"><i class="fas fa-arrow-up"></i> Growing</span>
           </div>
-          <div class="fc-stat">100K+</div>
+          <div class="fc-stat" id="hero-engagements">—</div>
           <div class="fc-label">Engagements</div>
         </div>
         <div class="float-chip chip-1"><i class="fas fa-star"></i> Top Rated</div>
-        <div class="float-chip chip-2"><i class="fas fa-fire"></i> Trending</div>
+        <div class="float-chip chip-2"><i class="fas fa-fire"></i> Growing Fast</div>
         <div class="float-chip chip-3"><i class="fas fa-bolt"></i> Instant</div>
         <div class="orbit orbit-1"><div class="orbit-dot"></div></div>
         <div class="orbit orbit-2"><div class="orbit-dot dot-pink"></div></div>
@@ -124,7 +124,7 @@
   </section>
 
   <!-- ═══════════════════════════════════════════
-       LIVE STATS — wired to real /api/stats
+       LIVE STATS
   ═══════════════════════════════════════════ -->
   <section class="stats-showcase" id="statsSection">
     <div class="container">
@@ -139,25 +139,25 @@
           </div>
         </div>
         <div class="stats-grid-modern">
-          <div class="stat-card-modern" data-stat="documents">
+          <div class="stat-card-modern">
             <div class="stat-icon-wrapper purple"><i class="fas fa-file-alt"></i></div>
             <div class="stat-number" id="stat-docs">—</div>
             <div class="stat-label">Documents Shared</div>
             <div class="stat-bar"><div class="stat-progress stat-progress-docs"></div></div>
           </div>
-          <div class="stat-card-modern" data-stat="users">
+          <div class="stat-card-modern">
             <div class="stat-icon-wrapper pink"><i class="fas fa-users"></i></div>
             <div class="stat-number" id="stat-users">—</div>
-            <div class="stat-label">Active Students</div>
+            <div class="stat-label">Students Joined</div>
             <div class="stat-bar"><div class="stat-progress stat-progress-users"></div></div>
           </div>
-          <div class="stat-card-modern" data-stat="subjects">
+          <div class="stat-card-modern">
             <div class="stat-icon-wrapper blue"><i class="fas fa-graduation-cap"></i></div>
             <div class="stat-number" id="stat-subjects">—</div>
             <div class="stat-label">Subject Categories</div>
             <div class="stat-bar"><div class="stat-progress stat-progress-subjects"></div></div>
           </div>
-          <div class="stat-card-modern" data-stat="engagements">
+          <div class="stat-card-modern">
             <div class="stat-icon-wrapper green"><i class="fas fa-heart"></i></div>
             <div class="stat-number" id="stat-engagements">—</div>
             <div class="stat-label">Total Engagements</div>
@@ -169,7 +169,63 @@
   </section>
 
   <!-- ═══════════════════════════════════════════
-       HOW IT WORKS — replaces fake testimonials
+       FOUNDER MOMENT — replaces fake testimonials
+  ═══════════════════════════════════════════ -->
+  <section class="founder-section">
+    <div class="container">
+      <div class="founder-inner">
+        <div class="founder-badge-col">
+          <div class="founder-badge-wrap">
+            <div class="founder-badge-icon"><i class="fas fa-rocket"></i></div>
+            <div class="founder-badge-label">Early Access</div>
+          </div>
+          <div class="founder-badge-wrap">
+            <div class="founder-badge-icon founder-badge-icon--gold"><i class="fas fa-medal"></i></div>
+            <div class="founder-badge-label">Founder Badge</div>
+          </div>
+          <div class="founder-badge-wrap">
+            <div class="founder-badge-icon founder-badge-icon--teal"><i class="fas fa-star"></i></div>
+            <div class="founder-badge-label">First Mover</div>
+          </div>
+        </div>
+        <div class="founder-content">
+          <span class="section-badge badge-amber">Founding Community</span>
+          <h2 class="section-title">Be part of something from day one</h2>
+          <p class="founder-desc">
+            eDuShare is brand new — and that's the point. The students who join now shape what this
+            platform becomes. Your uploads will be the first notes a freshman finds. Your follows
+            will define the early social graph. Early members get a permanent <strong>Founder Badge</strong>
+            on their profile.
+          </p>
+          <div class="founder-perks">
+            <div class="founder-perk">
+              <i class="fas fa-check-circle"></i>
+              <span>Permanent Founder Badge on your profile</span>
+            </div>
+            <div class="founder-perk">
+              <i class="fas fa-check-circle"></i>
+              <span>First access to every new feature we ship</span>
+            </div>
+            <div class="founder-perk">
+              <i class="fas fa-check-circle"></i>
+              <span>Shape the platform — your feedback gets acted on</span>
+            </div>
+            <div class="founder-perk">
+              <i class="fas fa-check-circle"></i>
+              <span>Free forever — no bait and switch</span>
+            </div>
+          </div>
+          <a href="{{ url_for('auth.signup') }}" class="btn-modern primary" style="display:inline-flex;margin-top:2rem;">
+            <span>Claim Your Founder Spot</span>
+            <i class="fas fa-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       HOW IT WORKS
   ═══════════════════════════════════════════ -->
   <section class="how-it-works">
     <div class="container">
@@ -183,7 +239,7 @@
           <div class="step-number">01</div>
           <div class="step-icon-wrap"><i class="fas fa-user-plus"></i></div>
           <h3 class="step-title">Create Your Account</h3>
-          <p class="step-desc">Sign up with your school email in under 30 seconds. Your profile is your academic identity on eDuShare.</p>
+          <p class="step-desc">Sign up in under 30 seconds. Your profile is your academic identity on eDuShare.</p>
           <div class="step-cta-pill">Free forever</div>
         </div>
         <div class="step-connector">
@@ -194,7 +250,7 @@
           <div class="step-number">02</div>
           <div class="step-icon-wrap featured"><i class="fas fa-compass"></i></div>
           <h3 class="step-title">Explore & Follow</h3>
-          <p class="step-desc">Browse subjects, discover top notes, and follow students sharing content in your courses. Your feed builds itself.</p>
+          <p class="step-desc">Browse subjects, discover notes, and follow students sharing content in your courses.</p>
           <div class="step-cta-pill featured">50+ subjects</div>
         </div>
         <div class="step-connector">
@@ -205,7 +261,7 @@
           <div class="step-number">03</div>
           <div class="step-icon-wrap"><i class="fas fa-upload"></i></div>
           <h3 class="step-title">Share & Grow</h3>
-          <p class="step-desc">Upload your notes, past papers, and summaries. Build a following and earn recognition for your knowledge.</p>
+          <p class="step-desc">Upload your notes, past papers, and summaries. Build a following and earn recognition.</p>
           <div class="step-cta-pill">Build your rep</div>
         </div>
       </div>
@@ -213,7 +269,7 @@
   </section>
 
   <!-- ═══════════════════════════════════════════
-       BENTO FEATURES — polished from original
+       BENTO FEATURES
   ═══════════════════════════════════════════ -->
   <section class="bento-features">
     <div class="container">
@@ -254,7 +310,7 @@
               <div class="avatar-circle"></div>
               <div class="avatar-circle"></div>
               <div class="avatar-circle"></div>
-              <div class="avatar-plus">+12</div>
+              <div class="avatar-plus">+</div>
             </div>
           </div>
         </div>
@@ -290,12 +346,9 @@
       <div class="section-header">
         <span class="section-badge badge-amber">Coming Soon</span>
         <h2 class="section-title">What we're building next</h2>
-        <p class="section-subtitle">eDuShare is growing fast. Here's a peek at what's on the way — sign up now to be the first to access every feature the moment it drops.</p>
+        <p class="section-subtitle">eDuShare is growing fast. Sign up now to be first in line when each feature drops.</p>
       </div>
-
       <div class="roadmap-grid">
-
-        <!-- Phase 1 — live soon -->
         <div class="roadmap-card phase-1">
           <div class="roadmap-phase-tag">Dropping Q1 2026</div>
           <div class="roadmap-card-inner">
@@ -305,11 +358,11 @@
               <div class="rm-icon rm-blue"><i class="fas fa-bookmark"></i></div>
             </div>
             <h3 class="roadmap-title">Gamification & Streaks</h3>
-            <p class="roadmap-desc">Earn XP for every upload, like, and comment. Build daily streaks, climb the leaderboard, and unlock badges that show off your dedication.</p>
+            <p class="roadmap-desc">Earn XP for every upload, like, and comment. Build daily streaks, climb the leaderboard, and unlock badges.</p>
             <ul class="roadmap-features">
               <li><i class="fas fa-check-circle"></i> Daily login streaks with XP rewards</li>
               <li><i class="fas fa-check-circle"></i> Weekly leaderboards by subject</li>
-              <li><i class="fas fa-check-circle"></i> Bookmark library — save notes for exam prep</li>
+              <li><i class="fas fa-check-circle"></i> Bookmark library for exam prep</li>
               <li><i class="fas fa-check-circle"></i> Multi-emoji reactions on posts</li>
             </ul>
             <div class="roadmap-status">
@@ -318,8 +371,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Phase 2 — monetisation -->
         <div class="roadmap-card phase-2">
           <div class="roadmap-phase-tag tag-teal">Q3 2026</div>
           <div class="roadmap-card-inner">
@@ -329,11 +380,11 @@
               <div class="rm-icon rm-amber"><i class="fas fa-bell"></i></div>
             </div>
             <h3 class="roadmap-title">Study Groups & Creator Payouts</h3>
-            <p class="roadmap-desc">Form private study circles with your classmates. And for the top creators — start earning real money from your notes with our payout system.</p>
+            <p class="roadmap-desc">Private study circles with classmates. Top creators start earning real money from their notes.</p>
             <ul class="roadmap-features">
               <li><i class="fas fa-check-circle"></i> Private & public study groups</li>
               <li><i class="fas fa-check-circle"></i> Sell your notes — earn 80% of every sale</li>
-              <li><i class="fas fa-check-circle"></i> Push notifications so you never miss a post</li>
+              <li><i class="fas fa-check-circle"></i> Push notifications</li>
               <li><i class="fas fa-check-circle"></i> Verified student badges</li>
             </ul>
             <div class="roadmap-status">
@@ -342,8 +393,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Phase 3 — AI -->
         <div class="roadmap-card phase-3">
           <div class="roadmap-phase-tag tag-amber">2027</div>
           <div class="roadmap-card-inner">
@@ -353,7 +402,7 @@
               <div class="rm-icon rm-red"><i class="fas fa-magic"></i></div>
             </div>
             <h3 class="roadmap-title">AI Study Assistant</h3>
-            <p class="roadmap-desc">Upload any document and get an instant AI-generated summary, key concepts, and a revision quiz. Study smarter, not harder.</p>
+            <p class="roadmap-desc">Upload any document and get an instant AI-generated summary, key concepts, and a revision quiz.</p>
             <ul class="roadmap-features">
               <li><i class="fas fa-check-circle"></i> AI document summariser</li>
               <li><i class="fas fa-check-circle"></i> Smart content recommendations</li>
@@ -366,10 +415,7 @@
             </div>
           </div>
         </div>
-
       </div>
-
-      <!-- Early access CTA -->
       <div class="early-access-banner">
         <div class="eab-left">
           <div class="eab-icon"><i class="fas fa-rocket"></i></div>
@@ -412,7 +458,7 @@
       <div class="cta-content-box">
         <div class="cta-eyebrow"><i class="fas fa-bolt"></i> Free forever for students</div>
         <h2 class="cta-title">Ready to Transform<br>Your Learning?</h2>
-        <p class="cta-description">Join thousands of students already studying smarter. No credit card. No catch.</p>
+        <p class="cta-description">Join the founding community. No credit card. No catch. Just students helping students.</p>
         <div class="cta-actions">
           <a href="{{ url_for('auth.signup') }}" class="btn-cta primary-glow">
             <span>Get Started — It's Free</span>
@@ -422,7 +468,7 @@
         <div class="cta-features">
           <div class="cta-feature-item"><i class="fas fa-check"></i><span>No credit card required</span></div>
           <div class="cta-feature-item"><i class="fas fa-check"></i><span>Free forever for students</span></div>
-          <div class="cta-feature-item"><i class="fas fa-check"></i><span>Cancel anytime</span></div>
+          <div class="cta-feature-item"><i class="fas fa-check"></i><span>Founder Badge for early members</span></div>
         </div>
       </div>
     </div>
@@ -460,7 +506,7 @@
 .container { max-width:1200px; margin:0 auto; padding:0 1.5rem; }
 
 /* =====================================================
-   HERO — UNTOUCHED (all styles preserved)
+   HERO
 ===================================================== */
 .modern-hero {
   min-height:100vh; position:relative;
@@ -547,6 +593,8 @@
 .trust-badges { display:flex;gap:2rem;flex-wrap:wrap;animation:fadeIn 1s .6s both; }
 .trust-item { display:flex;align-items:center;gap:.45rem;color:rgba(255,255,255,.65);font-size:.9rem; }
 .trust-item i { color:#4ade80;font-size:.9rem; }
+
+/* Hero Visual */
 .hero-visual { position:relative;height:580px;perspective:1200px;transform-style:preserve-3d; }
 .hub-glow {
   position:absolute;width:240px;height:240px;top:50%;left:50%;
@@ -560,10 +608,10 @@
   backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,.18);
   border-radius:20px;padding:1.4rem 1.6rem;color:white;will-change:transform;cursor:default;
 }
-.card-1 { width:230px;top:5%;left:5%;opacity:0;box-shadow:0 20px 60px rgba(102,126,234,.25),0 0 0 1px rgba(255,255,255,.08) inset;transition:box-shadow .3s ease,border-color .3s ease; }
-.card-2 { width:210px;top:8%;right:0%;opacity:0;box-shadow:0 20px 60px rgba(240,147,251,.2),0 0 0 1px rgba(255,255,255,.08) inset;transition:box-shadow .3s ease,border-color .3s ease; }
-.card-3 { width:150px;bottom:28%;left:0%;opacity:0;box-shadow:0 20px 60px rgba(79,172,254,.2),0 0 0 1px rgba(255,255,255,.08) inset;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.5rem;transition:box-shadow .3s ease,border-color .3s ease; }
-.card-4 { width:200px;bottom:8%;right:5%;opacity:0;box-shadow:0 20px 60px rgba(67,233,123,.15),0 0 0 1px rgba(255,255,255,.08) inset;transition:box-shadow .3s ease,border-color .3s ease; }
+.card-1 { width:230px;top:5%;left:5%;opacity:0;box-shadow:0 20px 60px rgba(102,126,234,.25),0 0 0 1px rgba(255,255,255,.08) inset; }
+.card-2 { width:210px;top:8%;right:0%;opacity:0;box-shadow:0 20px 60px rgba(240,147,251,.2),0 0 0 1px rgba(255,255,255,.08) inset; }
+.card-3 { width:150px;bottom:28%;left:0%;opacity:0;box-shadow:0 20px 60px rgba(79,172,254,.2),0 0 0 1px rgba(255,255,255,.08) inset;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.5rem; }
+.card-4 { width:200px;bottom:8%;right:5%;opacity:0;box-shadow:0 20px 60px rgba(67,233,123,.15),0 0 0 1px rgba(255,255,255,.08) inset; }
 .float-card:hover { box-shadow:0 30px 80px rgba(102,126,234,.4)!important;border-color:rgba(255,255,255,.35)!important;z-index:10; }
 .fc-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem; }
 .fc-icon { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.125rem; }
@@ -605,62 +653,30 @@
 @keyframes scrollWheel { 0%{top:8px;opacity:1;} 100%{top:22px;opacity:0;} }
 
 /* =====================================================
-   STATS — new layout with side label col
+   STATS
 ===================================================== */
 .stats-showcase {
   padding:6rem 1rem;
   background:linear-gradient(180deg,#0a0e27 0%,#0d1230 100%);
   position:relative;
 }
-
 .stats-showcase::before {
   content:'';position:absolute;top:0;left:0;right:0;
   height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,.4),transparent);
 }
-
 .stats-inner {
   display:grid;grid-template-columns:280px 1fr;
-  gap:3rem;align-items:start;
-  max-width:1200px;margin:0 auto;
+  gap:3rem;align-items:start;max-width:1200px;margin:0 auto;
 }
-
 .stats-label-col { color:white; }
-.stats-eyebrow {
-  display:inline-block;
-  font-family:var(--font-body);font-size:.75rem;font-weight:700;
-  letter-spacing:.12em;text-transform:uppercase;
-  color:rgba(99,102,241,.9);margin-bottom:.875rem;
-}
-.stats-heading {
-  font-family:var(--font-display);font-size:2.5rem;font-weight:900;
-  line-height:1.1;letter-spacing:-.03em;margin-bottom:1rem;
-}
+.stats-eyebrow { display:inline-block;font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(99,102,241,.9);margin-bottom:.875rem; }
+.stats-heading { font-family:var(--font-display);font-size:2.5rem;font-weight:900;line-height:1.1;letter-spacing:-.03em;margin-bottom:1rem; }
 .stats-subtext { font-size:.9rem;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:1.5rem; }
-.stats-live-dot {
-  display:inline-flex;align-items:center;gap:.5rem;
-  font-size:.8rem;color:rgba(255,255,255,.5);
-}
-.live-dot-pulse {
-  width:8px;height:8px;border-radius:50%;background:#4ade80;
-  box-shadow:0 0 0 0 rgba(74,222,128,.4);
-  animation:pulseDot 2s ease-in-out infinite;
-  flex-shrink:0;
-}
-
-.stats-grid-modern {
-  display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem;
-}
-.stat-card-modern {
-  background:rgba(255,255,255,.05);backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:1.75rem;
-  color:white;transition:transform .3s var(--ease-spring),background .3s ease;
-  position:relative;overflow:hidden;
-}
-.stat-card-modern::after {
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(255,255,255,.04),transparent);
-  pointer-events:none;
-}
+.stats-live-dot { display:inline-flex;align-items:center;gap:.5rem;font-size:.8rem;color:rgba(255,255,255,.5); }
+.live-dot-pulse { width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.4);animation:pulseDot 2s ease-in-out infinite;flex-shrink:0; }
+.stats-grid-modern { display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem; }
+.stat-card-modern { background:rgba(255,255,255,.05);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:1.75rem;color:white;transition:transform .3s var(--ease-spring),background .3s ease;position:relative;overflow:hidden; }
+.stat-card-modern::after { content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.04),transparent);pointer-events:none; }
 .stat-card-modern:hover { transform:translateY(-6px);background:rgba(255,255,255,.08); }
 .stat-icon-wrapper { width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;font-size:1.4rem; }
 .stat-icon-wrapper.purple{ background:linear-gradient(135deg,#667eea,#764ba2); }
@@ -668,129 +684,99 @@
 .stat-icon-wrapper.blue  { background:linear-gradient(135deg,#4facfe,#00f2fe); }
 .stat-icon-wrapper.green { background:linear-gradient(135deg,#43e97b,#38f9d7); }
 .stat-number { font-family:var(--font-display);font-size:2.4rem;font-weight:900;margin-bottom:.3rem;letter-spacing:-.04em; }
-.stat-number.loading { opacity:.35;font-size:1.5rem;font-family:var(--font-body); }
 .stat-label  { font-size:.85rem;opacity:.65;margin-bottom:1rem; }
 .stat-bar { width:100%;height:4px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden; }
 .stat-progress { height:100%;border-radius:3px;background:linear-gradient(90deg,#667eea,#764ba2);width:0;transition:width 1.4s var(--ease-out); }
 
 /* =====================================================
-   HOW IT WORKS
+   FOUNDER SECTION
 ===================================================== */
-.how-it-works {
+.founder-section {
   padding:7rem 1rem;
   background:linear-gradient(180deg,#0d1230 0%,#0f1330 100%);
+  position:relative;
 }
+.founder-section::before {
+  content:'';position:absolute;top:0;left:0;right:0;
+  height:1px;background:linear-gradient(90deg,transparent,rgba(245,158,11,.3),transparent);
+}
+.founder-inner {
+  display:grid;grid-template-columns:1fr 2fr;
+  gap:4rem;align-items:center;max-width:1200px;margin:0 auto;
+}
+.founder-badge-col {
+  display:flex;flex-direction:column;gap:1.5rem;align-items:center;
+}
+.founder-badge-wrap {
+  display:flex;flex-direction:column;align-items:center;gap:.75rem;
+}
+.founder-badge-icon {
+  width:80px;height:80px;border-radius:20px;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:2rem;color:white;
+  box-shadow:0 12px 40px rgba(99,102,241,.35);
+  transition:transform .3s var(--ease-spring);
+}
+.founder-badge-icon:hover { transform:translateY(-6px) scale(1.05); }
+.founder-badge-icon--gold { background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 12px 40px rgba(245,158,11,.35); }
+.founder-badge-icon--teal { background:linear-gradient(135deg,#14b8a6,#0d9488);box-shadow:0 12px 40px rgba(20,184,166,.35); }
+.founder-badge-label { font-size:.8rem;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em; }
 
+.founder-content { color:white; }
+.founder-desc { font-size:1.05rem;color:rgba(255,255,255,.7);line-height:1.8;margin:1.25rem 0 2rem; }
+.founder-desc strong { color:white; }
+.founder-perks { display:flex;flex-direction:column;gap:.875rem; }
+.founder-perk { display:flex;align-items:center;gap:.75rem;font-size:.95rem;color:rgba(255,255,255,.8); }
+.founder-perk i { color:#4ade80;font-size:.85rem;flex-shrink:0; }
+
+/* =====================================================
+   HOW IT WORKS
+===================================================== */
+.how-it-works { padding:7rem 1rem;background:linear-gradient(180deg,#0f1330 0%,#0a0e1f 100%); }
 .section-header { text-align:center;margin-bottom:4rem; }
-.section-badge {
-  display:inline-block;
-  background:linear-gradient(135deg,#667eea,#764ba2);color:white;
-  padding:.4rem 1.25rem;border-radius:50px;font-weight:700;font-size:.82rem;
-  letter-spacing:.04em;margin-bottom:1rem;
-}
+.section-badge { display:inline-block;background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:.4rem 1.25rem;border-radius:50px;font-weight:700;font-size:.82rem;letter-spacing:.04em;margin-bottom:1rem; }
 .badge-amber { background:linear-gradient(135deg,#f59e0b,#d97706) !important; }
-
 .section-title { font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;letter-spacing:-.025em;margin-bottom:.75rem;color:white; }
 .section-subtitle { font-size:1.05rem;color:rgba(255,255,255,.55);max-width:540px;margin:0 auto;line-height:1.7; }
-
-.steps-row {
-  display:flex;align-items:center;gap:0;
-  max-width:1000px;margin:0 auto;
-}
-
-.step-card {
-  flex:1;background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.09);border-radius:24px;
-  padding:2.25rem 2rem;color:white;position:relative;
-  transition:transform .3s var(--ease-spring),background .3s ease;
-}
+.steps-row { display:flex;align-items:center;gap:0;max-width:1000px;margin:0 auto; }
+.step-card { flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:24px;padding:2.25rem 2rem;color:white;position:relative;transition:transform .3s var(--ease-spring),background .3s ease; }
 .step-card:hover { transform:translateY(-6px);background:rgba(255,255,255,.08); }
-.step-card--featured {
-  background:rgba(99,102,241,.12);
-  border-color:rgba(99,102,241,.35);
-  transform:translateY(-8px);
-  box-shadow:0 20px 60px rgba(99,102,241,.2);
-}
+.step-card--featured { background:rgba(99,102,241,.12);border-color:rgba(99,102,241,.35);transform:translateY(-8px);box-shadow:0 20px 60px rgba(99,102,241,.2); }
 .step-card--featured:hover { transform:translateY(-14px); }
-
-.step-number {
-  font-family:var(--font-display);font-size:3rem;font-weight:900;
-  color:rgba(255,255,255,.08);letter-spacing:-.04em;
-  line-height:1;margin-bottom:.75rem;
-}
+.step-number { font-family:var(--font-display);font-size:3rem;font-weight:900;color:rgba(255,255,255,.08);letter-spacing:-.04em;line-height:1;margin-bottom:.75rem; }
 .step-card--featured .step-number { color:rgba(99,102,241,.25); }
-
-.step-icon-wrap {
-  width:52px;height:52px;border-radius:14px;
-  background:rgba(255,255,255,.1);
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.375rem;margin-bottom:1.25rem;color:white;
-}
-.step-icon-wrap.featured {
-  background:linear-gradient(135deg,#667eea,#764ba2);
-  box-shadow:0 8px 24px rgba(99,102,241,.4);
-}
-
+.step-icon-wrap { width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:1.375rem;margin-bottom:1.25rem;color:white; }
+.step-icon-wrap.featured { background:linear-gradient(135deg,#667eea,#764ba2);box-shadow:0 8px 24px rgba(99,102,241,.4); }
 .step-title { font-family:var(--font-display);font-size:1.25rem;font-weight:800;margin-bottom:.75rem;letter-spacing:-.02em; }
 .step-desc { font-size:.9rem;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:1.25rem; }
-
-.step-cta-pill {
-  display:inline-flex;align-items:center;
-  padding:.3rem .875rem;border-radius:50px;
-  font-size:.75rem;font-weight:700;
-  background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);
-}
-.step-cta-pill.featured {
-  background:rgba(99,102,241,.2);color:#a5b4fc;
-}
-
-.step-connector {
-  display:flex;align-items:center;
-  width:48px;flex-shrink:0;position:relative;
-}
-.connector-line {
-  position:absolute;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,rgba(99,102,241,.2),rgba(99,102,241,.5),rgba(99,102,241,.2));
-}
-.connector-arrow {
-  position:absolute;left:50%;transform:translateX(-50%);
-  width:28px;height:28px;border-radius:50%;
-  background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);
-  display:flex;align-items:center;justify-content:center;
-  font-size:.6rem;color:rgba(99,102,241,.8);
-}
+.step-cta-pill { display:inline-flex;align-items:center;padding:.3rem .875rem;border-radius:50px;font-size:.75rem;font-weight:700;background:rgba(255,255,255,.08);color:rgba(255,255,255,.6); }
+.step-cta-pill.featured { background:rgba(99,102,241,.2);color:#a5b4fc; }
+.step-connector { display:flex;align-items:center;width:48px;flex-shrink:0;position:relative; }
+.connector-line { position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,rgba(99,102,241,.2),rgba(99,102,241,.5),rgba(99,102,241,.2)); }
+.connector-arrow { position:absolute;left:50%;transform:translateX(-50%);width:28px;height:28px;border-radius:50%;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;font-size:.6rem;color:rgba(99,102,241,.8); }
 
 /* =====================================================
    BENTO FEATURES
 ===================================================== */
 .bento-features { padding:7rem 1rem;background:#0a0e1f; }
-
 .bento-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;max-width:1200px;margin:0 auto; }
-
-.bento-card {
-  background:rgba(255,255,255,.05);border-radius:22px;padding:2rem;
-  border:1px solid rgba(255,255,255,.08);
-  transition:transform .3s var(--ease-spring),box-shadow .3s ease;
-  position:relative;overflow:hidden;
-}
+.bento-card { background:rgba(255,255,255,.05);border-radius:22px;padding:2rem;border:1px solid rgba(255,255,255,.08);transition:transform .3s var(--ease-spring),box-shadow .3s ease;position:relative;overflow:hidden; }
 .bento-card::before { content:'';position:absolute;inset:-1px;background:linear-gradient(135deg,rgba(255,255,255,.06),transparent);border-radius:inherit;pointer-events:none; }
 .bento-card:hover { transform:translateY(-6px);box-shadow:0 24px 60px rgba(0,0,0,.35); }
 .bento-card.large { grid-column:span 2;min-height:360px;display:flex;flex-direction:column;justify-content:space-between; }
 .bento-card.small { grid-column:span 1; }
-
 .gradient-purple { background:linear-gradient(135deg,rgba(102,126,234,.14),rgba(118,75,162,.11)); }
 .gradient-pink   { background:linear-gradient(135deg,rgba(240,147,251,.11),rgba(245,87,108,.09)); }
 .gradient-blue   { background:linear-gradient(135deg,rgba(79,172,254,.11),rgba(0,242,254,.07)); }
 .gradient-green  { background:linear-gradient(135deg,rgba(67,233,123,.09),rgba(56,249,215,.07)); }
 .gradient-orange { background:linear-gradient(135deg,rgba(250,112,154,.11),rgba(254,225,64,.07)); }
 .gradient-teal   { background:linear-gradient(135deg,rgba(48,207,208,.11),rgba(51,8,103,.07)); }
-
 .bento-icon { width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:1.75rem;color:white;margin-bottom:1.25rem; }
 .bento-icon-small { width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:white;margin-bottom:.875rem; }
 .bento-content h3 { font-family:var(--font-display);font-size:1.5rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.75rem;color:white; }
 .bento-card.small h4 { font-family:var(--font-display);font-size:1.1rem;font-weight:700;margin-bottom:.4rem;color:white; }
 .bento-content p, .bento-card.small p { color:rgba(255,255,255,.55);line-height:1.65;font-size:.9rem; }
-
 .search-demo { margin-top:1.5rem; }
 .search-bar-demo { background:rgba(255,255,255,.1);padding:.875rem 1.25rem;border-radius:50px;display:flex;align-items:center;gap:.875rem;margin-bottom:.875rem;color:rgba(255,255,255,.7); }
 .typing-animation { animation:typingPulse 3s ease-in-out infinite; }
@@ -798,7 +784,6 @@
 .search-results-demo { display:flex;flex-direction:column;gap:.5rem; }
 .result-item { background:rgba(255,255,255,.06);height:38px;border-radius:10px;animation:pulse 2s ease-in-out infinite; }
 .result-item:nth-child(2){animation-delay:.3s;} .result-item:nth-child(3){animation-delay:.6s;}
-
 .avatars-demo { display:flex;margin-top:1.5rem; }
 .avatar-circle { width:56px;height:56px;border-radius:50%;border:3px solid rgba(255,255,255,.15);margin-left:-14px;animation:bounce 2.5s ease-in-out infinite;background:linear-gradient(135deg,#667eea,#764ba2); }
 .avatar-circle:first-child { margin-left:0; }
@@ -809,55 +794,20 @@
 /* =====================================================
    COMING SOON / ROADMAP
 ===================================================== */
-.coming-soon-section {
-  padding:7rem 1rem;
-  background:linear-gradient(180deg,#0a0e1f 0%,#0d1230 100%);
-  position:relative;
-}
-.coming-soon-section::before {
-  content:'';position:absolute;top:0;left:0;right:0;
-  height:1px;background:linear-gradient(90deg,transparent,rgba(245,158,11,.3),transparent);
-}
-
-.roadmap-grid {
-  display:grid;grid-template-columns:repeat(3,1fr);
-  gap:1.5rem;max-width:1200px;margin:0 auto 3rem;
-}
-
-.roadmap-card {
-  border-radius:24px;overflow:hidden;
-  position:relative;
-  transition:transform .3s var(--ease-spring),box-shadow .3s ease;
-}
+.coming-soon-section { padding:7rem 1rem;background:linear-gradient(180deg,#0a0e1f 0%,#0d1230 100%);position:relative; }
+.coming-soon-section::before { content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(245,158,11,.3),transparent); }
+.roadmap-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;max-width:1200px;margin:0 auto 3rem; }
+.roadmap-card { border-radius:24px;overflow:hidden;position:relative;transition:transform .3s var(--ease-spring),box-shadow .3s ease; }
 .roadmap-card:hover { transform:translateY(-8px); }
-
-.roadmap-phase-tag {
-  font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
-  padding:.55rem 1.25rem;
-  background:rgba(99,102,241,.9);color:white;
-  text-align:center;
-}
+.roadmap-phase-tag { font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:.55rem 1.25rem;background:rgba(99,102,241,.9);color:white;text-align:center; }
 .tag-teal  { background:rgba(20,184,166,.9) !important; }
 .tag-amber { background:rgba(245,158,11,.9) !important; }
-
-.roadmap-card-inner {
-  padding:2rem;
-  background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.09);
-  border-top:none;
-  height:calc(100% - 36px);
-}
-
+.roadmap-card-inner { padding:2rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-top:none;height:calc(100% - 36px); }
 .phase-1 .roadmap-card-inner { border-color:rgba(99,102,241,.2); }
 .phase-2 .roadmap-card-inner { border-color:rgba(20,184,166,.2); }
 .phase-3 .roadmap-card-inner { border-color:rgba(245,158,11,.2); }
-
 .roadmap-icon-group { display:flex;gap:.5rem;margin-bottom:1.25rem; }
-.rm-icon {
-  width:38px;height:38px;border-radius:10px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:.9rem;color:white;
-}
+.rm-icon { width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.9rem;color:white; }
 .rm-purple { background:linear-gradient(135deg,#667eea,#764ba2); }
 .rm-pink   { background:linear-gradient(135deg,#f093fb,#f5576c); }
 .rm-blue   { background:linear-gradient(135deg,#4facfe,#00f2fe); }
@@ -866,84 +816,34 @@
 .rm-amber  { background:linear-gradient(135deg,#f59e0b,#d97706); }
 .rm-orange { background:linear-gradient(135deg,#fb923c,#ea580c); }
 .rm-red    { background:linear-gradient(135deg,#f87171,#dc2626); }
-
 .roadmap-title { font-family:var(--font-display);font-size:1.2rem;font-weight:800;letter-spacing:-.02em;color:white;margin-bottom:.75rem; }
 .roadmap-desc { font-size:.875rem;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:1.25rem; }
-
 .roadmap-features { list-style:none;display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.5rem; }
-.roadmap-features li {
-  display:flex;align-items:center;gap:.5rem;
-  font-size:.82rem;color:rgba(255,255,255,.65);
-}
+.roadmap-features li { display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:rgba(255,255,255,.65); }
 .roadmap-features li i { font-size:.65rem;flex-shrink:0; }
 .phase-1 .roadmap-features li i { color:#818cf8; }
 .phase-2 .roadmap-features li i { color:#2dd4bf; }
 .phase-3 .roadmap-features li i { color:#fbbf24; }
-
-.roadmap-status {
-  display:inline-flex;align-items:center;gap:.45rem;
-  font-size:.75rem;font-weight:600;color:rgba(255,255,255,.4);
-}
+.roadmap-status { display:inline-flex;align-items:center;gap:.45rem;font-size:.75rem;font-weight:600;color:rgba(255,255,255,.4); }
 .status-dot { width:7px;height:7px;border-radius:50%;flex-shrink:0; }
 .status-building { background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,.6);animation:pulseDot 2s infinite; }
 .status-planned  { background:#fbbf24; }
 .status-future   { background:rgba(255,255,255,.25); }
-
-/* Early access banner */
-.early-access-banner {
-  display:flex;align-items:center;justify-content:space-between;
-  gap:1.5rem;
-  background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.12));
-  border:1px solid rgba(99,102,241,.25);border-radius:20px;
-  padding:1.75rem 2rem;max-width:1200px;margin:0 auto;
-}
+.early-access-banner { display:flex;align-items:center;justify-content:space-between;gap:1.5rem;background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.12));border:1px solid rgba(99,102,241,.25);border-radius:20px;padding:1.75rem 2rem;max-width:1200px;margin:0 auto; }
 .eab-left { display:flex;align-items:center;gap:1.25rem;flex:1;min-width:0; }
-.eab-icon {
-  width:48px;height:48px;flex-shrink:0;
-  border-radius:14px;background:linear-gradient(135deg,#667eea,#764ba2);
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.25rem;color:white;
-}
+.eab-icon { width:48px;height:48px;flex-shrink:0;border-radius:14px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:1.25rem;color:white; }
 .eab-title { font-family:var(--font-display);font-weight:800;font-size:1.05rem;color:white;margin-bottom:.25rem; }
 .eab-sub { font-size:.85rem;color:rgba(255,255,255,.5); }
-.eab-btn {
-  display:inline-flex;align-items:center;gap:.5rem;
-  padding:.75rem 1.75rem;
-  background:linear-gradient(135deg,#667eea,#764ba2);
-  color:white;text-decoration:none;font-weight:700;font-size:.9rem;
-  border-radius:50px;white-space:nowrap;flex-shrink:0;
-  box-shadow:0 8px 24px rgba(99,102,241,.35);
-  transition:all .25s ease;
-}
+.eab-btn { display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.75rem;background:linear-gradient(135deg,#667eea,#764ba2);color:white;text-decoration:none;font-weight:700;font-size:.9rem;border-radius:50px;white-space:nowrap;flex-shrink:0;box-shadow:0 8px 24px rgba(99,102,241,.35);transition:all .25s ease; }
 .eab-btn:hover { transform:translateY(-2px);box-shadow:0 12px 32px rgba(99,102,241,.5); }
 
 /* =====================================================
-   INSTITUTIONS STRIP
+   INSTITUTIONS
 ===================================================== */
-.institutions-strip {
-  padding:3.5rem 1rem;
-  background:rgba(255,255,255,.02);
-  border-top:1px solid rgba(255,255,255,.05);
-  border-bottom:1px solid rgba(255,255,255,.05);
-  text-align:center;
-}
-.institutions-label {
-  font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-  color:rgba(255,255,255,.3);margin-bottom:1.5rem;
-}
-.institutions-row {
-  display:flex;flex-wrap:wrap;align-items:center;justify-content:center;
-  gap:.875rem;margin-bottom:1.25rem;
-}
-.institution-pill {
-  display:inline-flex;align-items:center;gap:.5rem;
-  padding:.55rem 1.125rem;
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:50px;
-  font-size:.85rem;font-weight:600;color:rgba(255,255,255,.6);
-  transition:all .2s ease;
-}
+.institutions-strip { padding:3.5rem 1rem;background:rgba(255,255,255,.02);border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.05);text-align:center; }
+.institutions-label { font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:1.5rem; }
+.institutions-row { display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.875rem;margin-bottom:1.25rem; }
+.institution-pill { display:inline-flex;align-items:center;gap:.5rem;padding:.55rem 1.125rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:50px;font-size:.85rem;font-weight:600;color:rgba(255,255,255,.6);transition:all .2s ease; }
 .institution-pill:hover { background:rgba(99,102,241,.12);border-color:rgba(99,102,241,.3);color:rgba(255,255,255,.85); }
 .institution-pill i { font-size:.75rem;color:rgba(99,102,241,.7); }
 .institutions-disclaimer { font-size:.8rem;color:rgba(255,255,255,.3); }
@@ -957,23 +857,12 @@
 .cta-bg-pattern { position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.1) 1px,transparent 1px);background-size:28px 28px; }
 .cta-container { max-width:760px;margin:0 auto;position:relative;z-index:1; }
 .cta-content-box { text-align:center;color:white; }
-.cta-eyebrow {
-  display:inline-flex;align-items:center;gap:.5rem;
-  background:rgba(255,255,255,.15);padding:.4rem 1rem;border-radius:50px;
-  font-size:.82rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-  margin-bottom:1.5rem;color:rgba(255,255,255,.9);
-}
+.cta-eyebrow { display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.15);padding:.4rem 1rem;border-radius:50px;font-size:.82rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1.5rem;color:rgba(255,255,255,.9); }
 .cta-eyebrow i { color:#fde68a;font-size:.75rem; }
 .cta-title { font-family:var(--font-display);font-size:clamp(2rem,5vw,3.5rem);font-weight:900;letter-spacing:-.03em;margin-bottom:1.25rem;line-height:1.1; }
 .cta-description { font-size:1.2rem;margin-bottom:2.75rem;opacity:.9;line-height:1.7; }
 .cta-actions { margin-bottom:2.5rem; }
-.btn-cta {
-  display:inline-flex;align-items:center;gap:.875rem;
-  padding:1.25rem 2.5rem;background:white;color:#667eea;
-  border-radius:50px;font-weight:800;font-size:1.1rem;
-  text-decoration:none;transition:transform .3s var(--ease-spring),box-shadow .3s ease;
-  box-shadow:0 16px 50px rgba(0,0,0,.2);
-}
+.btn-cta { display:inline-flex;align-items:center;gap:.875rem;padding:1.25rem 2.5rem;background:white;color:#667eea;border-radius:50px;font-weight:800;font-size:1.1rem;text-decoration:none;transition:transform .3s var(--ease-spring),box-shadow .3s ease;box-shadow:0 16px 50px rgba(0,0,0,.2); }
 .btn-cta:hover { transform:translateY(-5px) scale(1.03);box-shadow:0 24px 70px rgba(0,0,0,.3); }
 .btn-cta.primary-glow { animation:glowPulse 2.5s ease-in-out infinite; }
 @keyframes glowPulse { 0%,100%{box-shadow:0 16px 50px rgba(0,0,0,.2);} 50%{box-shadow:0 16px 70px rgba(255,255,255,.4);} }
@@ -997,24 +886,15 @@ body, input, button, select, textarea {
   font-family:var(--font-body,'Plus Jakarta Sans',system-ui,sans-serif);
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
 }
-h1,h2,h3,h4,h5,h6,
-.hero-title,.cta-title,.section-title,
-.stat-number,.fc-stat,.fc-stat-sm,.gradient-text-animated,
-.hero-logo span,.auth-brand-name {
+h1,h2,h3,h4,h5,h6,.hero-title,.cta-title,.section-title,.stat-number,.fc-stat,.fc-stat-sm,.gradient-text-animated,.hero-logo span {
   font-family:var(--font-display,'Bricolage Grotesque',system-ui,sans-serif);font-optical-sizing:auto;
 }
-.hero-title { font-weight:900;letter-spacing:-.035em;line-height:1.05; }
-.section-title,.cta-title { font-weight:800;letter-spacing:-.025em; }
-.hero-logo span,.auth-brand-name { font-weight:900;letter-spacing:-.04em; }
-.btn-modern,.btn-cta { font-family:var(--font-body);font-weight:700;letter-spacing:.01em; }
-.stat-number { font-weight:900;letter-spacing:-.04em; }
 
 /* =====================================================
    RESPONSIVE
 ===================================================== */
 @media (max-width:1024px) {
   .hero-container { grid-template-columns:1fr;text-align:center; }
-  .hero-description,.hero-actions,.trust-badges { margin-left:auto;margin-right:auto; }
   .hero-actions { justify-content:center; }
   .trust-badges { justify-content:center; }
   .hero-visual { display:none; }
@@ -1028,15 +908,16 @@ h1,h2,h3,h4,h5,h6,
   .connector-arrow { top:50%;left:50%;transform:translate(-50%,-50%) rotate(90deg); }
   .step-card--featured { transform:none; }
   .roadmap-grid { grid-template-columns:1fr; }
+  .founder-inner { grid-template-columns:1fr;gap:2.5rem; }
+  .founder-badge-col { flex-direction:row;justify-content:center; }
 }
-
 @media (max-width:640px) {
   .modern-hero { padding:1rem 1rem 1.5rem; }
   .hero-badge { font-size:.78rem; }
   .hero-logo span { font-size:1.75rem; }
   .hero-title { font-size:2.1rem; }
-  .hero-description { font-size:1rem; margin: 0px;}
-  p.hero-description {margin: 25px;}
+  .hero-description { font-size:1rem;margin:0; }
+  p.hero-description { margin:25px; }
   .hero-actions { flex-direction:column;align-items:center; }
   .btn-modern { width:100%;justify-content:center; }
   .trust-badges { gap:1rem; }
@@ -1055,11 +936,10 @@ h1,h2,h3,h4,h5,h6,
   .final-cta { padding:5rem 1rem; }
   .cta-features { flex-direction:column;align-items:center;gap:.875rem; }
   .btn-cta { width:100%;justify-content:center;font-size:1rem; }
+  .founder-badge-col { flex-direction:column; }
 }
-
 @media (hover:none) and (pointer:coarse) {
-  .bento-card:hover,.stat-card-modern:hover,.float-card:hover,
-  .step-card:hover,.roadmap-card:hover,.btn-modern.primary:hover,.btn-cta:hover { transform:none!important; }
+  .bento-card:hover,.stat-card-modern:hover,.float-card:hover,.step-card:hover,.roadmap-card:hover { transform:none!important; }
 }
 @media (prefers-reduced-motion:reduce) {
   *,*::before,*::after { animation:none!important;transition:none!important; }
@@ -1102,11 +982,9 @@ if (wordEl) {
     { sel:'.chip-2', yAmp:9,  yPeriod:3.8, yPhase:2.4, enterDelay:1300 },
     { sel:'.chip-3', yAmp:11, yPeriod:5.1, yPhase:1.1, enterDelay:1000 },
   ];
-
   const cardEls = CARDS.map(c => ({...c, el:document.querySelector(c.sel)})).filter(c => c.el);
   const chipEls = CHIPS.map(c => ({...c, el:document.querySelector(c.sel)})).filter(c => c.el);
   const startTime = performance.now();
-
   [...cardEls, ...chipEls].forEach(item => {
     setTimeout(() => {
       item.el.style.transition = 'opacity .7s ease';
@@ -1119,7 +997,6 @@ if (wordEl) {
       });
     }, item.enterDelay);
   });
-
   function tick(now) {
     const t = (now - startTime) / 1000;
     cardEls.forEach(c => {
@@ -1156,91 +1033,124 @@ if (wordEl) {
 })();
 
 /* ════════════════════════════════════════════════════
-   SCROLL INDICATOR — fade out after 100px
+   SCROLL INDICATOR
 ════════════════════════════════════════════════════ */
 const scrollIndicator = document.getElementById('scrollIndicator');
 if (scrollIndicator) {
   window.addEventListener('scroll', () => {
-    const opacity = Math.max(0, 1 - window.scrollY / 100);
-    scrollIndicator.style.opacity = opacity;
+    scrollIndicator.style.opacity = Math.max(0, 1 - window.scrollY / 100);
   }, { passive: true });
 }
 
 /* ════════════════════════════════════════════════════
-   LIVE STATS — fetch from /api/stats
-   Falls back to hardcoded numbers if endpoint fails
+   STATS — single fetch, wires EVERYTHING
+   Hero cards + stats section all from one /api/stats call
 ════════════════════════════════════════════════════ */
 function animateCount(el, target, dur) {
+  if (!el) return;
   const start = performance.now();
-  const startVal = parseInt(el.textContent.replace(/[^0-9]/g, '')) || 0;
-  el.classList.remove('loading');
   function step(now) {
     const p = Math.min((now - start) / dur, 1);
-    const ease = 1 - Math.pow(1 - p, 3); // ease-out cubic
-    el.textContent = Math.floor(ease * (target - startVal) + startVal).toLocaleString();
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.floor(ease * target).toLocaleString();
     if (p < 1) requestAnimationFrame(step);
     else el.textContent = target.toLocaleString();
   }
   requestAnimationFrame(step);
 }
 
-function renderStats(data) {
-  const map = {
-    'stat-docs':         { val: data.documents  || data.posts  || 0,  bar: '.stat-progress-docs',        pct: '85%' },
-    'stat-users':        { val: data.users       || data.students || 0, bar: '.stat-progress-users',       pct: '70%' },
-    'stat-subjects':     { val: data.subjects    || 0,                   bar: '.stat-progress-subjects',    pct: '95%' },
-    'stat-engagements':  { val: data.engagements || data.likes   || 0,  bar: '.stat-progress-engagements', pct: '90%' },
+function applyStats(data) {
+  const docs        = data.documents    || 0;
+  const users       = data.users        || 0;
+  const subjects    = data.subjects     || 0;
+  const engagements = data.engagements  || 0;
+
+  /* ── Stats section ── */
+  const statMap = {
+    'stat-docs':        { val: docs,        bar: '.stat-progress-docs',        pct: docs        > 0 ? Math.min(98, 30 + docs)        + '%' : '8%' },
+    'stat-users':       { val: users,       bar: '.stat-progress-users',       pct: users       > 0 ? Math.min(95, 20 + users * 2)   + '%' : '8%' },
+    'stat-subjects':    { val: subjects,    bar: '.stat-progress-subjects',    pct: subjects    > 0 ? Math.min(98, subjects * 2)      + '%' : '8%' },
+    'stat-engagements': { val: engagements, bar: '.stat-progress-engagements', pct: engagements > 0 ? Math.min(95, 15 + engagements) + '%' : '8%' },
   };
-  Object.entries(map).forEach(([id, cfg]) => {
+  Object.entries(statMap).forEach(([id, cfg]) => {
     const el = document.getElementById(id);
-    if (el) animateCount(el, cfg.val, 1800);
+    if (el) {
+      el.classList.remove('loading');
+      animateCount(el, cfg.val, 1800);
+    }
     const bar = document.querySelector(cfg.bar);
-    if (bar) setTimeout(() => { bar.style.width = cfg.pct; }, 300);
+    if (bar) setTimeout(() => { bar.style.width = cfg.pct; }, 400);
   });
+
+  /* ── Hero float cards ── */
+  animateCount(document.getElementById('hero-docs'),        docs,        1400);
+  animateCount(document.getElementById('hero-users'),       users,       1400);
+  animateCount(document.getElementById('hero-subjects'),    subjects,    1400);
+  animateCount(document.getElementById('hero-engagements'), engagements, 1400);
+
+  /* ── Hero badge text ── */
+  const badge = document.getElementById('hero-badge-text');
+  if (badge) {
+    if (users >= 10) {
+      badge.textContent = `Join ${users.toLocaleString()}+ students already here`;
+    } else {
+      badge.textContent = 'Now live — join the founding community';
+    }
+  }
+
+  /* ── Hero users avatar overflow counter ── */
+  const moreEl = document.getElementById('hero-users-more');
+  if (moreEl && users > 3) {
+    moreEl.textContent = '+' + (users - 3).toLocaleString();
+  }
 }
 
-// Mark as loading initially
-['stat-docs','stat-users','stat-subjects','stat-engagements'].forEach(id => {
+/* Show dashes while loading */
+['stat-docs','stat-users','stat-subjects','stat-engagements',
+ 'hero-docs','hero-users','hero-subjects','hero-engagements'].forEach(id => {
   const el = document.getElementById(id);
-  if (el) { el.textContent = '—'; el.classList.add('loading'); }
+  if (el) el.textContent = '—';
 });
 
-// Observe when stats section enters viewport, then fetch
+/* Fetch once when stats section enters viewport */
 const statsSection = document.getElementById('statsSection');
+let statsFetched = false;
 if (statsSection) {
-  const statsObs = new IntersectionObserver(entries => {
-    if (!entries[0].isIntersecting) return;
-    statsObs.unobserve(statsSection);
+  const obs = new IntersectionObserver(entries => {
+    if (!entries[0].isIntersecting || statsFetched) return;
+    statsFetched = true;
+    obs.unobserve(statsSection);
 
     fetch('/api/stats')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(data => renderStats(data))
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => applyStats(data))
       .catch(() => {
-        // Endpoint not live yet — show honest placeholder
-        ['stat-docs','stat-users','stat-subjects','stat-engagements'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) { el.textContent = '—'; el.classList.add('loading'); }
-        });
+        /* Endpoint not ready — show honest zeros */
+        applyStats({ documents: 0, users: 0, subjects: 0, engagements: 0 });
       });
-  }, { threshold: 0.3 });
-  statsObs.observe(statsSection);
+  }, { threshold: 0.2 });
+  obs.observe(statsSection);
+} else {
+  /* Fetch immediately if stats section not found */
+  fetch('/api/stats')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => applyStats(data))
+    .catch(() => applyStats({ documents: 0, users: 0, subjects: 0, engagements: 0 }));
 }
 
 /* ════════════════════════════════════════════════════
    SECTION REVEAL ON SCROLL
 ════════════════════════════════════════════════════ */
 const revealEls = document.querySelectorAll(
-  '.step-card, .roadmap-card, .bento-card, .stat-card-modern, .institution-pill'
+  '.step-card, .roadmap-card, .bento-card, .stat-card-modern, .institution-pill, .founder-badge-wrap'
 );
 const revealObs = new IntersectionObserver(entries => {
   entries.forEach((e, i) => {
     if (e.isIntersecting) {
       setTimeout(() => {
         e.target.style.opacity = '1';
-        e.target.style.transform = e.target.style.transform.replace('translateY(28px)', '') || '';
-        e.target.style.transition = 'opacity .5s ease, transform .5s var(--ease-out)';
-        e.target.style.opacity = '1';
         e.target.style.transform = 'translateY(0)';
+        e.target.style.transition = 'opacity .5s ease, transform .5s var(--ease-out)';
       }, i * 60);
       revealObs.unobserve(e.target);
     }

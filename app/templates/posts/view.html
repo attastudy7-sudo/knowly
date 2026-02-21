@@ -1332,9 +1332,22 @@ async function previewDocument() {
         if (data.error) throw new Error(data.error);
 
         if (data.type === 'image') {
-            previewBody.innerHTML = `<img src="${data.url}" alt="Document preview" class="preview-image">`;
+            // Images load fast — show spinner until image onload fires
+            previewBody.innerHTML = buildLoadingHTML();
+            const img = new Image();
+            img.className = 'preview-image';
+            img.alt = 'Document preview';
+            img.onload = () => {
+                previewBody.innerHTML = '';
+                previewBody.appendChild(img);
+            };
+            img.onerror = () => { previewBody.innerHTML = errorHtml; };
+            img.src = data.url;
 
         } else if (data.type === 'gdocs') {
+            // KEY FIX: inject spinner + hidden iframe together.
+            // Spinner stays visible until iframe onload fires, then fades out.
+            const loaderId = 'preview-loader-' + Date.now();
             previewBody.innerHTML = `
                 <div class="gdocs-wrapper">
                     <div class="gdocs-notice">
@@ -1342,25 +1355,71 @@ async function previewDocument() {
                         Powered by Google Docs Viewer &mdash;
                         <a href="${downloadUrl}">Download</a> if it doesn't load
                     </div>
-                    <iframe
-                        src="${data.viewer_url}"
-                        title="Document Preview"
-                        class="preview-iframe"
-                        sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                        onload="this.style.opacity='1'"
-                        style="opacity:0;transition:opacity .3s;"
-                    ></iframe>
+                    <div style="position:relative;flex:1;">
+                        <div id="${loaderId}" style="position:absolute;inset:0;z-index:2;background:var(--bg-secondary);">
+                            ${buildLoadingHTML()}
+                        </div>
+                        <iframe
+                            id="preview-iframe"
+                            src="${data.viewer_url}"
+                            title="Document Preview"
+                            class="preview-iframe"
+                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                            style="position:absolute;inset:0;width:100%;height:100%;border:none;opacity:0;transition:opacity .4s ease;"
+                        ></iframe>
+                    </div>
                 </div>`;
 
+            const iframe = document.getElementById('preview-iframe');
+            const loader = document.getElementById(loaderId);
+
+            // Give Google Docs viewer a generous timeout — it can be slow
+            const TIMEOUT_MS = 45000; // 45 seconds
+            let loaded = false;
+
+            function revealIframe() {
+                if (loaded) return;
+                loaded = true;
+                if (loader) {
+                    loader.style.transition = 'opacity .4s ease';
+                    loader.style.opacity = '0';
+                    setTimeout(() => { if (loader) loader.remove(); }, 420);
+                }
+                if (iframe) {
+                    iframe.style.opacity = '1';
+                }
+            }
+
+            iframe.addEventListener('load', revealIframe);
+
+            // Fallback: if iframe hasn't fired onload after timeout,
+            // reveal it anyway rather than leaving a spinner forever
+            setTimeout(() => {
+                if (!loaded) {
+                    revealIframe();
+                }
+            }, TIMEOUT_MS);
+
+        } else if (data.type === 'local') {
+            // Local dev — open directly since Google Docs viewer can't reach localhost
+            previewBody.innerHTML = `
+                <div class="preview-error">
+                    <i class="fas fa-laptop-code"></i>
+                    <p style="font-weight:700;color:var(--text-primary);">Local dev mode</p>
+                    <p style="font-size:.85rem;">Google Docs Viewer can't reach localhost.</p>
+                    <a href="${data.url}" target="_blank" class="btn btn-primary" style="margin-top:.5rem;">
+                        <i class="fas fa-external-link-alt"></i> Open file directly
+                    </a>
+                </div>`;
         } else {
             previewBody.innerHTML = errorHtml;
         }
+
     } catch (e) {
         console.error('Preview failed:', e);
         previewBody.innerHTML = errorHtml;
     }
 }
-
 // FIX: Simplified close — no event argument needed, no accidental inner-click closing.
 // Backdrop click is handled separately via the modal's own click listener below.
 function closePreview() {
