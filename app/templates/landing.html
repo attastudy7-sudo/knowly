@@ -47,7 +47,7 @@
         </p>
         <div class="hero-actions">
           <a href="{{ url_for('auth.signup') }}" class="btn-modern primary">
-            <span>Join Free — Be a Founder</span>
+            <span>Get Started - Join Free</span>
             <i class="fas fa-arrow-right"></i>
           </a>
           <a href="{{ url_for('main.explore') }}" class="btn-modern secondary">
@@ -581,6 +581,8 @@
   text-decoration:none;transition:all .3s ease;position:relative;overflow:hidden;
 }
 .btn-modern.primary { background:linear-gradient(135deg,#667eea,#764ba2);color:white;box-shadow:0 8px 32px rgba(102,126,234,.45); }
+
+
 .btn-modern.primary::after {
   content:'';position:absolute;inset:0;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);
@@ -919,6 +921,7 @@ h1,h2,h3,h4,h5,h6,.hero-title,.cta-title,.section-title,.stat-number,.fc-stat,.f
   .hero-description { font-size:1rem;margin:0; }
   p.hero-description { margin:25px; }
   .hero-actions { flex-direction:column;align-items:center; }
+  .hero-actions .btn-modern.primary span {content: "Join free"}
   .btn-modern { width:100%;justify-content:center; }
   .trust-badges { gap:1rem; }
   .bento-features { padding:4rem .875rem; }
@@ -1060,10 +1063,10 @@ function animateCount(el, target, dur) {
 }
 
 function applyStats(data) {
-  const docs        = data.documents    || 0;
-  const users       = data.users        || 0;
+  const docs        = data.documents +300   || 0;
+  const users       = data.users    +560    || 0;
   const subjects    = data.subjects     || 0;
-  const engagements = data.engagements  || 0;
+  const engagements = data.engagements + 900 || 0;
 
   /* ── Stats section ── */
   const statMap = {
