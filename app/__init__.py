@@ -122,6 +122,9 @@ def create_app(config_class=Config):
     from app import routes
     app.register_blueprint(routes.bp)
 
+    from flask_wtf.csrf import CSRFProtect
+    csrf = CSRFProtect(app)
+
     # ── Database ──────────────────────────────────────────────────────────────
     with app.app_context():
         try:

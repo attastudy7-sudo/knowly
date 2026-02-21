@@ -387,8 +387,7 @@ def statistics():
 @bp.route('/send-email', methods=['GET', 'POST'])
 @admin_required
 def send_email():
-    from flask_mail import Message
-    from app import mail  # use the globally initialised Mail instance, not Mail(current_app)
+    import requests
 
     users       = User.query.filter(User.email.isnot(None)).all()
     total_users = len(users)
@@ -409,25 +408,35 @@ def send_email():
             flash('No recipients selected.', 'danger')
             return render_template('admin/send_email.html', users=users, total_users=total_users)
 
-        # Resolve sender — fall back gracefully if MAIL_DEFAULT_SENDER isn't set
         sender = (
             current_app.config.get('MAIL_DEFAULT_SENDER') or
             current_app.config.get('MAIL_USERNAME')
         )
 
-        sent   = 0
-        failed = 0
+        api_key = current_app.config.get('BREVO_API_KEY')
+        sent    = 0
+        failed  = 0
 
         for email in recipients:
             try:
-                msg = Message(
-                    subject    = subject,
-                    recipients = [email],
-                    html       = body,
-                    sender     = sender,
+                response = requests.post(
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers={
+                        "api-key": api_key,
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "sender": {"email": sender},
+                        "to": [{"email": email}],
+                        "subject": subject,
+                        "htmlContent": body
+                    }
                 )
-                mail.send(msg)
-                sent += 1
+                if response.status_code == 201:
+                    sent += 1
+                else:
+                    current_app.logger.error(f"Brevo error for {email}: {response.text}")
+                    failed += 1
             except Exception as e:
                 current_app.logger.error(f"Failed to send to {email}: {e}")
                 failed += 1
@@ -438,11 +447,8 @@ def send_email():
                 result += f' {failed} failed — check the server logs.'
             flash(result, 'success')
         else:
-            flash(f'All {failed} sends failed. Check your mail config and server logs.', 'danger')
+            flash(f'All {failed} sends failed. Check your Brevo API key and sender address.', 'danger')
 
         return redirect(url_for('admin.send_email'))
-    print("MAIL_USERNAME:", current_app.config.get('MAIL_USERNAME'))
-    print("MAIL_DEFAULT_SENDER:", current_app.config.get('MAIL_DEFAULT_SENDER'))
-    print("MAIL_PASSWORD set:", bool(current_app.config.get('MAIL_PASSWORD')))
 
     return render_template('admin/send_email.html', users=users, total_users=total_users)

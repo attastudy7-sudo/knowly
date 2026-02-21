@@ -55,6 +55,8 @@ class EditProfileForm(FlaskForm):
         FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')
     ])
     submit = SubmitField('Update Profile')
+    school = StringField('School / University', validators=[Optional(), Length(max=200)])      # add this
+    programme = StringField('Programme / Course of Study', validators=[Optional(), Length(max=200)])  # add this
 
 
 class CreatePostForm(FlaskForm):

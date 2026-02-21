@@ -65,6 +65,8 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(120))
     bio = db.Column(db.Text)
     profile_picture = db.Column(db.String(200), default='default.jpg')
+    school = db.Column(db.String(200), nullable=True)
+    programme = db.Column(db.String(200), nullable=True)
 
     # Account metadata
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -76,6 +78,7 @@ class User(UserMixin, db.Model):
     comments = db.relationship('Comment', backref='author', lazy='dynamic', cascade='all, delete-orphan')
     likes = db.relationship('Like', backref='user', lazy='dynamic', cascade='all, delete-orphan')
 
+    
     # Self-referential many-to-many for follows
     following = db.relationship(
         'User',

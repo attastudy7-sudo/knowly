@@ -88,7 +88,27 @@
                     <span id="bio-count">{{ form.bio.data|length if form.bio.data else 0 }}</span>/500 characters
                 </div>
             </div>
-            
+        <!-- School -->
+        <div class="form-group">
+            <label class="form-label">
+                <i class="fas fa-university"></i>
+                School / University
+            </label>
+            <input type="text" id="school-search" placeholder="Search university..." class="form-control" autocomplete="off">
+            <input type="hidden" name="school" id="school-value" value="{{ form.school.data or '' }}">
+            <div class="dropdown-list" id="school-dropdown"></div>
+        </div>
+
+        <!-- Programme -->
+        <div class="form-group">
+            <label class="form-label">
+                <i class="fas fa-graduation-cap"></i>
+                Programme / Course of Study
+            </label>
+            <input type="text" id="programme-search" placeholder="Search programme..." class="form-control" autocomplete="off">
+            <input type="hidden" name="programme" id="programme-value" value="{{ form.programme.data or '' }}">
+            <div class="dropdown-list" id="programme-dropdown"></div>
+        </div>            
             <div class="form-divider"></div>
             
             <!-- Action Buttons -->
@@ -331,6 +351,29 @@
     color: #667eea;
 }
 
+.dropdown-list {
+    position: absolute;
+    z-index: 100;
+    background: var(--bg-card);
+    border: 1.5px solid rgba(99,102,241,0.3);
+    border-radius: 12px;
+    max-height: 220px;
+    overflow-y: auto;
+    width: 100%;
+    display: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+.dropdown-list.open { display: block; }
+.dropdown-item-opt {
+    padding: 0.65rem 1rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: background 0.15s;
+}
+.dropdown-item-opt:hover { background: rgba(99,102,241,0.08); color: var(--primary); }
+.form-group { position: relative; }
+
 /* Form Divider */
 .form-divider {
     height: 1px;
@@ -503,6 +546,120 @@ if (bioInput && bioCount) {
         }
     });
 }
+
+const GHANA_UNIVERSITIES = [
+    "University of Ghana",
+    "Kwame Nkrumah University of Science and Technology (KNUST)",
+    "University of Cape Coast",
+    "University for Development Studies",
+    "Ghana Institute of Management and Public Administration (GIMPA)",
+    "Ashesi University",
+    "Central University",
+    "Valley View University",
+    "Methodist University Ghana",
+    "University of Professional Studies Accra (UPSA)",
+    "Ghana Communication Technology University (GCTU)",
+    "Accra Technical University",
+    "Ho Technical University",
+    "Kumasi Technical University",
+    "Takoradi Technical University",
+    "Koforidua Technical University",
+    "Sunyani Technical University",
+    "Cape Coast Technical University",
+    "Wa Technical University",
+    "Bolgatanga Technical University",
+    "University of Health and Allied Sciences",
+    "Ghana Institute of Journalism",
+    "National Film and Television Institute (NAFTI)",
+    "SD Dombo University of Business and Integrated Development Studies",
+    "C.K. Tedam University of Technology and Applied Sciences",
+    "Regent University College of Science and Technology",
+    "Other"
+];
+
+const GHANA_PROGRAMMES = [
+    "BSc Computer Science",
+    "BSc Information Technology",
+    "BSc Computer Engineering",
+    "BSc Electrical Engineering",
+    "BSc Mechanical Engineering",
+    "BSc Civil Engineering",
+    "BSc Chemical Engineering",
+    "BA Economics",
+    "BSc Business Administration",
+    "BSc Accounting",
+    "BSc Marketing",
+    "BA English",
+    "BA History",
+    "BSc Mathematics",
+    "BSc Statistics",
+    "BSc Physics",
+    "BSc Chemistry",
+    "BSc Biology",
+    "BSc Biochemistry",
+    "BSc Nursing",
+    "BSc Pharmacy",
+    "MBChB Medicine and Surgery",
+    "BA Law",
+    "LLB Law",
+    "BSc Agriculture",
+    "BSc Education",
+    "BA Communication Studies",
+    "BSc Psychology",
+    "BSc Sociology",
+    "BSc Political Science",
+    "BSc Architecture",
+    "BSc Quantity Surveying",
+    "BSc Land Economy",
+    "MBA",
+    "MSc Computer Science",
+    "MSc Engineering",
+    "Other"
+];
+
+function setupDropdown(searchId, dropdownId, valueId, items) {
+    const search = document.getElementById(searchId);
+    const dropdown = document.getElementById(dropdownId);
+    const value = document.getElementById(valueId);
+
+    // Show current value in search box on load
+    if (value.value) search.value = value.value;
+
+    search.addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        const filtered = items.filter(i => i.toLowerCase().includes(q));
+        dropdown.innerHTML = '';
+
+        if (filtered.length && q) {
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'dropdown-item-opt';
+                div.textContent = item;
+                div.addEventListener('click', () => {
+                    search.value = item;
+                    value.value = item;
+                    dropdown.classList.remove('open');
+                });
+                dropdown.appendChild(div);
+            });
+            dropdown.classList.add('open');
+        } else {
+            dropdown.classList.remove('open');
+        }
+
+        // Allow custom input
+        value.value = this.value;
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest(`#${searchId}`) && !e.target.closest(`#${dropdownId}`)) {
+            dropdown.classList.remove('open');
+        }
+    });
+}
+
+setupDropdown('school-search', 'school-dropdown', 'school-value', GHANA_UNIVERSITIES);
+setupDropdown('programme-search', 'programme-dropdown', 'programme-value', GHANA_PROGRAMMES);
 </script>
 
 {% endblock %}

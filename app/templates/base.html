@@ -344,6 +344,41 @@
     </nav>
     {% endif %}
 
+    {% if current_user.is_authenticated and not current_user.school and not current_user.programme %}
+<div class="onboarding-overlay" id="onboardingOverlay">
+    <div class="onboarding-card">
+        <div class="onboarding-icon">
+            <i class="fas fa-graduation-cap"></i>
+        </div>
+        <h2>Complete Your Profile</h2>
+        <p>Tell us where you study so you can connect with students from your school!</p>
+
+        <form method="post" action="{{ url_for('users.save_education') }}" class="onboarding-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- School -->
+            <div class="onboarding-field">
+                <label><i class="fas fa-university"></i> School / University</label>
+                <input type="text" id="ob-school-search" placeholder="Search your university..." class="ob-input" autocomplete="off">
+                <input type="hidden" name="school" id="ob-school-value">
+                <div class="ob-dropdown" id="ob-school-dropdown"></div>
+            </div>
+
+            <!-- Programme -->
+            <div class="onboarding-field">
+                <label><i class="fas fa-book"></i> Programme / Course</label>
+                <input type="text" id="ob-programme-search" placeholder="Search your programme..." class="ob-input" autocomplete="off">
+                <input type="hidden" name="programme" id="ob-programme-value">
+                <div class="ob-dropdown" id="ob-programme-dropdown"></div>
+            </div>
+
+            <button type="submit" class="ob-submit">Save & Continue</button>
+            <button type="button" class="ob-skip" onclick="skipOnboarding()">Skip for now</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script>
     /* ── Dark mode — global so onclick="toggleDarkMode()" works ── */
@@ -416,6 +451,85 @@
             }, 5000);
         });
     })();
+
+    function skipOnboarding() {
+    document.getElementById('onboardingOverlay').style.display = 'none';
+    // Remember skip for this session
+    sessionStorage.setItem('education_skipped', '1');
+}
+
+// Don't show again if skipped this session
+if (sessionStorage.getItem('education_skipped')) {
+    const overlay = document.getElementById('onboardingOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function setupObDropdown(searchId, dropdownId, valueId, items) {
+    const search = document.getElementById(searchId);
+    const dropdown = document.getElementById(dropdownId);
+    const value = document.getElementById(valueId);
+    if (!search) return;
+
+    search.addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        const filtered = items.filter(i => i.toLowerCase().includes(q));
+        dropdown.innerHTML = '';
+        value.value = this.value;
+
+        if (filtered.length && q) {
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'ob-dropdown-item';
+                div.textContent = item;
+                div.addEventListener('click', () => {
+                    search.value = item;
+                    value.value = item;
+                    dropdown.classList.remove('open');
+                });
+                dropdown.appendChild(div);
+            });
+            dropdown.classList.add('open');
+        } else {
+            dropdown.classList.remove('open');
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#' + searchId) && !e.target.closest('#' + dropdownId)) {
+            dropdown.classList.remove('open');
+        }
+    });
+}
+
+const GHANA_UNIVERSITIES = [
+    "University of Ghana", "KNUST", "University of Cape Coast",
+    "University for Development Studies", "GIMPA", "Ashesi University",
+    "Central University", "Valley View University", "Methodist University Ghana",
+    "UPSA", "GCTU", "Accra Technical University", "Ho Technical University",
+    "Kumasi Technical University", "Takoradi Technical University",
+    "Koforidua Technical University", "Sunyani Technical University",
+    "Cape Coast Technical University", "Wa Technical University",
+    "Bolgatanga Technical University", "University of Health and Allied Sciences",
+    "Ghana Institute of Journalism", "NAFTI", "Regent University College",
+    "C.K. Tedam University", "SD Dombo University", "Other"
+];
+
+const GHANA_PROGRAMMES = [
+    "BSc Computer Science", "BSc Information Technology", "BSc Computer Engineering",
+    "BSc Electrical Engineering", "BSc Mechanical Engineering", "BSc Civil Engineering",
+    "BSc Chemical Engineering", "BA Economics", "BSc Business Administration",
+    "BSc Accounting", "BSc Marketing", "BA English", "BA History",
+    "BSc Mathematics", "BSc Statistics", "BSc Physics", "BSc Chemistry",
+    "BSc Biology", "BSc Biochemistry", "BSc Nursing", "BSc Pharmacy",
+    "MBChB Medicine and Surgery", "LLB Law", "BSc Agriculture",
+    "BSc Education", "BA Communication Studies", "BSc Psychology",
+    "BSc Sociology", "BSc Political Science", "BSc Architecture",
+    "BSc Quantity Surveying", "BSc Land Economy", "MBA",
+    "MSc Computer Science", "MSc Engineering", "Other"
+];
+
+setupObDropdown('ob-school-search', 'ob-school-dropdown', 'ob-school-value', GHANA_UNIVERSITIES);
+setupObDropdown('ob-programme-search', 'ob-programme-dropdown', 'ob-programme-value', GHANA_PROGRAMMES);
     </script>
     {% block extra_js %}{% endblock %}
 </body>

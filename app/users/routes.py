@@ -28,6 +28,19 @@ def profile(username):
                            posts=posts)
 
 
+@bp.route('/save-education', methods=['POST'])
+@login_required
+def save_education():
+    school = request.form.get('school', '').strip()
+    programme = request.form.get('programme', '').strip()
+    if school:
+        current_user.school = school
+    if programme:
+        current_user.programme = programme
+    db.session.commit()
+    return redirect(request.referrer or url_for('main.feed_route'))
+
+
 @bp.route('/edit-profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
@@ -39,6 +52,8 @@ def edit_profile():
     if form.validate_on_submit():
         current_user.full_name = form.full_name.data
         current_user.bio = form.bio.data
+        current_user.school = form.school.data
+        current_user.programme = form.programme.data
 
         # Handle profile picture upload
         if form.profile_picture.data and form.profile_picture.data.filename:
@@ -82,6 +97,8 @@ def edit_profile():
     elif request.method == 'GET':
         form.full_name.data = current_user.full_name
         form.bio.data = current_user.bio
+        form.school.data = current_user.school
+        form.programme.data = current_user.programme
 
     return render_template('users/edit_profile.html', title='Edit Profile', form=form)
 
