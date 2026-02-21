@@ -1,6 +1,10 @@
 import os
 import platform
 from datetime import timedelta
+from dotenv import load_dotenv
+
+# Load .env from the same directory as this config file
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 
 # Base directory of the application
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -10,6 +14,7 @@ class Config:
     Configuration class for the Flask application.
     Contains all settings needed for security, database, uploads, etc.
     """
+    PREFERRED_URL_SCHEME = 'https'
     
     # ============================================================================
     # Environment Detection
@@ -126,7 +131,7 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     
     # ============================================================================
-    # Payment Settings (Future Integration)
+    # Payment Settings
     # ============================================================================
     
     STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
@@ -135,11 +140,12 @@ class Config:
     PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY')
     
     # ============================================================================
-    # Email Settings (Future Integration)
+    # Email Settings
     # ============================================================================
     
-    MAIL_SERVER = os.environ.get('MAIL_SERVER')
-    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 587)
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
+    MAIL_SERVER = 'smtp.gmail.com'
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or os.environ.get('MAIL_USERNAME')

@@ -1,12 +1,12 @@
-from flask import render_template, redirect, url_for, flash, request
-from flask_login import login_required, current_user
+from flask import render_template, redirect, url_for, flash, request, current_app
+from flask_login import current_user
 from app import db
 from app.admin import bp
 from app.forms import SubjectForm
 from app.models import Subject, User, Post, Comment, Document
+from app.utils import admin_required
 import re
 import os
-from flask import current_app
 
 
 def slugify(text):
@@ -18,7 +18,7 @@ def slugify(text):
 
 
 @bp.route('/')
-@login_required
+@admin_required
 def dashboard():
     """Admin dashboard with overview statistics."""
     total_users    = User.query.count()
@@ -26,7 +26,6 @@ def dashboard():
     total_subjects = Subject.query.count()
     total_comments = Comment.query.count()
 
-    # Moderation counts — surfaced on the dashboard
     pending_count  = Post.query.filter_by(status='pending').count()
     approved_count = Post.query.filter_by(status='approved').count()
     rejected_count = Post.query.filter_by(status='rejected').count()
@@ -52,14 +51,14 @@ def dashboard():
 # ============ SUBJECT MANAGEMENT ============
 
 @bp.route('/subjects')
-@login_required
+@admin_required
 def subjects():
     subjects = Subject.query.order_by(Subject.order, Subject.name).all()
     return render_template('admin/subjects.html', title='Manage Subjects', subjects=subjects)
 
 
 @bp.route('/subjects/create', methods=['GET', 'POST'])
-@login_required
+@admin_required
 def create_subject():
     form = SubjectForm()
 
@@ -88,7 +87,7 @@ def create_subject():
 
 
 @bp.route('/subjects/<int:subject_id>/edit', methods=['GET', 'POST'])
-@login_required
+@admin_required
 def edit_subject(subject_id):
     subject = Subject.query.get_or_404(subject_id)
     form = SubjectForm()
@@ -124,7 +123,7 @@ def edit_subject(subject_id):
 
 
 @bp.route('/subjects/<int:subject_id>/delete', methods=['POST'])
-@login_required
+@admin_required
 def delete_subject(subject_id):
     subject = Subject.query.get_or_404(subject_id)
     posts = Post.query.filter_by(subject_id=subject.id).all()
@@ -138,7 +137,7 @@ def delete_subject(subject_id):
 
 
 @bp.route('/subjects/<int:subject_id>/toggle', methods=['POST'])
-@login_required
+@admin_required
 def toggle_subject(subject_id):
     subject = Subject.query.get_or_404(subject_id)
     subject.is_active = not subject.is_active
@@ -151,7 +150,7 @@ def toggle_subject(subject_id):
 # ============ USER MANAGEMENT ============
 
 @bp.route('/users')
-@login_required
+@admin_required
 def users():
     page   = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
@@ -173,7 +172,7 @@ def users():
 
 
 @bp.route('/users/<int:user_id>/toggle-active', methods=['POST'])
-@login_required
+@admin_required
 def toggle_user_active(user_id):
     user = User.query.get_or_404(user_id)
     if user.id == current_user.id:
@@ -187,7 +186,7 @@ def toggle_user_active(user_id):
 
 
 @bp.route('/users/<int:user_id>/delete', methods=['POST'])
-@login_required
+@admin_required
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
     if user.id == current_user.id:
@@ -218,7 +217,7 @@ def delete_user(user_id):
 # ============ POST MANAGEMENT ============
 
 @bp.route('/posts')
-@login_required
+@admin_required
 def posts():
     page           = request.args.get('page', 1, type=int)
     search         = request.args.get('search', '')
@@ -259,7 +258,7 @@ def posts():
 
 
 @bp.route('/posts/<int:post_id>/delete', methods=['POST'])
-@login_required
+@admin_required
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
     title = post.title
@@ -278,13 +277,9 @@ def delete_post(post_id):
 # ============ POST MODERATION ============
 
 @bp.route('/moderation')
-@login_required
+@admin_required
 def moderation():
-    """
-    Moderation queue — lists all posts by status tab.
-    Defaults to showing pending posts.
-    """
-    tab  = request.args.get('tab', 'pending')   # pending | approved | rejected
+    tab  = request.args.get('tab', 'pending')
     page = request.args.get('page', 1, type=int)
 
     valid_tabs = ('pending', 'approved', 'rejected')
@@ -312,35 +307,26 @@ def moderation():
 
 
 @bp.route('/moderation/<int:post_id>/approve', methods=['POST'])
-@login_required
+@admin_required
 def approve_post(post_id):
-    """Approve a pending post — it will now appear in the public feed."""
     post = Post.query.get_or_404(post_id)
     post.status           = 'approved'
     post.rejection_reason = None
     db.session.commit()
     flash(f'Post "{post.title}" approved and is now live.', 'success')
-
     next_url = request.form.get('next') or url_for('admin.moderation')
     return redirect(next_url)
 
 
 @bp.route('/moderation/<int:post_id>/reject', methods=['POST'])
-@login_required
+@admin_required
 def reject_post(post_id):
-    """
-    Reject a post with an optional reason.
-    The reason is stored on the post so the author can see it.
-    """
     post = Post.query.get_or_404(post_id)
     reason = request.form.get('reason', '').strip()
-
     post.status           = 'rejected'
     post.rejection_reason = reason or None
     db.session.commit()
-
     flash(f'Post "{post.title}" has been rejected.', 'warning')
-
     next_url = request.form.get('next') or url_for('admin.moderation')
     return redirect(next_url)
 
@@ -348,7 +334,7 @@ def reject_post(post_id):
 # ============ STATISTICS & REPORTS ============
 
 @bp.route('/statistics')
-@login_required
+@admin_required
 def statistics():
     total_users     = User.query.count()
     active_users    = User.query.filter_by(is_active=True).count()
@@ -394,3 +380,69 @@ def statistics():
         total_comments=total_comments,
         top_posters=top_posters,
     )
+
+
+# ============ BULK EMAIL ============
+
+@bp.route('/send-email', methods=['GET', 'POST'])
+@admin_required
+def send_email():
+    from flask_mail import Message
+    from app import mail  # use the globally initialised Mail instance, not Mail(current_app)
+
+    users       = User.query.filter(User.email.isnot(None)).all()
+    total_users = len(users)
+
+    if request.method == 'POST':
+        subject  = request.form.get('subject', '').strip()
+        body     = request.form.get('body', '').strip()
+        send_to  = request.form.get('send_to', 'all')
+        selected = request.form.getlist('selected_emails')
+
+        if not subject or not body:
+            flash('Subject and message body are required.', 'danger')
+            return render_template('admin/send_email.html', users=users, total_users=total_users)
+
+        recipients = [u.email for u in users] if send_to == 'all' else selected
+
+        if not recipients:
+            flash('No recipients selected.', 'danger')
+            return render_template('admin/send_email.html', users=users, total_users=total_users)
+
+        # Resolve sender — fall back gracefully if MAIL_DEFAULT_SENDER isn't set
+        sender = (
+            current_app.config.get('MAIL_DEFAULT_SENDER') or
+            current_app.config.get('MAIL_USERNAME')
+        )
+
+        sent   = 0
+        failed = 0
+
+        for email in recipients:
+            try:
+                msg = Message(
+                    subject    = subject,
+                    recipients = [email],
+                    html       = body,
+                    sender     = sender,
+                )
+                mail.send(msg)
+                sent += 1
+            except Exception as e:
+                current_app.logger.error(f"Failed to send to {email}: {e}")
+                failed += 1
+
+        if sent:
+            result = f'Email sent successfully to {sent} user(s).'
+            if failed:
+                result += f' {failed} failed — check the server logs.'
+            flash(result, 'success')
+        else:
+            flash(f'All {failed} sends failed. Check your mail config and server logs.', 'danger')
+
+        return redirect(url_for('admin.send_email'))
+    print("MAIL_USERNAME:", current_app.config.get('MAIL_USERNAME'))
+    print("MAIL_DEFAULT_SENDER:", current_app.config.get('MAIL_DEFAULT_SENDER'))
+    print("MAIL_PASSWORD set:", bool(current_app.config.get('MAIL_PASSWORD')))
+
+    return render_template('admin/send_email.html', users=users, total_users=total_users)

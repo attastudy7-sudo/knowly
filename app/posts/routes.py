@@ -2,14 +2,14 @@ import hashlib
 import hmac
 import time
 import urllib.parse
+import os
+import uuid
 
-import cloudinary.uploader
-import cloudinary.utils
 import requests as req
 
 from flask import (
     Response, render_template, redirect, stream_with_context,
-    url_for, flash, request, current_app, jsonify,
+    url_for, flash, request, current_app, jsonify, send_from_directory,
 )
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
@@ -18,6 +18,20 @@ from app import db
 from app.posts import bp
 from app.forms import CreatePostForm, CommentForm
 from app.models import Post, Document, Comment, Like, Subject
+
+
+# ── Environment detection ─────────────────────────────────────────────────────
+
+def _is_local() -> bool:
+    """True when running in local development mode (no Cloudinary keys set)."""
+    return not bool(current_app.config.get('CLOUDINARY_CLOUD_NAME'))
+
+
+def _local_upload_folder() -> str:
+    """Absolute path to the local uploads folder. Created if it doesn't exist."""
+    folder = os.path.join(current_app.root_path, 'static', 'uploads', 'documents')
+    os.makedirs(folder, exist_ok=True)
+    return folder
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -37,14 +51,9 @@ def _pricing_allowed() -> bool:
 
     in your .env or hosting environment, then restart the app. Remove it to
     revert to admin-only pricing.
-
-    To check: is the current user an admin?
-    Adjust 'is_admin' below to match your actual User model field name.
     """
-    # Backdoor — open to everyone when env flag is set
     if current_app.config.get('ALLOW_ALL_PRICING'):
         return True
-    # Normal path — admins only
     return current_user.is_authenticated and current_user.is_admin
 
 
@@ -61,15 +70,60 @@ def _apply_pricing(document, form):
         document.is_paid = True
         document.price   = round(price, 2)
     else:
-        # Regular user — silently force free regardless of form values
         document.is_paid = False
         document.price   = 0.0
 
 
-def upload_document_to_cloudinary(file, form):
-    """Upload a file to Cloudinary and return a Document model instance."""
+# ── Storage: upload ───────────────────────────────────────────────────────────
+
+def upload_document(file, form):
+    """
+    Upload a file to Cloudinary (production) or local disk (development).
+    Returns a Document model instance or None on failure.
+    """
+    if _is_local():
+        return _upload_local(file, form)
+    return _upload_cloudinary(file, form)
+
+
+def _upload_local(file, form):
+    """Save file to app/static/uploads/documents/ for local dev."""
     try:
-        file_ext = file.filename.rsplit('.', 1)[1].lower()
+        file_ext          = file.filename.rsplit('.', 1)[1].lower()
+        original_filename = secure_filename(file.filename)
+        unique_name       = f"{uuid.uuid4().hex}.{file_ext}"
+        upload_folder     = _local_upload_folder()
+        save_path         = os.path.join(upload_folder, unique_name)
+
+        file.save(save_path)
+        file_size = os.path.getsize(save_path)
+
+        # file_path stored as the relative URL path served by Flask
+        file_url = f"/static/uploads/documents/{unique_name}"
+
+        document = Document(
+            filename=unique_name,
+            original_filename=original_filename,
+            file_path=file_url,
+            file_type=file_ext,
+            file_size=file_size,
+            is_paid=False,
+            price=0.0,
+        )
+        _apply_pricing(document, form)
+        return document
+
+    except Exception as e:
+        current_app.logger.error(f"Local upload failed: {e}")
+        flash('File upload failed. Please try again.', 'danger')
+        return None
+
+
+def _upload_cloudinary(file, form):
+    """Upload to Cloudinary for production."""
+    try:
+        import cloudinary.uploader
+        file_ext          = file.filename.rsplit('.', 1)[1].lower()
         original_filename = secure_filename(file.filename)
 
         result = cloudinary.uploader.upload(
@@ -91,7 +145,6 @@ def upload_document_to_cloudinary(file, form):
             is_paid=False,
             price=0.0,
         )
-        # Apply pricing rules (admin-only enforcement happens here)
         _apply_pricing(document, form)
         return document
 
@@ -101,19 +154,104 @@ def upload_document_to_cloudinary(file, form):
         return None
 
 
-def delete_document_from_cloudinary(document):
+# ── Storage: delete ───────────────────────────────────────────────────────────
+
+def delete_document(document):
+    """Delete a document from Cloudinary (prod) or local disk (dev)."""
+    if _is_local():
+        _delete_local(document)
+    else:
+        _delete_cloudinary(document)
+
+
+def _delete_local(document):
+    """Remove file from local disk."""
     try:
-        resource_type = 'image' if document.file_type in {'png', 'jpg', 'jpeg', 'gif', 'webp'} else 'raw'
+        upload_folder = _local_upload_folder()
+        file_path     = os.path.join(upload_folder, document.filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    except Exception as e:
+        current_app.logger.warning(f"Failed to delete local file '{document.filename}': {e}")
+
+
+def _delete_cloudinary(document):
+    """Remove file from Cloudinary."""
+    try:
+        import cloudinary.uploader
+        resource_type = (
+            'image' if document.file_type in {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+            else 'raw'
+        )
         cloudinary.uploader.destroy(document.filename, resource_type=resource_type)
     except Exception as e:
         current_app.logger.warning(f"Failed to delete Cloudinary file '{document.filename}': {e}")
 
 
+# ── Storage: stream / serve ───────────────────────────────────────────────────
+
 def _signed_proxy_token(document_id: int, expires: int, secret: bytes) -> str:
     return hmac.new(secret, f'{document_id}:{expires}'.encode(), hashlib.sha256).hexdigest()
 
 
-def _stream_from_cloudinary(document, as_attachment: bool = False):
+def _stream_document(document, as_attachment: bool = False):
+    """
+    Return (body_iterator, response_kwargs) for serving a document.
+    Uses local file serving in dev, Cloudinary streaming in prod.
+    """
+    if _is_local():
+        return _stream_local(document, as_attachment)
+    return _stream_cloudinary(document, as_attachment)
+
+
+def _stream_local(document, as_attachment: bool = False):
+    """Serve file directly from local disk."""
+    try:
+        upload_folder = _local_upload_folder()
+        file_path     = os.path.join(upload_folder, document.filename)
+
+        if not os.path.exists(file_path):
+            current_app.logger.error(f"Local file not found: {file_path}")
+            return None, None
+
+        # Determine MIME type
+        ext_mime = {
+            'pdf':  'application/pdf',
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'doc':  'application/msword',
+            'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'ppt':  'application/vnd.ms-powerpoint',
+            'txt':  'text/plain',
+            'png':  'image/png',
+            'jpg':  'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif':  'image/gif',
+        }
+        content_type = ext_mime.get(document.file_type.lower(), 'application/octet-stream')
+
+        def generate():
+            with open(file_path, 'rb') as f:
+                while chunk := f.read(8192):
+                    yield chunk
+
+        headers = {}
+        if as_attachment:
+            safe_name = urllib.parse.quote(document.original_filename or 'download')
+            headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{safe_name}"
+        headers['Content-Length'] = str(os.path.getsize(file_path))
+
+        return (
+            stream_with_context(generate()),
+            dict(status=200, content_type=content_type, headers=headers),
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"Local file serve failed: {e}")
+        return None, None
+
+
+def _stream_cloudinary(document, as_attachment: bool = False):
+    """Stream file from Cloudinary."""
     try:
         upstream = req.get(document.file_path, stream=True, timeout=20)
         upstream.raise_for_status()
@@ -166,7 +304,7 @@ def create():
         if form.document.data and form.document.data.filename:
             file = form.document.data
             if allowed_file(file.filename, current_app.config['ALLOWED_DOCUMENT_EXTENSIONS']):
-                document = upload_document_to_cloudinary(file, form)
+                document = upload_document(file, form)
                 if document:
                     db.session.add(document)
                     db.session.flush()
@@ -242,7 +380,6 @@ def edit(post_id):
                 if new_sub:
                     new_sub.post_count = new_sub.posts.count() + 1
 
-        # Validate price only if this user is allowed to set pricing
         if _pricing_allowed() and form.is_paid.data:
             try:
                 submitted_price = float(form.price.data) if form.price.data else 0.0
@@ -257,8 +394,6 @@ def edit(post_id):
             final_is_paid = True
             final_price   = round(submitted_price, 2)
         else:
-            # Regular user — keep existing paid status if it was set by admin,
-            # or force free if there was no existing document.
             if post.document:
                 final_is_paid = post.document.is_paid
                 final_price   = post.document.price
@@ -274,11 +409,11 @@ def edit(post_id):
                                        post=post, show_pricing=_pricing_allowed())
 
             if post.document:
-                delete_document_from_cloudinary(post.document)
+                delete_document(post.document)
                 db.session.delete(post.document)
                 db.session.flush()
 
-            document = upload_document_to_cloudinary(new_file, form)
+            document = upload_document(new_file, form)
             if document:
                 document.is_paid = final_is_paid
                 document.price   = final_price
@@ -288,7 +423,6 @@ def edit(post_id):
                 post.document_id  = document.id
 
         elif post.document:
-            # No new file — update pricing only if allowed
             if _pricing_allowed():
                 post.document.is_paid = final_is_paid
                 post.document.price   = final_price
@@ -320,7 +454,7 @@ def delete(post_id):
         return redirect(url_for('posts.view', post_id=post.id))
 
     if post.document:
-        delete_document_from_cloudinary(post.document)
+        delete_document(post.document)
 
     db.session.delete(post)
     db.session.commit()
@@ -380,7 +514,7 @@ def download_document(document_id):
     document.download_count += 1
     db.session.commit()
 
-    body, kwargs = _stream_from_cloudinary(document, as_attachment=True)
+    body, kwargs = _stream_document(document, as_attachment=True)
     if body is None:
         flash('Could not fetch file from storage. Please try again.', 'danger')
         return redirect(url_for('posts.view', post_id=document.post.id))
@@ -403,9 +537,15 @@ def preview_document(document_id):
     if ext not in previewable:
         return jsonify({'error': 'not_previewable'}), 400
 
+    # Images — serve directly
     if ext in {'png', 'jpg', 'jpeg', 'gif', 'webp'}:
+        if _is_local():
+            # Serve local static URL directly
+            return jsonify({'type': 'image', 'url': document.file_path}), 200
         return jsonify({'type': 'image', 'url': document.file_path}), 200
 
+    # In local dev: use a signed proxy URL for Google Docs viewer
+    # In prod: same approach via Cloudinary URL
     expires = int(time.time()) + 300
     secret  = current_app.config['SECRET_KEY'].encode()
     token   = _signed_proxy_token(document_id, expires, secret)
@@ -417,6 +557,11 @@ def preview_document(document_id):
         expires=expires,
         _external=True,
     )
+
+    if _is_local():
+        # Google Docs viewer can't reach localhost — open directly in browser instead
+        return jsonify({'type': 'local', 'url': document.file_path}), 200
+
     viewer_url = (
         'https://docs.google.com/viewer?embedded=true&url='
         + urllib.parse.quote(proxy_url, safe='')
@@ -444,7 +589,7 @@ def proxy_document(document_id):
 
     document = Document.query.get_or_404(document_id)
 
-    body, kwargs = _stream_from_cloudinary(document, as_attachment=False)
+    body, kwargs = _stream_document(document, as_attachment=False)
     if body is None:
         return 'Could not fetch file from storage', 502
 

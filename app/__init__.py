@@ -1,29 +1,48 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from config import Config
+from flask_mail import Mail
 from flask_migrate import Migrate
+from werkzeug.middleware.proxy_fix import ProxyFix
+from config import Config
 
-# Initialize extensions
+# Initialize extensions (no app yet)
 db = SQLAlchemy()
 login_manager = LoginManager()
+mail = Mail()
+
+
+def register_error_handlers(app):
+    from flask import render_template
+
+    @app.errorhandler(404)
+    def not_found_error(error):
+        return render_template('errors/404.html'), 404
+
+    @app.errorhandler(403)
+    def forbidden_error(error):
+        return render_template('errors/404.html'), 403
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        db.session.rollback()
+        return render_template('errors/404.html'), 500
 
 
 def create_app(config_class=Config):
-    """
-    Application Factory Pattern
-    Creates and configures the Flask application instance.
-    """
     app = Flask(__name__)
     app.config.from_object(config_class)
-    
-    # Initialize extensions with app
+
+    # Fix HTTPS behind Render's proxy
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+    # ── Extensions ────────────────────────────────────────────────────────────
     db.init_app(app)
     login_manager.init_app(app)
-    migrate = Migrate(app, db)  # ← add this after db is initialized
+    mail.init_app(app)
+    Migrate(app, db)
 
-
-    # Initialize Cloudinary
+    # ── Cloudinary ────────────────────────────────────────────────────────────
     import cloudinary
     cloudinary.config(
         cloud_name=app.config['CLOUDINARY_CLOUD_NAME'],
@@ -31,38 +50,86 @@ def create_app(config_class=Config):
         api_secret=app.config['CLOUDINARY_API_SECRET'],
         secure=True
     )
-    
-    # Configure login manager
+
+    # ── Login manager ─────────────────────────────────────────────────────────
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
-    
-    # Register blueprints
+
+    # ── Blueprints ────────────────────────────────────────────────────────────
+    # IMPORTANT: register auth FIRST so url_for('auth.signup') / url_for('auth.login')
+    # are available when the main blueprint's redirect routes are built.
+
+    # 1. Auth blueprint — must come before main so its endpoints exist
     from app.auth import bp as auth_bp
     app.register_blueprint(auth_bp, url_prefix='/auth')
-    
+
+    # 2. Google OAuth blueprint — registered after auth so imports resolve cleanly
+    from app.auth.routes import create_google_blueprint
+    google_bp = create_google_blueprint()
+    app.register_blueprint(google_bp, url_prefix='/login')
+
+    # Wire up the oauth_authorized signal AFTER both blueprints are registered
+    from flask_dance.consumer import oauth_authorized
+    from flask import redirect, url_for, flash
+
+    @oauth_authorized.connect_via(google_bp)
+    def google_logged_in(blueprint, token):
+        if not token:
+            flash('Failed to log in with Google.', 'danger')
+            return redirect(url_for('auth.login'))
+
+        resp = blueprint.session.get('/oauth2/v2/userinfo')
+        if not resp.ok:
+            flash('Failed to fetch user info from Google.', 'danger')
+            return redirect(url_for('auth.login'))
+
+        info         = resp.json()
+        google_email = info.get('email')
+        google_name  = info.get('name', '')
+
+        if not google_email:
+            flash('Could not retrieve your email from Google.', 'danger')
+            return redirect(url_for('auth.login'))
+
+        from app.auth.routes import _get_or_create_google_user
+        from flask_login import login_user
+        user, created = _get_or_create_google_user(google_email, google_name)
+        login_user(user, remember=True)
+
+        if created:
+            flash(f'Welcome to eDuShare, {user.username}! Account created via Google.', 'success')
+        else:
+            flash(f'Welcome back, {user.username}!', 'success')
+
+        return False  # tell Flask-Dance not to save token to its own DB
+
+    # 3. Remaining blueprints
     from app.posts import bp as posts_bp
     app.register_blueprint(posts_bp, url_prefix='/posts')
-    
+
     from app.users import bp as users_bp
     app.register_blueprint(users_bp, url_prefix='/users')
-    
+
     from app.payments import bp as payments_bp
     app.register_blueprint(payments_bp, url_prefix='/payments')
-    
+
     from app.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
-    
+
+    # 4. Main blueprint last — its /signup and /login redirects call
+    #    url_for('auth.signup') / url_for('auth.login'), which must already exist
     from app import routes
     app.register_blueprint(routes.bp)
-    
-    # Create database tables if they don't exist
+
+    # ── Database ──────────────────────────────────────────────────────────────
     with app.app_context():
         try:
             db.create_all()
         except Exception as e:
             print(f"Database already initialized: {e}")
-    
+
+    register_error_handlers(app)
     return app
 
 

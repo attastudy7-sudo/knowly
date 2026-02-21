@@ -69,14 +69,13 @@ class User(UserMixin, db.Model):
     # Account metadata
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
-    is_admin = db.Column(db.Boolean, default=False, nullable=False)  # ← add this
-    
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
+
     # Relationships
     posts = db.relationship('Post', backref='author', lazy='dynamic', cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='author', lazy='dynamic', cascade='all, delete-orphan')
     likes = db.relationship('Like', backref='user', lazy='dynamic', cascade='all, delete-orphan')
 
-    
     # Self-referential many-to-many for follows
     following = db.relationship(
         'User',
@@ -113,6 +112,18 @@ class User(UserMixin, db.Model):
     def following_count(self):
         """Return the count of users this user is following."""
         return self.following.count()
+
+    # ── Gamification stubs (not yet implemented) ──────────────────────────────
+    @property
+    def streak_days(self):
+        """Stub — daily streak feature not yet implemented."""
+        return 0
+
+    @property
+    def xp_points(self):
+        """Stub — XP system not yet implemented."""
+        return 0
+    # ─────────────────────────────────────────────────────────────────────────
 
     @property
     def profile_picture_url(self) -> str:
@@ -163,6 +174,10 @@ class Post(db.Model):
 
     def is_liked_by(self, user):
         return self.likes.filter_by(user_id=user.id).first() is not None
+
+    def is_bookmarked_by(self, user):
+        """Stub — bookmark feature not yet implemented."""
+        return False
 
     def __repr__(self):
         return f'<Post {self.title}>'

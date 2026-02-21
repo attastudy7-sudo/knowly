@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>404 — Page Not Found | eDuShare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --indigo:     #6366f1;
+      --indigo-dim: #4f46e5;
+      --violet:     #8b5cf6;
+      --bg:         #0d0d14;
+      --surface:    #13131f;
+      --border:     rgba(99,102,241,0.18);
+      --text:       #e8e8f0;
+      --muted:      #7b7b9a;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── STARFIELD ─────────────────────────────── */
+    #stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .star {
+      position: absolute;
+      border-radius: 50%;
+      background: #fff;
+      animation: twinkle var(--d) ease-in-out infinite alternate;
+    }
+    @keyframes twinkle {
+      from { opacity: var(--min-op); transform: scale(1); }
+      to   { opacity: var(--max-op); transform: scale(1.6); }
+    }
+
+    /* ── AMBIENT GLOWS ─────────────────────────── */
+    .glow {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glow-left {
+      width: 480px; height: 480px;
+      background: radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 70%);
+      top: -80px; left: -120px;
+      animation: drift 9s ease-in-out infinite alternate;
+    }
+    .glow-right {
+      width: 420px; height: 420px;
+      background: radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%);
+      bottom: -60px; right: -80px;
+      animation: drift 11s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes drift {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(30px, 30px) scale(1.08); }
+    }
+
+    /* ── GRID OVERLAY ──────────────────────────── */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(99,102,241,0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.055) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── LAYOUT ────────────────────────────────── */
+    .scene {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      text-align: center;
+      gap: 0;
+    }
+
+    /* ── BOOK ANIMATION ────────────────────────── */
+    .book-wrap {
+      position: relative;
+      margin-bottom: 2.4rem;
+      animation: float 4s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0px) rotate(-1deg); }
+      50%      { transform: translateY(-14px) rotate(1deg); }
+    }
+
+    .book {
+      position: relative;
+      width: 88px;
+      height: 108px;
+      transform-style: preserve-3d;
+      perspective: 600px;
+    }
+    .book-cover {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(145deg, var(--indigo) 0%, var(--violet) 100%);
+      border-radius: 4px 12px 12px 4px;
+      box-shadow:
+        -5px 5px 0 rgba(0,0,0,0.5),
+        0 20px 50px rgba(99,102,241,0.45),
+        inset -2px 0 0 rgba(255,255,255,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .book-cover::before {
+      content: '';
+      position: absolute;
+      left: 8px; top: 0; bottom: 0;
+      width: 4px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 2px;
+    }
+    .book-icon {
+      font-size: 2.4rem;
+      animation: iconPulse 3s ease-in-out infinite;
+    }
+    @keyframes iconPulse {
+      0%,100% { transform: scale(1); filter: brightness(1); }
+      50%      { transform: scale(1.1); filter: brightness(1.3); }
+    }
+
+    /* pages fanning out */
+    .page {
+      position: absolute;
+      right: -3px;
+      top: 6px; bottom: 6px;
+      width: 70px;
+      background: #f0f0f8;
+      border-radius: 0 8px 8px 0;
+      transform-origin: left center;
+      box-shadow: 2px 0 4px rgba(0,0,0,0.2);
+    }
+    .page:nth-child(1) { transform: rotateY(-6deg) translateX(2px);  background: #e8e8f5; }
+    .page:nth-child(2) { transform: rotateY(-12deg) translateX(4px); background: #f0f0f8; }
+    .page:nth-child(3) { transform: rotateY(-18deg) translateX(6px); background: #e4e4f0; }
+
+    /* ── 404 NUMBER ────────────────────────────── */
+    .error-num {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(5rem, 18vw, 11rem);
+      line-height: 1;
+      letter-spacing: -0.04em;
+      background: linear-gradient(135deg, #fff 20%, var(--indigo) 60%, var(--violet) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+      animation: fadeSlideUp 0.7s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    /* glitchy shimmer on the 0s */
+    .error-num span {
+      position: relative;
+      display: inline-block;
+    }
+    .error-num span::after {
+      content: attr(data-char);
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--violet), var(--indigo));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: glitch 5s infinite;
+      clip-path: polygon(0 30%, 100% 30%, 100% 50%, 0 50%);
+    }
+    @keyframes glitch {
+      0%,90%,100% { transform: translate(0); opacity: 0; }
+      91%          { transform: translate(-3px, 1px); opacity: 0.8; }
+      93%          { transform: translate(3px, -1px); opacity: 0.6; }
+      95%          { transform: translate(-2px, 2px); opacity: 0.9; }
+      97%          { transform: translate(0); opacity: 0; }
+    }
+
+    /* ── DIVIDER LINE ──────────────────────────── */
+    .divider {
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--indigo), transparent);
+      margin: 1.2rem auto 1.4rem;
+      animation: fadeSlideUp 0.7s 0.15s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    /* ── COPY ──────────────────────────────────── */
+    .headline {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: clamp(1.3rem, 3.5vw, 1.85rem);
+      letter-spacing: -0.02em;
+      color: var(--text);
+      animation: fadeSlideUp 0.7s 0.2s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .subline {
+      margin-top: 0.75rem;
+      font-size: 1rem;
+      font-weight: 300;
+      color: var(--muted);
+      max-width: 380px;
+      line-height: 1.65;
+      animation: fadeSlideUp 0.7s 0.3s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    /* ── ACTIONS ───────────────────────────────── */
+    .actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2.4rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeSlideUp 0.7s 0.42s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.75rem 1.6rem;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 400;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0);
+      transition: background 0.2s;
+    }
+    .btn:hover::before { background: rgba(255,255,255,0.07); }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0px); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--indigo) 0%, var(--violet) 100%);
+      color: #fff;
+      box-shadow: 0 4px 24px rgba(99,102,241,0.4);
+    }
+    .btn-primary:hover { box-shadow: 0 8px 32px rgba(99,102,241,0.55); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: rgba(99,102,241,0.4); }
+
+    /* ── BREADCRUMB TRAIL ──────────────────────── */
+    .breadcrumb {
+      margin-top: 3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      opacity: 0.6;
+      animation: fadeSlideUp 0.7s 0.55s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .breadcrumb span { color: rgba(99,102,241,0.7); }
+
+    /* ── BOTTOM WORDMARK ───────────────────────── */
+    .wordmark {
+      position: fixed;
+      bottom: 1.6rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.12);
+      text-transform: uppercase;
+      z-index: 1;
+      white-space: nowrap;
+    }
+
+    /* ── SHARED KEYFRAMES ──────────────────────── */
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── RESPONSIVE ────────────────────────────── */
+    @media (max-width: 480px) {
+      .actions { flex-direction: column; align-items: center; }
+      .btn { width: 100%; max-width: 280px; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Starfield canvas -->
+  <div id="stars"></div>
+
+  <!-- Ambient glows -->
+  <div class="glow glow-left"></div>
+  <div class="glow glow-right"></div>
+
+  <!-- Grid texture -->
+  <div class="grid-overlay"></div>
+
+  <main class="scene">
+
+    <!-- Floating book -->
+    <div class="book-wrap">
+      <div class="book">
+        <div class="page"></div>
+        <div class="page"></div>
+        <div class="page"></div>
+        <div class="book-cover">
+          <div class="book-icon">📖</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Giant 404 -->
+    <div class="error-num">
+      <span data-char="4">4</span><span data-char="0">0</span><span data-char="4">4</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <h1 class="headline">This page is missing a chapter.</h1>
+    <p class="subline">
+      Looks like this resource has been moved, deleted, or never existed.
+      Let's get you back to the right page.
+    </p>
+
+    <div class="actions">
+      <a href="/" class="btn btn-primary">
+        <!-- home icon -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Back to Home
+      </a>
+      <a href="/explore" class="btn btn-ghost">
+        <!-- compass icon -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+        </svg>
+        Explore Posts
+      </a>
+    </div>
+
+    <div class="breadcrumb">
+      eDuShare <span>/</span> Error <span>/</span> 404
+    </div>
+
+  </main>
+
+  <div class="wordmark">eDuShare · Educational Resource Platform</div>
+
+  <script>
+    // Generate starfield
+    const container = document.getElementById('stars');
+    const count = 120;
+    for (let i = 0; i < count; i++) {
+      const s = document.createElement('div');
+      s.className = 'star';
+      const size = Math.random() * 2.2 + 0.4;
+      const minOp = (Math.random() * 0.15 + 0.03).toFixed(2);
+      const maxOp = (parseFloat(minOp) + Math.random() * 0.45 + 0.1).toFixed(2);
+      s.style.cssText = `
+        width:${size}px; height:${size}px;
+        top:${Math.random()*100}%; left:${Math.random()*100}%;
+        --d:${(Math.random()*3+1.5).toFixed(1)}s;
+        --min-op:${minOp}; --max-op:${maxOp};
+        animation-delay:${(Math.random()*4).toFixed(2)}s;
+      `;
+      container.appendChild(s);
+    }
+
+    // Shooting stars
+    function shootingStar() {
+      const el = document.createElement('div');
+      el.style.cssText = `
+        position:fixed; z-index:0; pointer-events:none;
+        height:1.5px; border-radius:99px;
+        background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.8),rgba(99,102,241,0.4));
+        top:${Math.random()*55}%; left:${Math.random()*60}%;
+        width:${Math.random()*120+60}px;
+        transform:rotate(-${Math.random()*25+10}deg);
+        animation: shoot 0.7s ease-out forwards;
+      `;
+      // inject one-off keyframe
+      const id = 'ss_' + Date.now();
+      const dx = Math.random()*160+60;
+      const dy = Math.random()*80+30;
+      const style = document.createElement('style');
+      style.textContent = `@keyframes shoot{from{opacity:1;transform:rotate(-${Math.random()*25+10}deg) translate(0,0)}to{opacity:0;transform:rotate(-${Math.random()*25+10}deg) translate(${dx}px,${dy}px)}}`;
+      document.head.appendChild(style);
+      document.body.appendChild(el);
+      el.addEventListener('animationend', () => { el.remove(); style.remove(); });
+    }
+    setInterval(() => { if(Math.random() > 0.45) shootingStar(); }, 2800);
+    setTimeout(shootingStar, 800);
+  </script>
+</body>
+</html>

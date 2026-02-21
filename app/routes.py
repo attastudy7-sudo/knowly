@@ -7,16 +7,33 @@ from sqlalchemy import or_
 bp = Blueprint('main', __name__)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# SHORTCUT REDIRECTS — so /login and /signup work without the /auth prefix
+# ─────────────────────────────────────────────────────────────────────────────
+
+@bp.route('/login')
+def login_redirect():
+    """Convenience redirect: /login → /auth/login"""
+    return redirect(url_for('auth.login'))
+
+
+@bp.route('/signup')
+@bp.route('/register')
+def signup_redirect():
+    """Convenience redirect: /signup or /register → /auth/signup"""
+    return redirect(url_for('auth.signup'))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MAIN ROUTES
+# ─────────────────────────────────────────────────────────────────────────────
+
 @bp.route('/')
 @bp.route('/index')
 def index():
     """
     Home page — redirects logged-in users to their personal feed.
     Guests see the landing page.
-
-    Bug fix: previously called explore() directly, which meant logged-in
-    users always got the explore feed (feed_type='explore') instead of
-    their personal feed (feed_type='personal').
     """
     if current_user.is_authenticated:
         return redirect(url_for('main.explore'))

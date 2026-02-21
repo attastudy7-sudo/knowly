@@ -1407,3 +1407,350 @@ a:hover { color: var(--primary-dark); }
     .price-tag, .free-tag { margin-left: 0; }
     .action-btn   { padding: 0.4375rem 0.5rem; }
 }
+
+/* ========================================
+   DARK MODE — [data-theme="dark"]
+   Applied globally via style.css so every
+   page inherits dark styles automatically
+   ======================================== */
+
+[data-theme="dark"] {
+    /* Background surfaces */
+    --bg-main:        #0f172a;
+    --bg-card:        #1e293b;
+    --bg-hover:       #334155;
+    --bg-secondary:   #1e293b;
+
+    /* Text */
+    --text-primary:   #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted:     #64748b;
+
+    /* Borders */
+    --border:         #334155;
+    --border-light:   #1e293b;
+
+    /* Shadows (darker, more diffuse) */
+    --shadow-sm:  0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md:  0 4px 6px rgba(0,0,0,0.4);
+    --shadow-lg:  0 10px 15px rgba(0,0,0,0.5);
+    --shadow-xl:  0 20px 25px rgba(0,0,0,0.6);
+}
+
+/* ── Body & base ── */
+[data-theme="dark"] body {
+    background: var(--bg-main);
+    color: var(--text-primary);
+}
+
+/* ── Cards ── */
+[data-theme="dark"] .post-card,
+[data-theme="dark"] .user-card,
+[data-theme="dark"] .auth-card,
+[data-theme="dark"] .create-card,
+[data-theme="dark"] .post-detail-card,
+[data-theme="dark"] .comments-section,
+[data-theme="dark"] .edit-card,
+[data-theme="dark"] .checkout-card,
+[data-theme="dark"] .purchase-card,
+[data-theme="dark"] .table-container,
+[data-theme="dark"] .filters-bar,
+[data-theme="dark"] .preview-card {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+
+/* ── Profile header / cover ── */
+[data-theme="dark"] .profile-header {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+
+/* ── Post cards specific ── */
+[data-theme="dark"] .post-card:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+/* ── Titles & text ── */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .post-title,
+[data-theme="dark"] .author-name,
+[data-theme="dark"] .comment-author,
+[data-theme="dark"] .document-title,
+[data-theme="dark"] .dropdown-name,
+[data-theme="dark"] .purchase-doc-name {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .post-description,
+[data-theme="dark"] .post-time,
+[data-theme="dark"] .comment-time,
+[data-theme="dark"] .comment-text,
+[data-theme="dark"] .post-subtitle,
+[data-theme="dark"] .text-secondary {
+    color: var(--text-secondary);
+}
+
+/* ── Forms & inputs ── */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .field-input,
+[data-theme="dark"] .comment-input,
+[data-theme="dark"] .md-textarea,
+[data-theme="dark"] .form-input-modern,
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+    background: #1e293b;
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .field-input:focus,
+[data-theme="dark"] .comment-input:focus,
+[data-theme="dark"] .md-textarea:focus,
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+    background: #0f172a;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+}
+
+[data-theme="dark"] ::placeholder {
+    color: var(--text-muted);
+}
+
+/* ── Buttons ── */
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .nav-btn,
+[data-theme="dark"] .btn-cancel,
+[data-theme="dark"] .page-btn,
+[data-theme="dark"] .back-link {
+    background: var(--bg-hover);
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-secondary:hover,
+[data-theme="dark"] .back-link:hover {
+    border-color: var(--primary);
+    color: var(--primary-light);
+    background: rgba(99,102,241,0.1);
+}
+
+[data-theme="dark"] .action-btn {
+    color: var(--text-muted);
+}
+[data-theme="dark"] .action-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+[data-theme="dark"] .action-btn.liked { color: #f87171; }
+
+/* ── Document / file badges ── */
+[data-theme="dark"] .document-badge,
+[data-theme="dark"] .document-section,
+[data-theme="dark"] .current-doc-banner {
+    background: rgba(99,102,241,0.08);
+    border-color: rgba(99,102,241,0.2);
+}
+
+/* ── Dropdowns / menus ── */
+[data-theme="dark"] .options-menu {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+[data-theme="dark"] .options-menu a,
+[data-theme="dark"] .options-menu button {
+    color: var(--text-primary);
+}
+[data-theme="dark"] .options-menu a:hover { background: var(--bg-hover); }
+
+/* ── Borders & dividers ── */
+[data-theme="dark"] .post-actions,
+[data-theme="dark"] .post-actions-bar,
+[data-theme="dark"] .edit-actions,
+[data-theme="dark"] .form-actions,
+[data-theme="dark"] .dropdown-divider,
+[data-theme="dark"] .comments-header,
+[data-theme="dark"] .comment,
+[data-theme="dark"] .profile-stats,
+[data-theme="dark"] .profile-actions,
+[data-theme="dark"] .dropdown-header {
+    border-color: var(--border);
+}
+
+/* ── Section headers with gradient bg ── */
+[data-theme="dark"] .header-content,
+[data-theme="dark"] .posts-header .header-content,
+[data-theme="dark"] .edit-header .header-content,
+[data-theme="dark"] .search-header .header-content,
+[data-theme="dark"] .view-header .header-content {
+    background: rgba(99,102,241,0.08);
+    border-color: rgba(99,102,241,0.2);
+}
+
+[data-theme="dark"] .header-text h1,
+[data-theme="dark"] .header-text h2,
+[data-theme="dark"] .header-text p {
+    color: var(--text-secondary);
+}
+[data-theme="dark"] .header-text h1,
+[data-theme="dark"] .header-text h2 {
+    color: var(--text-primary);
+}
+
+/* ── Profile bio section ── */
+[data-theme="dark"] .profile-bio-section {
+    background: rgba(99,102,241,0.06);
+    border-color: rgba(99,102,241,0.2);
+}
+[data-theme="dark"] .profile-bio { color: var(--text-secondary); }
+[data-theme="dark"] .profile-username { color: var(--text-muted); }
+[data-theme="dark"] .profile-name { color: #f1f5f9; }
+
+/* ── Stats ── */
+[data-theme="dark"] .stat-value { color: var(--text-primary); }
+[data-theme="dark"] .stat-label { color: var(--text-muted); }
+
+/* ── Empty states ── */
+[data-theme="dark"] .empty-state,
+[data-theme="dark"] .empty-comments,
+[data-theme="dark"] .empty-purchases {
+    background: rgba(99,102,241,0.04);
+    border-color: rgba(99,102,241,0.15);
+}
+[data-theme="dark"] .empty-state h2,
+[data-theme="dark"] .empty-state h3 { color: var(--text-primary); }
+[data-theme="dark"] .empty-state p  { color: var(--text-muted); }
+
+/* ── Search page ── */
+[data-theme="dark"] .search-input-wrapper {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+[data-theme="dark"] .search-input-wrapper:focus-within {
+    border-color: var(--primary);
+}
+[data-theme="dark"] .main-search-input {
+    background: transparent;
+    color: var(--text-primary);
+}
+
+/* ── Markdown editor ── */
+[data-theme="dark"] .md-editor-wrapper {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+[data-theme="dark"] .md-toolbar,
+[data-theme="dark"] .md-footer {
+    background: #0f172a;
+    border-color: var(--border);
+}
+[data-theme="dark"] .md-btn {
+    color: var(--text-muted);
+}
+[data-theme="dark"] .md-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+/* ── Admin table ── */
+[data-theme="dark"] .data-table thead { border-color: var(--border); }
+[data-theme="dark"] .data-table th   { color: var(--text-muted); }
+[data-theme="dark"] .data-table td   { border-color: var(--border); color: var(--text-secondary); }
+[data-theme="dark"] .data-table tbody tr:hover { background: var(--bg-hover); }
+
+/* ── Pricing section ── */
+[data-theme="dark"] .pricing-section {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+[data-theme="dark"] .pricing-section-header {
+    background: rgba(99,102,241,0.06);
+    border-color: var(--border);
+}
+[data-theme="dark"] .toggle-track { background: var(--border); }
+
+/* ── Notice bar ── */
+[data-theme="dark"] .notice-bar {
+    background: rgba(239,68,68,0.08);
+    border-color: rgba(239,68,68,0.25);
+}
+
+/* ── Checkout page ── */
+[data-theme="dark"] .checkout-topbar {
+    background: rgba(15,23,42,0.95);
+    border-color: var(--border);
+}
+[data-theme="dark"] .order-summary { border-color: var(--border); }
+[data-theme="dark"] .summary-row   { color: var(--text-secondary); }
+[data-theme="dark"] .summary-total { color: var(--text-primary); border-color: var(--border); }
+[data-theme="dark"] .doc-preview   { border-color: var(--border); }
+[data-theme="dark"] .benefits      { border-color: var(--border); }
+[data-theme="dark"] .back-to-post  {
+    color: var(--text-muted);
+    border-color: var(--border);
+}
+[data-theme="dark"] .back-to-post:hover { color: var(--primary-light); }
+
+/* ── Purchase cards ── */
+[data-theme="dark"] .purchases-header {
+    background: rgba(99,102,241,0.08);
+    border-color: rgba(99,102,241,0.2);
+}
+[data-theme="dark"] .purchase-meta { color: var(--text-muted); }
+
+/* ── Flash messages ── */
+[data-theme="dark"] .flash {
+    background: var(--bg-card);
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+/* ── Login prompt ── */
+[data-theme="dark"] .login-prompt {
+    background: rgba(99,102,241,0.06);
+    border-color: rgba(99,102,241,0.2);
+}
+[data-theme="dark"] .login-prompt p { color: var(--text-secondary); }
+
+/* ── Skeleton shimmer ── */
+[data-theme="dark"] .skeleton-card,
+[data-theme="dark"] .skeleton-avatar,
+[data-theme="dark"] .skeleton-line {
+    background: var(--bg-hover);
+}
+
+/* ── Subject filter buttons ── */
+[data-theme="dark"] .subject-btn {
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+}
+[data-theme="dark"] .subject-btn:hover {
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+/* ── Feed sidebar widgets ── */
+[data-theme="dark"] .sidebar-widget,
+[data-theme="dark"] .stats-widget,
+[data-theme="dark"] .xp-widget {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+
+/* ── End of dark mode ── */

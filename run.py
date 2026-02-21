@@ -3,16 +3,18 @@ EduShare - Educational Social Media Platform
 Entry point for running the application
 """
 
+# ── Load .env FIRST — before anything else touches os.environ ────────────────
+import os
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+# ─────────────────────────────────────────────────────────────────────────────
+
 from app import create_app, db
 from app.models import User, Post, Document, Comment, Like, Purchase, Notification, Subject
-import os
 
 
 # Create the application instance
 app = create_app()
-
-# ADD THIS LINE TEMPORARILY
-print(f"DEBUG: Secret Key is set to: {app.config.get('SECRET_KEY')}")
 
 
 @app.shell_context_processor

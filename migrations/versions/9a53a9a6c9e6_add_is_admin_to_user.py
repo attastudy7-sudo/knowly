@@ -30,3 +30,4 @@ def downgrade():
         batch_op.drop_column('is_admin')
 
     # ### end Alembic commands ###
+    # flask shell

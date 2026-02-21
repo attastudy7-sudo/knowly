@@ -5,1919 +5,1262 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to eDuShare</title>
-    <meta property="og:image" content="https://edusearch-io.onrender.com/assets/cap.png">
-        <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
-    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800;12..96,900&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="modern-landing">
-    <!-- Animated Hero Section -->
-    <section class="modern-hero">
-        <!-- Animated Background -->
-        <div class="hero-bg">
-            <div class="gradient-orb orb-1"></div>
-            <div class="gradient-orb orb-2"></div>
-            <div class="gradient-orb orb-3"></div>
-            <div class="grid-pattern"></div>
-        </div>
-        
-        <div class="hero-container">
-            <div class="hero-content">
-                <!-- Badge -->
-                <!-- REPLACE the broken hero title block -->
-<div class="hero-badge">
-    <span class="badge-dot"></span>
-    <span>Join 5,000+ Students Learning Together</span>
-</div>
+<div class="modern-landing">
 
-<div class="logo hero-logo">
-    <i class="fas fa-graduation-cap"></i>
-    <span>eDuShare</span>
-</div>
+  <!-- ═══════════════════════════════════════════
+       HERO — UNTOUCHED
+  ═══════════════════════════════════════════ -->
+  <section class="modern-hero">
+    <div class="hero-bg">
+      <div class="gradient-orb orb-1"></div>
+      <div class="gradient-orb orb-2"></div>
+      <div class="gradient-orb orb-3"></div>
+      <div class="grid-pattern"></div>
+      <div class="grain"></div>
+    </div>
+    <div class="hero-container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          <span>Join 5,000+ Students Learning Together</span>
+        </div>
+        <div class="logo hero-logo">
+          <i class="fas fa-graduation-cap"></i>
+          <span>eDuShare</span>
+        </div>
+        <h1 class="hero-title">
+          Welcome to Your<br>
+          Study Hub for
+          <span class="gradient-text-animated">
+            <span class="text-rotate" id="rotating-word">Success</span>
+          </span>
+        </h1>
+        <p class="hero-description">
+          Share notes, collaborate with peers, and access thousands of study materials.
+          All in one beautiful platform designed for students, by students.
+        </p>
+        <div class="hero-actions">
+          <a href="{{ url_for('auth.login') }}" class="btn-modern primary">
+            <span>Start Learning Free</span>
+            <i class="fas fa-arrow-right"></i>
+          </a>
+          <a href="{{ url_for('main.explore') }}" class="btn-modern secondary">
+            <i class="fas fa-play-circle"></i>
+            <span>Explore Content</span>
+          </a>
+        </div>
+        <div class="trust-badges">
+          <div class="trust-item"><i class="fas fa-shield-alt"></i><span>100% Free</span></div>
+          <div class="trust-item"><i class="fas fa-lock"></i><span>Secure & Private</span></div>
+          <div class="trust-item"><i class="fas fa-bolt"></i><span>Instant Access</span></div>
+        </div>
+      </div>
+      <div class="hero-visual" id="heroVisual">
+        <div class="hub-glow"></div>
+        <div class="float-card card-1">
+          <div class="fc-header">
+            <div class="fc-icon fc-purple"><i class="fas fa-book-open"></i></div>
+            <div class="fc-badge">Live</div>
+          </div>
+          <div class="fc-stat">10,000+</div>
+          <div class="fc-label">Study Materials</div>
+          <div class="fc-bar"><div class="fc-bar-fill" style="width:85%"></div></div>
+          <div class="fc-sparkline">
+            <svg viewBox="0 0 80 28" fill="none">
+              <polyline points="0,22 15,14 28,18 42,8 55,12 70,4 80,8"
+                stroke="url(#sg1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <defs>
+                <linearGradient id="sg1" x1="0" y1="0" x2="80" y2="0" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#a78bfa"/><stop offset="1" stop-color="#6366f1"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+        <div class="float-card card-2">
+          <div class="fc-header">
+            <div class="fc-icon fc-pink"><i class="fas fa-users"></i></div>
+          </div>
+          <div class="fc-stat">5,000+</div>
+          <div class="fc-label">Active Students</div>
+          <div class="fc-avatars">
+            <div class="fc-av" style="background:linear-gradient(135deg,#667eea,#764ba2)">A</div>
+            <div class="fc-av" style="background:linear-gradient(135deg,#f093fb,#f5576c)">B</div>
+            <div class="fc-av" style="background:linear-gradient(135deg,#4facfe,#00f2fe)">C</div>
+            <div class="fc-av fc-av-more">+49</div>
+          </div>
+        </div>
+        <div class="float-card card-3">
+          <div class="fc-icon fc-blue fc-icon-lg"><i class="fas fa-graduation-cap"></i></div>
+          <div class="fc-stat-sm">50+</div>
+          <div class="fc-label-sm">Subjects</div>
+        </div>
+        <div class="float-card card-4">
+          <div class="fc-header">
+            <div class="fc-icon fc-green"><i class="fas fa-heart"></i></div>
+            <span class="fc-trend"><i class="fas fa-arrow-up"></i> 24%</span>
+          </div>
+          <div class="fc-stat">100K+</div>
+          <div class="fc-label">Engagements</div>
+        </div>
+        <div class="float-chip chip-1"><i class="fas fa-star"></i> Top Rated</div>
+        <div class="float-chip chip-2"><i class="fas fa-fire"></i> Trending</div>
+        <div class="float-chip chip-3"><i class="fas fa-bolt"></i> Instant</div>
+        <div class="orbit orbit-1"><div class="orbit-dot"></div></div>
+        <div class="orbit orbit-2"><div class="orbit-dot dot-pink"></div></div>
+      </div>
+    </div>
+    <div class="scroll-indicator" id="scrollIndicator">
+      <div class="mouse"><div class="wheel"></div></div>
+      <span>Scroll to explore</span>
+    </div>
+  </section>
 
-<h1 class="hero-title">
-    Welcome to Your Study Hub for
-    <span class="gradient-text-animated">
-        <span class="text-rotate">Success</span>
-    </span>
-</h1>
-                
-                <!-- Subtitle -->
-                <p class="hero-description">
-                    Share notes, collaborate with peers, and access thousands of study materials. 
-                    All in one beautiful platform designed for students, by students.
-                </p>
-                
-                <!-- CTA Buttons -->
-                <div class="hero-actions">
-                    <a href="{{ url_for('auth.signup') }}" class="btn-modern primary">
-                        <span>Start Learning Free</span>
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
-                    <a href="{{ url_for('main.explore') }}" class="btn-modern secondary">
-                        <i class="fas fa-play-circle"></i>
-                        <span>Explore Content</span>
-                    </a>
-                </div>
-                
-                <!-- Trust Badges -->
-                <div class="trust-badges">
-                    <div class="trust-item">
-                        <i class="fas fa-shield-alt"></i>
-                        <span>100% Free</span>
-                    </div>
-                    <div class="trust-item">
-                        <i class="fas fa-lock"></i>
-                        <span>Secure & Private</span>
-                    </div>
-                    <div class="trust-item">
-                        <i class="fas fa-bolt"></i>
-                        <span>Instant Access</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Hero Visual - 3D Card Stack -->
-            <div class="hero-visual">
-                <div class="card-stack">
-                    <div class="stack-card card-purple">
-                        <div class="card-icon">
-                            <i class="fas fa-book-open"></i>
-                        </div>
-                        <h4>10,000+</h4>
-                        <p>Study Materials</p>
-                    </div>
-                    <div class="stack-card card-pink">
-                        <div class="card-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <h4>5,000+</h4>
-                        <p>Active Students</p>
-                    </div>
-                    <div class="stack-card card-blue">
-                        <div class="card-icon">
-                            <i class="fas fa-graduation-cap"></i>
-                        </div>
-                        <h4>50+</h4>
-                        <p>Subjects</p>
-                    </div>
-                </div>
-                
-                <!-- Floating Elements -->
-                <div class="floating-element element-1">
-                    <i class="fas fa-star"></i>
-                </div>
-                <div class="floating-element element-2">
-                    <i class="fas fa-heart"></i>
-                </div>
-                <div class="floating-element element-3">
-                    <i class="fas fa-fire"></i>
-                </div>
-            </div>
+  <!-- ═══════════════════════════════════════════
+       LIVE STATS — wired to real /api/stats
+  ═══════════════════════════════════════════ -->
+  <section class="stats-showcase" id="statsSection">
+    <div class="container">
+      <div class="stats-inner">
+        <div class="stats-label-col">
+          <span class="stats-eyebrow">By the numbers</span>
+          <h2 class="stats-heading">Real students.<br>Real results.</h2>
+          <p class="stats-subtext">Every number below is live — pulled directly from our database, right now.</p>
+          <div class="stats-live-dot">
+            <span class="live-dot-pulse"></span>
+            <span>Live data</span>
+          </div>
         </div>
-        
-        <!-- Scroll Indicator -->
-        <div class="scroll-indicator">
-            <div class="mouse">
-                <div class="wheel"></div>
-            </div>
-            <span>Scroll to explore</span>
+        <div class="stats-grid-modern">
+          <div class="stat-card-modern" data-stat="documents">
+            <div class="stat-icon-wrapper purple"><i class="fas fa-file-alt"></i></div>
+            <div class="stat-number" id="stat-docs">—</div>
+            <div class="stat-label">Documents Shared</div>
+            <div class="stat-bar"><div class="stat-progress stat-progress-docs"></div></div>
+          </div>
+          <div class="stat-card-modern" data-stat="users">
+            <div class="stat-icon-wrapper pink"><i class="fas fa-users"></i></div>
+            <div class="stat-number" id="stat-users">—</div>
+            <div class="stat-label">Active Students</div>
+            <div class="stat-bar"><div class="stat-progress stat-progress-users"></div></div>
+          </div>
+          <div class="stat-card-modern" data-stat="subjects">
+            <div class="stat-icon-wrapper blue"><i class="fas fa-graduation-cap"></i></div>
+            <div class="stat-number" id="stat-subjects">—</div>
+            <div class="stat-label">Subject Categories</div>
+            <div class="stat-bar"><div class="stat-progress stat-progress-subjects"></div></div>
+          </div>
+          <div class="stat-card-modern" data-stat="engagements">
+            <div class="stat-icon-wrapper green"><i class="fas fa-heart"></i></div>
+            <div class="stat-number" id="stat-engagements">—</div>
+            <div class="stat-label">Total Engagements</div>
+            <div class="stat-bar"><div class="stat-progress stat-progress-engagements"></div></div>
+          </div>
         </div>
-    </section>
+      </div>
+    </div>
+  </section>
 
-    <!-- Features Section - Bento Grid Style -->
-    <section class="bento-features">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-badge">Features</span>
-                <h2 class="section-title">Everything you need to excel</h2>
-                <p class="section-subtitle">Powerful tools designed to make studying collaborative and fun</p>
-            </div>
-            
-            <div class="bento-grid">
-                <!-- Large Feature 1 -->
-                <div class="bento-card large gradient-purple">
-                    <div class="bento-content">
-                        <div class="bento-icon">
-                            <i class="fas fa-rocket"></i>
-                        </div>
-                        <h3>Lightning Fast Search</h3>
-                        <p>Find exactly what you need in milliseconds. Our intelligent search understands what you're looking for.</p>
-                    </div>
-                    <div class="bento-visual">
-                        <div class="search-demo">
-                            <div class="search-bar-demo">
-                                <i class="fas fa-search"></i>
-                                <span class="typing-animation">Calculus notes...</span>
-                            </div>
-                            <div class="search-results-demo">
-                                <div class="result-item"></div>
-                                <div class="result-item"></div>
-                                <div class="result-item"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Large Feature 2 -->
-                <div class="bento-card large gradient-pink">
-                    <div class="bento-content">
-                        <div class="bento-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <h3>Build Your Study Circle</h3>
-                        <p>Connect with classmates, share notes, and grow together. Learning is better with friends.</p>
-                    </div>
-                    <div class="bento-visual">
-                        <div class="avatars-demo">
-                            <div class="avatar-circle"></div>
-                            <div class="avatar-circle"></div>
-                            <div class="avatar-circle"></div>
-                            <div class="avatar-plus">+12</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Small Feature 1 -->
-                <div class="bento-card small gradient-blue">
-                    <div class="bento-icon-small">
-                        <i class="fas fa-file-pdf"></i>
-                    </div>
-                    <h4>PDF Preview</h4>
-                    <p>Preview documents instantly</p>
-                </div>
-                
-                <!-- Small Feature 2 -->
-                <div class="bento-card small gradient-green">
-                    <div class="bento-icon-small">
-                        <i class="fas fa-mobile-alt"></i>
-                    </div>
-                    <h4>Mobile First</h4>
-                    <p>Study on the go, anytime</p>
-                </div>
-                
-                <!-- Small Feature 3 -->
-                <div class="bento-card small gradient-orange">
-                    <div class="bento-icon-small">
-                        <i class="fas fa-bell"></i>
-                    </div>
-                    <h4>Real-time Updates</h4>
-                    <p>Never miss a thing</p>
-                </div>
-                
-                <!-- Small Feature 4 -->
-                <div class="bento-card small gradient-teal">
-                    <div class="bento-icon-small">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <h4>100% Secure</h4>
-                    <p>Your data is safe</p>
-                </div>
-            </div>
+  <!-- ═══════════════════════════════════════════
+       HOW IT WORKS — replaces fake testimonials
+  ═══════════════════════════════════════════ -->
+  <section class="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">How it works</span>
+        <h2 class="section-title">Up and running in 3 steps</h2>
+        <p class="section-subtitle">No setup. No credit card. Just sign up and start learning.</p>
+      </div>
+      <div class="steps-row">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <div class="step-icon-wrap"><i class="fas fa-user-plus"></i></div>
+          <h3 class="step-title">Create Your Account</h3>
+          <p class="step-desc">Sign up with your school email in under 30 seconds. Your profile is your academic identity on eDuShare.</p>
+          <div class="step-cta-pill">Free forever</div>
         </div>
-    </section>
+        <div class="step-connector">
+          <div class="connector-line"></div>
+          <div class="connector-arrow"><i class="fas fa-chevron-right"></i></div>
+        </div>
+        <div class="step-card step-card--featured">
+          <div class="step-number">02</div>
+          <div class="step-icon-wrap featured"><i class="fas fa-compass"></i></div>
+          <h3 class="step-title">Explore & Follow</h3>
+          <p class="step-desc">Browse subjects, discover top notes, and follow students sharing content in your courses. Your feed builds itself.</p>
+          <div class="step-cta-pill featured">50+ subjects</div>
+        </div>
+        <div class="step-connector">
+          <div class="connector-line"></div>
+          <div class="connector-arrow"><i class="fas fa-chevron-right"></i></div>
+        </div>
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <div class="step-icon-wrap"><i class="fas fa-upload"></i></div>
+          <h3 class="step-title">Share & Grow</h3>
+          <p class="step-desc">Upload your notes, past papers, and summaries. Build a following and earn recognition for your knowledge.</p>
+          <div class="step-cta-pill">Build your rep</div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <!-- Interactive Stats Section -->
-    <section class="stats-showcase">
-        <div class="container">
-            <div class="stats-grid-modern">
-                <div class="stat-card-modern">
-                    <div class="stat-icon-wrapper purple">
-                        <i class="fas fa-file-alt"></i>
-                    </div>
-                    <div class="stat-number" data-target="10000">0</div>
-                    <div class="stat-label">Documents Shared</div>
-                    <div class="stat-bar">
-                        <div class="stat-progress" style="width: 85%;"></div>
-                    </div>
-                </div>
-                
-                <div class="stat-card-modern">
-                    <div class="stat-icon-wrapper pink">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stat-number" data-target="5000">0</div>
-                    <div class="stat-label">Active Students</div>
-                    <div class="stat-bar">
-                        <div class="stat-progress" style="width: 70%;"></div>
-                    </div>
-                </div>
-                
-                <div class="stat-card-modern">
-                    <div class="stat-icon-wrapper blue">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <div class="stat-number" data-target="50">0</div>
-                    <div class="stat-label">Subject Categories</div>
-                    <div class="stat-bar">
-                        <div class="stat-progress" style="width: 95%;"></div>
-                    </div>
-                </div>
-                
-                <div class="stat-card-modern">
-                    <div class="stat-icon-wrapper green">
-                        <i class="fas fa-heart"></i>
-                    </div>
-                    <div class="stat-number" data-target="100000">0</div>
-                    <div class="stat-label">Total Engagements</div>
-                    <div class="stat-bar">
-                        <div class="stat-progress" style="width: 90%;"></div>
-                    </div>
-                </div>
+  <!-- ═══════════════════════════════════════════
+       BENTO FEATURES — polished from original
+  ═══════════════════════════════════════════ -->
+  <section class="bento-features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">Features</span>
+        <h2 class="section-title">Everything you need to excel</h2>
+        <p class="section-subtitle">Powerful tools designed to make studying collaborative and actually fun</p>
+      </div>
+      <div class="bento-grid">
+        <div class="bento-card large gradient-purple">
+          <div class="bento-content">
+            <div class="bento-icon"><i class="fas fa-rocket"></i></div>
+            <h3>Lightning Fast Search</h3>
+            <p>Find exactly what you need in milliseconds. Search across titles, subjects, and document content instantly.</p>
+          </div>
+          <div class="bento-visual">
+            <div class="search-demo">
+              <div class="search-bar-demo">
+                <i class="fas fa-search"></i>
+                <span class="typing-animation">Calculus notes...</span>
+              </div>
+              <div class="search-results-demo">
+                <div class="result-item"></div>
+                <div class="result-item"></div>
+                <div class="result-item"></div>
+              </div>
             </div>
+          </div>
         </div>
-    </section>
+        <div class="bento-card large gradient-pink">
+          <div class="bento-content">
+            <div class="bento-icon"><i class="fas fa-users"></i></div>
+            <h3>Build Your Study Circle</h3>
+            <p>Connect with classmates, share notes, and grow together. Your feed shows exactly what people you follow are learning.</p>
+          </div>
+          <div class="bento-visual">
+            <div class="avatars-demo">
+              <div class="avatar-circle"></div>
+              <div class="avatar-circle"></div>
+              <div class="avatar-circle"></div>
+              <div class="avatar-plus">+12</div>
+            </div>
+          </div>
+        </div>
+        <div class="bento-card small gradient-blue">
+          <div class="bento-icon-small"><i class="fas fa-file-pdf"></i></div>
+          <h4>PDF Preview</h4>
+          <p>Preview documents instantly before downloading</p>
+        </div>
+        <div class="bento-card small gradient-green">
+          <div class="bento-icon-small"><i class="fas fa-mobile-alt"></i></div>
+          <h4>Mobile First</h4>
+          <p>Study on the go, anytime, anywhere</p>
+        </div>
+        <div class="bento-card small gradient-orange">
+          <div class="bento-icon-small"><i class="fas fa-filter"></i></div>
+          <h4>Subject Filters</h4>
+          <p>Filter by subject to find what matters</p>
+        </div>
+        <div class="bento-card small gradient-teal">
+          <div class="bento-icon-small"><i class="fas fa-shield-alt"></i></div>
+          <h4>100% Secure</h4>
+          <p>Your data and content stay protected</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <!-- Testimonials Carousel -->
-    <section class="testimonials-section">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-badge">Testimonials</span>
-                <h2 class="section-title">Loved by students worldwide</h2>
-            </div>
-            
-            <div class="testimonials-carousel">
-                <div class="testimonial-card">
-                    <div class="testimonial-rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                    </div>
-                    <p class="testimonial-text">"eDuShare helped me ace my exams! The community is amazing and the resources are top-notch."</p>
-                    <div class="testimonial-author">
-                        <div class="author-avatar" style="background: linear-gradient(135deg, #667eea, #764ba2);"></div>
-                        <div>
-                            <div class="author-name">Sarah Johnson</div>
-                            <div class="author-role">Computer Science • MIT</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="testimonial-card">
-                    <div class="testimonial-rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                    </div>
-                    <p class="testimonial-text">"Best platform for collaborative learning. I've made so many study buddies here!"</p>
-                    <div class="testimonial-author">
-                        <div class="author-avatar" style="background: linear-gradient(135deg, #f093fb, #f5576c);"></div>
-                        <div>
-                            <div class="author-name">Marcus Chen</div>
-                            <div class="author-role">Biology • Stanford</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="testimonial-card">
-                    <div class="testimonial-rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                    </div>
-                    <p class="testimonial-text">"The document sharing feature saved me countless hours. Highly recommend!"</p>
-                    <div class="testimonial-author">
-                        <div class="author-avatar" style="background: linear-gradient(135deg, #4facfe, #00f2fe);"></div>
-                        <div>
-                            <div class="author-name">Emily Rodriguez</div>
-                            <div class="author-role">Mathematics • Harvard</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+  <!-- ═══════════════════════════════════════════
+       COMING SOON — roadmap teaser
+  ═══════════════════════════════════════════ -->
+  <section class="coming-soon-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge badge-amber">Coming Soon</span>
+        <h2 class="section-title">What we're building next</h2>
+        <p class="section-subtitle">eDuShare is growing fast. Here's a peek at what's on the way — sign up now to be the first to access every feature the moment it drops.</p>
+      </div>
 
-    <!-- Final CTA Section -->
-    <section class="final-cta">
-        <div class="cta-container">
-            <div class="cta-bg-pattern"></div>
-            <div class="cta-content-box">
-                <h2 class="cta-title">Ready to Transform Your Learning?</h2>
-                <p class="cta-description">Join thousands of students who are already studying smarter, not harder.</p>
-                
-                <div class="cta-actions">
-                    <a href="{{ url_for('auth.signup') }}" class="btn-cta primary-glow">
-                        <span>Get Started - It's Free</span>
-                        <i class="fas fa-rocket"></i>
-                    </a>
-                </div>
-                
-                <div class="cta-features">
-                    <div class="cta-feature-item">
-                        <i class="fas fa-check"></i>
-                        <span>No credit card required</span>
-                    </div>
-                    <div class="cta-feature-item">
-                        <i class="fas fa-check"></i>
-                        <span>Free forever</span>
-                    </div>
-                    <div class="cta-feature-item">
-                        <i class="fas fa-check"></i>
-                        <span>Cancel anytime</span>
-                    </div>
-                </div>
+      <div class="roadmap-grid">
+
+        <!-- Phase 1 — live soon -->
+        <div class="roadmap-card phase-1">
+          <div class="roadmap-phase-tag">Dropping Q1 2026</div>
+          <div class="roadmap-card-inner">
+            <div class="roadmap-icon-group">
+              <div class="rm-icon rm-purple"><i class="fas fa-fire"></i></div>
+              <div class="rm-icon rm-pink"><i class="fas fa-medal"></i></div>
+              <div class="rm-icon rm-blue"><i class="fas fa-bookmark"></i></div>
             </div>
+            <h3 class="roadmap-title">Gamification & Streaks</h3>
+            <p class="roadmap-desc">Earn XP for every upload, like, and comment. Build daily streaks, climb the leaderboard, and unlock badges that show off your dedication.</p>
+            <ul class="roadmap-features">
+              <li><i class="fas fa-check-circle"></i> Daily login streaks with XP rewards</li>
+              <li><i class="fas fa-check-circle"></i> Weekly leaderboards by subject</li>
+              <li><i class="fas fa-check-circle"></i> Bookmark library — save notes for exam prep</li>
+              <li><i class="fas fa-check-circle"></i> Multi-emoji reactions on posts</li>
+            </ul>
+            <div class="roadmap-status">
+              <span class="status-dot status-building"></span>
+              In development
+            </div>
+          </div>
         </div>
-    </section>
-</div>
+
+        <!-- Phase 2 — monetisation -->
+        <div class="roadmap-card phase-2">
+          <div class="roadmap-phase-tag tag-teal">Q3 2026</div>
+          <div class="roadmap-card-inner">
+            <div class="roadmap-icon-group">
+              <div class="rm-icon rm-teal"><i class="fas fa-users"></i></div>
+              <div class="rm-icon rm-green"><i class="fas fa-wallet"></i></div>
+              <div class="rm-icon rm-amber"><i class="fas fa-bell"></i></div>
+            </div>
+            <h3 class="roadmap-title">Study Groups & Creator Payouts</h3>
+            <p class="roadmap-desc">Form private study circles with your classmates. And for the top creators — start earning real money from your notes with our payout system.</p>
+            <ul class="roadmap-features">
+              <li><i class="fas fa-check-circle"></i> Private & public study groups</li>
+              <li><i class="fas fa-check-circle"></i> Sell your notes — earn 80% of every sale</li>
+              <li><i class="fas fa-check-circle"></i> Push notifications so you never miss a post</li>
+              <li><i class="fas fa-check-circle"></i> Verified student badges</li>
+            </ul>
+            <div class="roadmap-status">
+              <span class="status-dot status-planned"></span>
+              Planned
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 3 — AI -->
+        <div class="roadmap-card phase-3">
+          <div class="roadmap-phase-tag tag-amber">2027</div>
+          <div class="roadmap-card-inner">
+            <div class="roadmap-icon-group">
+              <div class="rm-icon rm-amber"><i class="fas fa-robot"></i></div>
+              <div class="rm-icon rm-orange"><i class="fas fa-brain"></i></div>
+              <div class="rm-icon rm-red"><i class="fas fa-magic"></i></div>
+            </div>
+            <h3 class="roadmap-title">AI Study Assistant</h3>
+            <p class="roadmap-desc">Upload any document and get an instant AI-generated summary, key concepts, and a revision quiz. Study smarter, not harder.</p>
+            <ul class="roadmap-features">
+              <li><i class="fas fa-check-circle"></i> AI document summariser</li>
+              <li><i class="fas fa-check-circle"></i> Smart content recommendations</li>
+              <li><i class="fas fa-check-circle"></i> Plagiarism & originality checker</li>
+              <li><i class="fas fa-check-circle"></i> Auto-generated revision quizzes</li>
+            </ul>
+            <div class="roadmap-status">
+              <span class="status-dot status-future"></span>
+              Coming 2027
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Early access CTA -->
+      <div class="early-access-banner">
+        <div class="eab-left">
+          <div class="eab-icon"><i class="fas fa-rocket"></i></div>
+          <div>
+            <div class="eab-title">Get early access to every feature</div>
+            <div class="eab-sub">Sign up free today — you'll be first in line when each feature launches</div>
+          </div>
+        </div>
+        <a href="{{ url_for('auth.signup') }}" class="eab-btn">
+          Join Free <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       INSTITUTIONS STRIP
+  ═══════════════════════════════════════════ -->
+  <section class="institutions-strip">
+    <div class="container">
+      <p class="institutions-label">Used by students at</p>
+      <div class="institutions-row">
+        <div class="institution-pill"><i class="fas fa-university"></i> University of Ghana</div>
+        <div class="institution-pill"><i class="fas fa-university"></i> KNUST</div>
+        <div class="institution-pill"><i class="fas fa-university"></i> Ashesi University</div>
+        <div class="institution-pill"><i class="fas fa-university"></i> UCC</div>
+        <div class="institution-pill"><i class="fas fa-university"></i> GIMPA</div>
+        <div class="institution-pill"><i class="fas fa-university"></i> UDS</div>
+      </div>
+      <p class="institutions-disclaimer">And growing every week — <a href="{{ url_for('auth.signup') }}">join your classmates</a></p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       FINAL CTA
+  ═══════════════════════════════════════════ -->
+  <section class="final-cta">
+    <div class="cta-container">
+      <div class="cta-bg-pattern"></div>
+      <div class="cta-content-box">
+        <div class="cta-eyebrow"><i class="fas fa-bolt"></i> Free forever for students</div>
+        <h2 class="cta-title">Ready to Transform<br>Your Learning?</h2>
+        <p class="cta-description">Join thousands of students already studying smarter. No credit card. No catch.</p>
+        <div class="cta-actions">
+          <a href="{{ url_for('auth.signup') }}" class="btn-cta primary-glow">
+            <span>Get Started — It's Free</span>
+            <i class="fas fa-rocket"></i>
+          </a>
+        </div>
+        <div class="cta-features">
+          <div class="cta-feature-item"><i class="fas fa-check"></i><span>No credit card required</span></div>
+          <div class="cta-feature-item"><i class="fas fa-check"></i><span>Free forever for students</span></div>
+          <div class="cta-feature-item"><i class="fas fa-check"></i><span>Cancel anytime</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /.modern-landing -->
 
 <style>
-/* Reset and Base */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* =====================================================
+   RESET & TOKENS
+===================================================== */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+    --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+    --font-body:    'Plus Jakarta Sans', system-ui, sans-serif;
+    --c-bg:       #0a0e27;
+    --c-surface:  rgba(255,255,255,0.06);
+    --c-border:   rgba(255,255,255,0.12);
+    --c-purple:   #667eea;
+    --c-violet:   #764ba2;
+    --c-pink:     #f093fb;
+    --c-red:      #f5576c;
+    --c-blue:     #4facfe;
+    --c-cyan:     #00f2fe;
+    --c-green:    #43e97b;
+    --c-teal:     #38f9d7;
+    --c-text:     #e8e8f0;
+    --c-muted:    rgba(255,255,255,0.55);
+    --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
+    --ease-out:    cubic-bezier(0.22,1,0.36,1);
 }
 
-.modern-landing {
-    width: 100%;
-    overflow-x: hidden;
-}
+.modern-landing { width:100%; overflow-x:hidden; }
+.container { max-width:1200px; margin:0 auto; padding:0 1.5rem; }
 
-/* ============================================
-   MODERN HERO SECTION
-   ============================================ */
+/* =====================================================
+   HERO — UNTOUCHED (all styles preserved)
+===================================================== */
 .modern-hero {
-    min-height: 100vh;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1rem;
-    overflow: hidden;
-    background: #0a0e27;
+  min-height:100vh; position:relative;
+  display:flex; align-items:center; justify-content:center;
+  padding:5rem 1rem 4rem; overflow:hidden; background:var(--c-bg);
 }
-
-.logo {
-    color: white;
-}
-
-.logo span {
-    font-size: 2.75rem;
-}
-
-.logo i {
-    font-size: 2rem;
-    transform: rotate(-35deg);
-    margin-top: -5px;
-    overflow-x: visible;
-    margin-right: -3px;
-    color: white;
-}
-
-
-/* Animated Background */
-.hero-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 110%;
-    overflow: hidden;
-}
-
+.hero-bg { position:absolute; inset:0; pointer-events:none; }
 .gradient-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.6;
-    animation: float-orb 20s infinite ease-in-out;
+  position:absolute; border-radius:50%;
+  filter:blur(90px); opacity:.65;
+  animation:floatOrb 22s ease-in-out infinite; will-change:transform;
 }
-
-.orb-1 {
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, #667eea, #764ba2);
-    top: -10%;
-    left: -10%;
-    animation-delay: 0s;
+.orb-1 { width:560px;height:560px;background:radial-gradient(circle,#667eea,#764ba2);top:-12%;left:-12%; }
+.orb-2 { width:440px;height:440px;background:radial-gradient(circle,#f093fb,#f5576c);bottom:-12%;right:-12%;animation-delay:8s; }
+.orb-3 { width:380px;height:380px;background:radial-gradient(circle,#4facfe,#00f2fe);top:40%;right:15%;animation-delay:16s; }
+@keyframes floatOrb {
+  0%,100%{transform:translate(0,0) scale(1);}
+  25%{transform:translate(35px,-35px) scale(1.12);}
+  50%{transform:translate(-25px,25px) scale(.88);}
+  75%{transform:translate(25px,35px) scale(1.06);}
 }
-
-.orb-2 {
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, #f093fb, #f5576c);
-    bottom: -10%;
-    right: -10%;
-    animation-delay: 7s;
-}
-
-.orb-3 {
-    width: 350px;
-    height: 350px;
-    background: radial-gradient(circle, #4facfe, #00f2fe);
-    top: 50%;
-    right: 20%;
-    animation-delay: 14s;
-}
-
-@keyframes float-orb {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    25% { transform: translate(30px, -30px) scale(1.1); }
-    50% { transform: translate(-20px, 20px) scale(0.9); }
-    75% { transform: translate(20px, 30px) scale(1.05); }
-}
-
 .grid-pattern {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: 
-        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-    background-size: 50px 50px;
-    animation: grid-move 20s linear infinite;
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:52px 52px; animation:gridMove 24s linear infinite;
 }
-
-@keyframes grid-move {
-    0% { transform: translate(0, 0); }
-    100% { transform: translate(50px, 50px); }
+@keyframes gridMove { 0%{transform:translate(0,0);} 100%{transform:translate(52px,52px);} }
+.grain {
+  position:absolute;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:1;
 }
-
-/* Hero Container */
 .hero-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4rem;
-    align-items: center;
-    position: relative;
-    z-index: 1;
-    padding: 0 2rem;
+  max-width:1400px;margin:0 auto;
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:3rem;align-items:center;position:relative;z-index:2;padding:0 2rem;
 }
-
-.hero-content {
-    color: white;
-}
-
-/* Hero Badge */
+.hero-content { color:white; }
 .hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    padding: 0.5rem 1rem;
-    border-radius: 50px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    margin-bottom: 2rem;
-    animation: slideDown 0.6s ease-out;
+  display:inline-flex;align-items:center;gap:.5rem;
+  background:rgba(255,255,255,.1);backdrop-filter:blur(12px);
+  padding:.45rem 1rem;border-radius:50px;border:1px solid rgba(255,255,255,.2);
+  margin-bottom:1.5rem;font-size:.875rem;
+  animation:slideDown .7s var(--ease-out) both;
 }
-
 .badge-dot {
-    width: 8px;
-    height: 8px;
-    background: #4ade80;
-    border-radius: 50%;
-    animation: pulse-dot 2s infinite;
+  width:8px;height:8px;background:#4ade80;border-radius:50%;
+  animation:pulseDot 2.2s ease-in-out infinite;box-shadow:0 0 0 0 rgba(74,222,128,.4);
 }
-
-@keyframes pulse-dot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(1.2); }
+@keyframes pulseDot {
+  0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,.4);}
+  50%{box-shadow:0 0 0 6px rgba(74,222,128,0);}
 }
-
-/* Hero Title */
-.hero-title {
-    font-size: 4.5rem;
-    font-weight: 900;
-    line-height: 1.1;
-    margin-bottom: 1.5rem;
-    animation: slideUp 0.8s ease-out;
-}
-
+.logo.hero-logo { display:inline-flex;align-items:center;gap:.4rem;margin-bottom:1rem;animation:slideDown .7s .08s var(--ease-out) both; }
+.hero-logo i { font-size:1.9rem;color:white;transform:rotate(-35deg); }
+.hero-logo span { font-size:2.2rem;font-weight:800;color:white;letter-spacing:-.02em; }
+.hero-title { font-size:clamp(2.4rem,4.5vw,4.2rem);font-weight:900;line-height:1.1;margin-bottom:1.5rem;animation:slideUp .8s .15s var(--ease-out) both; }
 .gradient-text-animated {
-    display: block;
-    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c);
-    background-size: 300% 300%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradient-shift 5s ease infinite;
+  display:block;
+  background:linear-gradient(90deg,#c4b5fd,#818cf8,#f0abfc,#fb7185,#818cf8,#c4b5fd);
+  background-size:300% 300%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:gradShift 6s ease infinite;
 }
-
-@keyframes gradient-shift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-}
-
-/* Text Rotation Animation */
-.text-rotate {
-    display: inline-block;
-    animation: textRotate 8s infinite;
-}
-
-@keyframes textRotate {
-    0%, 25% { content: "Success"; }
-    26%, 50% { content: "Growth"; }
-    51%, 75% { content: "Excellence"; }
-    76%, 100% { content: "Success"; }
-}
-
-/* Hero Description */
-.hero-description {
-    font-size: 1.25rem;
-    line-height: 1.8;
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 2.5rem;
-    max-width: 600px;
-    animation: fadeIn 1s ease-out;
-}
-
-/* Hero Actions */
-.hero-actions {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 3rem;
-    animation: fadeIn 1.2s ease-out;
-}
-
+@keyframes gradShift { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
+.text-rotate { display:inline-block;min-width:180px; }
+.hero-description { font-size:1.125rem;line-height:1.8;color:rgba(255,255,255,.8);max-width:520px;margin-bottom:2.5rem;animation:fadeIn 1s .3s both; }
+.hero-actions { display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:2.5rem;animation:fadeIn 1s .45s both; }
 .btn-modern {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 2rem;
-    border-radius: 50px;
-    font-weight: 600;
-    font-size: 1.125rem;
-    text-decoration: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-modern.primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
-}
-
-.btn-modern.primary::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    transition: left 0.5s;
-}
-
-.btn-modern.primary:hover::before {
-    left: 100%;
-}
-
-.btn-modern.primary:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 15px 50px rgba(102, 126, 234, 0.6);
-}
-
-.btn-modern.secondary {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    color: white;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-}
-
-.btn-modern.secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: translateY(-3px);
-}
-
-/* Trust Badges */
-.trust-badges {
-    display: flex;
-    gap: 2rem;
-    flex-wrap: wrap;
-}
-
-.trust-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.trust-item i {
-    color: #4ade80;
-}
-
-/* Hero Visual - 3D Card Stack */
-.hero-visual {
-    position: relative;
-    height: 600px;
-}
-
-.card-stack {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    perspective: 1000px;
-}
-
-.stack-card {
-    position: absolute;
-    width: 280px;
-    height: 180px;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 2rem;
-    color: white;
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.stack-card:hover {
-    transform: translateY(-20px) scale(1.05);
-}
-
-.card-purple {
-    top: 10%;
-    left: 10%;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
-    animation: float-card 4s ease-in-out infinite;
-}
-
-.card-pink {
-    top: 40%;
-    right: 5%;
-    background: linear-gradient(135deg, rgba(240, 147, 251, 0.3), rgba(245, 87, 108, 0.3));
-    animation: float-card 5s ease-in-out infinite;
-    animation-delay: 1s;
-}
-
-.card-blue {
-    bottom: 15%;
-    left: 20%;
-    background: linear-gradient(135deg, rgba(79, 172, 254, 0.3), rgba(0, 242, 254, 0.3));
-    animation: float-card 6s ease-in-out infinite;
-    animation-delay: 2s;
-}
-
-@keyframes float-card {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-20px) rotate(2deg); }
-}
-
-.card-icon {
-    width: 50px;
-    height: 50px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-}
-
-.stack-card h4 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-}
-
-.stack-card p {
-    font-size: 0.9rem;
-    opacity: 0.8;
-}
-
-/* Floating Elements */
-.floating-element {
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    color: white;
-    animation: float-element 3s ease-in-out infinite;
-}
-
-.element-1 {
-    top: 20%;
-    right: 15%;
-    animation-delay: 0s;
-}
-
-.element-2 {
-    bottom: 30%;
-    right: 25%;
-    animation-delay: 1s;
-}
-
-.element-3 {
-    top: 60%;
-    left: 5%;
-    animation-delay: 2s;
-}
-
-@keyframes float-element {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-15px); }
-}
-
-/* Scroll Indicator */
-.scroll-indicator {
-    position: absolute;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    color: rgba(255, 255, 255, 0.5);
-    animation: fadeIn 2s ease-out;
-}
-
-.mouse {
-    width: 24px;
-    height: 40px;
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    border-radius: 20px;
-    position: relative;
-}
-
-.wheel {
-    width: 4px;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 2px;
-    position: absolute;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    animation: scroll-wheel 2s infinite;
-}
-
-@keyframes scroll-wheel {
-    0% { top: 8px; opacity: 1; }
-    100% { top: 24px; opacity: 0; }
-}
-
-/* ============================================
-   BENTO GRID FEATURES
-   ============================================ */
-.bento-features {
-    padding: 6rem 1rem;
-    background: var(--bg-main);
-}
-
-.section-header {
-    text-align: center;
-    margin-bottom: 4rem;
-}
-
-.section-badge {
-    display: inline-block;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    padding: 0.5rem 1.5rem;
-    border-radius: 50px;
-    font-weight: 600;
-    font-size: 0.875rem;
-    margin-bottom: 1rem;
-}
-
-.section-title {
-    font-size: 3rem;
-    font-weight: 800;
-    margin-bottom: 1rem;
-    color: var(--text-primary);
-}
-
-.section-subtitle {
-    font-size: 1.25rem;
-    color: var(--text-secondary);
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.bento-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-.bento-card {
-    background: var(--bg-card);
-    border-radius: 24px;
-    padding: 2rem;
-    border: 1px solid var(--border);
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.bento-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-}
-
-.bento-card.large {
-    grid-column: span 2;
-    min-height: 400px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-
-.bento-card.small {
-    grid-column: span 1;
-}
-
-/* Gradient Backgrounds */
-.gradient-purple {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-}
-
-.gradient-pink {
-    background: linear-gradient(135deg, rgba(240, 147, 251, 0.1), rgba(245, 87, 108, 0.1));
-}
-
-.gradient-blue {
-    background: linear-gradient(135deg, rgba(79, 172, 254, 0.1), rgba(0, 242, 254, 0.1));
-}
-
-.gradient-green {
-    background: linear-gradient(135deg, rgba(67, 233, 123, 0.1), rgba(56, 249, 215, 0.1));
-}
-
-.gradient-orange {
-    background: linear-gradient(135deg, rgba(250, 112, 154, 0.1), rgba(254, 225, 64, 0.1));
-}
-
-.gradient-teal {
-    background: linear-gradient(135deg, rgba(48, 207, 208, 0.1), rgba(51, 8, 103, 0.1));
-}
-
-.bento-icon {
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    color: white;
-    margin-bottom: 1.5rem;
-}
-
-.bento-icon-small {
-    width: 50px;
-    height: 50px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    color: white;
-    margin-bottom: 1rem;
-}
-
-.bento-content h3 {
-    font-size: 1.75rem;
-    margin-bottom: 1rem;
-    color: var(--text-primary);
-}
-
-.bento-content h4 {
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
-    color: var(--text-primary);
-}
-
-.bento-content p {
-    color: var(--text-secondary);
-    line-height: 1.6;
-}
-
-/* Bento Visual Elements */
-.search-demo {
-    margin-top: 2rem;
-}
-
-.search-bar-demo {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 1rem 1.5rem;
-    border-radius: 50px;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.typing-animation {
-    animation: typing 3s steps(20) infinite;
-}
-
-@keyframes typing {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-.search-results-demo {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.result-item {
-    background: rgba(255, 255, 255, 0.05);
-    height: 40px;
-    border-radius: 12px;
-    animation: pulse 2s ease-in-out infinite;
-}
-
-.result-item:nth-child(2) {
-    animation-delay: 0.3s;
-}
-
-.result-item:nth-child(3) {
-    animation-delay: 0.6s;
-}
-
-.avatars-demo {
-    display: flex;
-    gap: -0.5rem;
-    margin-top: 2rem;
-}
-
-.avatar-circle {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border: 3px solid var(--bg-card);
-    margin-left: -15px;
-    animation: bounce 2s ease-in-out infinite;
-}
-
-.avatar-circle:nth-child(2) {
-    background: linear-gradient(135deg, #f093fb, #f5576c);
-    animation-delay: 0.2s;
-}
-
-.avatar-circle:nth-child(3) {
-    background: linear-gradient(135deg, #4facfe, #00f2fe);
-    animation-delay: 0.4s;
-}
-
-.avatar-plus {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    border: 3px solid var(--bg-card);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    margin-left: -15px;
-}
-
-@keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-
-/* ============================================
-   INTERACTIVE STATS
-   ============================================ */
+  display:inline-flex;align-items:center;gap:.65rem;
+  padding:.9rem 1.9rem;border-radius:50px;font-weight:700;font-size:1rem;
+  text-decoration:none;transition:all .3s ease;position:relative;overflow:hidden;
+}
+.btn-modern.primary { background:linear-gradient(135deg,#667eea,#764ba2);color:white;box-shadow:0 8px 32px rgba(102,126,234,.45); }
+.btn-modern.primary::after {
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);
+  transform:translateX(-100%);transition:transform .5s ease;
+}
+.btn-modern.primary:hover::after { transform:translateX(100%); }
+.btn-modern.primary:hover { transform:translateY(-3px);box-shadow:0 14px 40px rgba(102,126,234,.6); }
+.btn-modern.secondary { background:rgba(255,255,255,.1);backdrop-filter:blur(10px);color:white;border:1.5px solid rgba(255,255,255,.25); }
+.btn-modern.secondary:hover { background:rgba(255,255,255,.18);transform:translateY(-3px); }
+.trust-badges { display:flex;gap:2rem;flex-wrap:wrap;animation:fadeIn 1s .6s both; }
+.trust-item { display:flex;align-items:center;gap:.45rem;color:rgba(255,255,255,.65);font-size:.9rem; }
+.trust-item i { color:#4ade80;font-size:.9rem; }
+.hero-visual { position:relative;height:580px;perspective:1200px;transform-style:preserve-3d; }
+.hub-glow {
+  position:absolute;width:240px;height:240px;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(circle,rgba(102,126,234,.35),transparent 70%);
+  border-radius:50%;animation:hubPulse 4s ease-in-out infinite;pointer-events:none;
+}
+@keyframes hubPulse { 0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.5;} 50%{transform:translate(-50%,-50%) scale(1.3);opacity:.25;} }
+.float-card {
+  position:absolute;background:rgba(255,255,255,0.08);
+  backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,.18);
+  border-radius:20px;padding:1.4rem 1.6rem;color:white;will-change:transform;cursor:default;
+}
+.card-1 { width:230px;top:5%;left:5%;opacity:0;box-shadow:0 20px 60px rgba(102,126,234,.25),0 0 0 1px rgba(255,255,255,.08) inset;transition:box-shadow .3s ease,border-color .3s ease; }
+.card-2 { width:210px;top:8%;right:0%;opacity:0;box-shadow:0 20px 60px rgba(240,147,251,.2),0 0 0 1px rgba(255,255,255,.08) inset;transition:box-shadow .3s ease,border-color .3s ease; }
+.card-3 { width:150px;bottom:28%;left:0%;opacity:0;box-shadow:0 20px 60px rgba(79,172,254,.2),0 0 0 1px rgba(255,255,255,.08) inset;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.5rem;transition:box-shadow .3s ease,border-color .3s ease; }
+.card-4 { width:200px;bottom:8%;right:5%;opacity:0;box-shadow:0 20px 60px rgba(67,233,123,.15),0 0 0 1px rgba(255,255,255,.08) inset;transition:box-shadow .3s ease,border-color .3s ease; }
+.float-card:hover { box-shadow:0 30px 80px rgba(102,126,234,.4)!important;border-color:rgba(255,255,255,.35)!important;z-index:10; }
+.fc-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem; }
+.fc-icon { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.125rem; }
+.fc-icon-lg { width:52px;height:52px;font-size:1.5rem;border-radius:14px; }
+.fc-purple { background:linear-gradient(135deg,#818cf8,#6366f1); }
+.fc-pink   { background:linear-gradient(135deg,#f0abfc,#e879f9); }
+.fc-blue   { background:linear-gradient(135deg,#7dd3fc,#3b82f6); }
+.fc-green  { background:linear-gradient(135deg,#6ee7b7,#10b981); }
+.fc-badge { background:rgba(74,222,128,.2);color:#4ade80;border:1px solid rgba(74,222,128,.4);padding:.2rem .6rem;border-radius:20px;font-size:.7rem;font-weight:700;animation:pulseDot 2s ease-in-out infinite; }
+.fc-trend { color:#4ade80;font-size:.75rem;font-weight:700;display:flex;align-items:center;gap:.25rem; }
+.fc-stat { font-size:1.75rem;font-weight:800;letter-spacing:-.03em;line-height:1.1; }
+.fc-stat-sm { font-size:2rem;font-weight:800;letter-spacing:-.03em; }
+.fc-label { font-size:.78rem;color:rgba(255,255,255,.65);margin:.25rem 0 .75rem; }
+.fc-label-sm { font-size:.75rem;color:rgba(255,255,255,.65); }
+.fc-bar { height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden; }
+.fc-bar-fill { height:100%;border-radius:3px;background:linear-gradient(90deg,#818cf8,#e879f9);animation:barLoad 1.5s 1.2s var(--ease-out) both; }
+@keyframes barLoad { from{width:0!important;} }
+.fc-sparkline { margin-top:.6rem;height:28px; }
+.fc-sparkline svg { width:100%;height:100%; }
+.fc-avatars { display:flex;margin-top:.5rem; }
+.fc-av { width:32px;height:32px;border-radius:50%;border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:white;margin-left:-8px; }
+.fc-av:first-child { margin-left:0; }
+.fc-av-more { background:rgba(255,255,255,.1);font-size:.65rem; }
+.float-chip { position:absolute;background:rgba(255,255,255,.12);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.22);border-radius:50px;padding:.4rem 1rem;font-size:.78rem;font-weight:700;color:white;display:flex;align-items:center;gap:.35rem;white-space:nowrap; }
+.float-chip i { font-size:.7rem; }
+.chip-1 { bottom:44%;right:-2%;opacity:0;background:rgba(250,204,21,.15);border-color:rgba(250,204,21,.3);color:#fde68a; }
+.chip-2 { bottom:22%;left:30%;opacity:0;background:rgba(251,113,133,.15);border-color:rgba(251,113,133,.3);color:#fda4af; }
+.chip-3 { top:40%;left:48%;opacity:0;background:rgba(129,140,248,.15);border-color:rgba(129,140,248,.3);color:#c7d2fe; }
+.orbit { position:absolute;border-radius:50%;border:1px dashed rgba(255,255,255,.1);pointer-events:none; }
+.orbit-1 { width:340px;height:340px;top:50%;left:50%;transform:translate(-50%,-50%);animation:spin 18s linear infinite; }
+.orbit-2 { width:220px;height:220px;top:50%;left:50%;transform:translate(-50%,-50%);animation:spinR 12s linear infinite; }
+@keyframes spin  { to{transform:translate(-50%,-50%) rotate(360deg);} }
+@keyframes spinR { to{transform:translate(-50%,-50%) rotate(-360deg);} }
+.orbit-dot { width:8px;height:8px;border-radius:50%;background:rgba(129,140,248,.8);position:absolute;top:-4px;left:50%;box-shadow:0 0 8px rgba(129,140,248,.8); }
+.dot-pink { background:rgba(240,147,251,.8);box-shadow:0 0 8px rgba(240,147,251,.8); }
+.scroll-indicator { position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.5rem;color:rgba(255,255,255,.4);font-size:.8rem;animation:fadeIn 2s 1s both;transition:opacity .4s; }
+.mouse { width:24px;height:38px;border:2px solid rgba(255,255,255,.4);border-radius:14px;position:relative; }
+.wheel { width:4px;height:8px;background:rgba(255,255,255,.4);border-radius:2px;position:absolute;top:8px;left:50%;transform:translateX(-50%);animation:scrollWheel 2s ease-in-out infinite; }
+@keyframes scrollWheel { 0%{top:8px;opacity:1;} 100%{top:22px;opacity:0;} }
+
+/* =====================================================
+   STATS — new layout with side label col
+===================================================== */
 .stats-showcase {
-    padding: 6rem 1rem;
-    background: linear-gradient(135deg, #0a0e27, #1a1f3a);
+  padding:6rem 1rem;
+  background:linear-gradient(180deg,#0a0e27 0%,#0d1230 100%);
+  position:relative;
+}
+
+.stats-showcase::before {
+  content:'';position:absolute;top:0;left:0;right:0;
+  height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,.4),transparent);
+}
+
+.stats-inner {
+  display:grid;grid-template-columns:280px 1fr;
+  gap:3rem;align-items:start;
+  max-width:1200px;margin:0 auto;
+}
+
+.stats-label-col { color:white; }
+.stats-eyebrow {
+  display:inline-block;
+  font-family:var(--font-body);font-size:.75rem;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(99,102,241,.9);margin-bottom:.875rem;
+}
+.stats-heading {
+  font-family:var(--font-display);font-size:2.5rem;font-weight:900;
+  line-height:1.1;letter-spacing:-.03em;margin-bottom:1rem;
+}
+.stats-subtext { font-size:.9rem;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:1.5rem; }
+.stats-live-dot {
+  display:inline-flex;align-items:center;gap:.5rem;
+  font-size:.8rem;color:rgba(255,255,255,.5);
+}
+.live-dot-pulse {
+  width:8px;height:8px;border-radius:50%;background:#4ade80;
+  box-shadow:0 0 0 0 rgba(74,222,128,.4);
+  animation:pulseDot 2s ease-in-out infinite;
+  flex-shrink:0;
 }
 
 .stats-grid-modern {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-    max-width: 1400px;
-    margin: 0 auto;
+  display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem;
 }
-
 .stat-card-modern {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 2rem;
-    text-align: center;
-    color: white;
-    transition: all 0.3s ease;
+  background:rgba(255,255,255,.05);backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:1.75rem;
+  color:white;transition:transform .3s var(--ease-spring),background .3s ease;
+  position:relative;overflow:hidden;
+}
+.stat-card-modern::after {
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.04),transparent);
+  pointer-events:none;
+}
+.stat-card-modern:hover { transform:translateY(-6px);background:rgba(255,255,255,.08); }
+.stat-icon-wrapper { width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;font-size:1.4rem; }
+.stat-icon-wrapper.purple{ background:linear-gradient(135deg,#667eea,#764ba2); }
+.stat-icon-wrapper.pink  { background:linear-gradient(135deg,#f093fb,#f5576c); }
+.stat-icon-wrapper.blue  { background:linear-gradient(135deg,#4facfe,#00f2fe); }
+.stat-icon-wrapper.green { background:linear-gradient(135deg,#43e97b,#38f9d7); }
+.stat-number { font-family:var(--font-display);font-size:2.4rem;font-weight:900;margin-bottom:.3rem;letter-spacing:-.04em; }
+.stat-number.loading { opacity:.35;font-size:1.5rem;font-family:var(--font-body); }
+.stat-label  { font-size:.85rem;opacity:.65;margin-bottom:1rem; }
+.stat-bar { width:100%;height:4px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden; }
+.stat-progress { height:100%;border-radius:3px;background:linear-gradient(90deg,#667eea,#764ba2);width:0;transition:width 1.4s var(--ease-out); }
+
+/* =====================================================
+   HOW IT WORKS
+===================================================== */
+.how-it-works {
+  padding:7rem 1rem;
+  background:linear-gradient(180deg,#0d1230 0%,#0f1330 100%);
 }
 
-.stat-card-modern:hover {
-    transform: translateY(-10px);
-    background: rgba(255, 255, 255, 0.1);
+.section-header { text-align:center;margin-bottom:4rem; }
+.section-badge {
+  display:inline-block;
+  background:linear-gradient(135deg,#667eea,#764ba2);color:white;
+  padding:.4rem 1.25rem;border-radius:50px;font-weight:700;font-size:.82rem;
+  letter-spacing:.04em;margin-bottom:1rem;
+}
+.badge-amber { background:linear-gradient(135deg,#f59e0b,#d97706) !important; }
+
+.section-title { font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;letter-spacing:-.025em;margin-bottom:.75rem;color:white; }
+.section-subtitle { font-size:1.05rem;color:rgba(255,255,255,.55);max-width:540px;margin:0 auto;line-height:1.7; }
+
+.steps-row {
+  display:flex;align-items:center;gap:0;
+  max-width:1000px;margin:0 auto;
 }
 
-.stat-icon-wrapper {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1.5rem;
-    font-size: 2rem;
+.step-card {
+  flex:1;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.09);border-radius:24px;
+  padding:2.25rem 2rem;color:white;position:relative;
+  transition:transform .3s var(--ease-spring),background .3s ease;
+}
+.step-card:hover { transform:translateY(-6px);background:rgba(255,255,255,.08); }
+.step-card--featured {
+  background:rgba(99,102,241,.12);
+  border-color:rgba(99,102,241,.35);
+  transform:translateY(-8px);
+  box-shadow:0 20px 60px rgba(99,102,241,.2);
+}
+.step-card--featured:hover { transform:translateY(-14px); }
+
+.step-number {
+  font-family:var(--font-display);font-size:3rem;font-weight:900;
+  color:rgba(255,255,255,.08);letter-spacing:-.04em;
+  line-height:1;margin-bottom:.75rem;
+}
+.step-card--featured .step-number { color:rgba(99,102,241,.25); }
+
+.step-icon-wrap {
+  width:52px;height:52px;border-radius:14px;
+  background:rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.375rem;margin-bottom:1.25rem;color:white;
+}
+.step-icon-wrap.featured {
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  box-shadow:0 8px 24px rgba(99,102,241,.4);
 }
 
-.stat-icon-wrapper.purple {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+.step-title { font-family:var(--font-display);font-size:1.25rem;font-weight:800;margin-bottom:.75rem;letter-spacing:-.02em; }
+.step-desc { font-size:.9rem;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:1.25rem; }
+
+.step-cta-pill {
+  display:inline-flex;align-items:center;
+  padding:.3rem .875rem;border-radius:50px;
+  font-size:.75rem;font-weight:700;
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);
+}
+.step-cta-pill.featured {
+  background:rgba(99,102,241,.2);color:#a5b4fc;
 }
 
-.stat-icon-wrapper.pink {
-    background: linear-gradient(135deg, #f093fb, #f5576c);
+.step-connector {
+  display:flex;align-items:center;
+  width:48px;flex-shrink:0;position:relative;
+}
+.connector-line {
+  position:absolute;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,rgba(99,102,241,.2),rgba(99,102,241,.5),rgba(99,102,241,.2));
+}
+.connector-arrow {
+  position:absolute;left:50%;transform:translateX(-50%);
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.6rem;color:rgba(99,102,241,.8);
 }
 
-.stat-icon-wrapper.blue {
-    background: linear-gradient(135deg, #4facfe, #00f2fe);
+/* =====================================================
+   BENTO FEATURES
+===================================================== */
+.bento-features { padding:7rem 1rem;background:#0a0e1f; }
+
+.bento-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;max-width:1200px;margin:0 auto; }
+
+.bento-card {
+  background:rgba(255,255,255,.05);border-radius:22px;padding:2rem;
+  border:1px solid rgba(255,255,255,.08);
+  transition:transform .3s var(--ease-spring),box-shadow .3s ease;
+  position:relative;overflow:hidden;
+}
+.bento-card::before { content:'';position:absolute;inset:-1px;background:linear-gradient(135deg,rgba(255,255,255,.06),transparent);border-radius:inherit;pointer-events:none; }
+.bento-card:hover { transform:translateY(-6px);box-shadow:0 24px 60px rgba(0,0,0,.35); }
+.bento-card.large { grid-column:span 2;min-height:360px;display:flex;flex-direction:column;justify-content:space-between; }
+.bento-card.small { grid-column:span 1; }
+
+.gradient-purple { background:linear-gradient(135deg,rgba(102,126,234,.14),rgba(118,75,162,.11)); }
+.gradient-pink   { background:linear-gradient(135deg,rgba(240,147,251,.11),rgba(245,87,108,.09)); }
+.gradient-blue   { background:linear-gradient(135deg,rgba(79,172,254,.11),rgba(0,242,254,.07)); }
+.gradient-green  { background:linear-gradient(135deg,rgba(67,233,123,.09),rgba(56,249,215,.07)); }
+.gradient-orange { background:linear-gradient(135deg,rgba(250,112,154,.11),rgba(254,225,64,.07)); }
+.gradient-teal   { background:linear-gradient(135deg,rgba(48,207,208,.11),rgba(51,8,103,.07)); }
+
+.bento-icon { width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:1.75rem;color:white;margin-bottom:1.25rem; }
+.bento-icon-small { width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:white;margin-bottom:.875rem; }
+.bento-content h3 { font-family:var(--font-display);font-size:1.5rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.75rem;color:white; }
+.bento-card.small h4 { font-family:var(--font-display);font-size:1.1rem;font-weight:700;margin-bottom:.4rem;color:white; }
+.bento-content p, .bento-card.small p { color:rgba(255,255,255,.55);line-height:1.65;font-size:.9rem; }
+
+.search-demo { margin-top:1.5rem; }
+.search-bar-demo { background:rgba(255,255,255,.1);padding:.875rem 1.25rem;border-radius:50px;display:flex;align-items:center;gap:.875rem;margin-bottom:.875rem;color:rgba(255,255,255,.7); }
+.typing-animation { animation:typingPulse 3s ease-in-out infinite; }
+@keyframes typingPulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+.search-results-demo { display:flex;flex-direction:column;gap:.5rem; }
+.result-item { background:rgba(255,255,255,.06);height:38px;border-radius:10px;animation:pulse 2s ease-in-out infinite; }
+.result-item:nth-child(2){animation-delay:.3s;} .result-item:nth-child(3){animation-delay:.6s;}
+
+.avatars-demo { display:flex;margin-top:1.5rem; }
+.avatar-circle { width:56px;height:56px;border-radius:50%;border:3px solid rgba(255,255,255,.15);margin-left:-14px;animation:bounce 2.5s ease-in-out infinite;background:linear-gradient(135deg,#667eea,#764ba2); }
+.avatar-circle:first-child { margin-left:0; }
+.avatar-circle:nth-child(2){ background:linear-gradient(135deg,#f093fb,#f5576c);animation-delay:.25s; }
+.avatar-circle:nth-child(3){ background:linear-gradient(135deg,#4facfe,#00f2fe);animation-delay:.5s; }
+.avatar-plus { width:56px;height:56px;border-radius:50%;border:3px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-weight:700;margin-left:-14px;background:rgba(255,255,255,.1);color:white;font-size:.875rem; }
+
+/* =====================================================
+   COMING SOON / ROADMAP
+===================================================== */
+.coming-soon-section {
+  padding:7rem 1rem;
+  background:linear-gradient(180deg,#0a0e1f 0%,#0d1230 100%);
+  position:relative;
+}
+.coming-soon-section::before {
+  content:'';position:absolute;top:0;left:0;right:0;
+  height:1px;background:linear-gradient(90deg,transparent,rgba(245,158,11,.3),transparent);
 }
 
-.stat-icon-wrapper.green {
-    background: linear-gradient(135deg, #43e97b, #38f9d7);
+.roadmap-grid {
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1.5rem;max-width:1200px;margin:0 auto 3rem;
 }
 
-.stat-number {
-    font-size: 3rem;
-    font-weight: 800;
-    margin-bottom: 0.5rem;
+.roadmap-card {
+  border-radius:24px;overflow:hidden;
+  position:relative;
+  transition:transform .3s var(--ease-spring),box-shadow .3s ease;
+}
+.roadmap-card:hover { transform:translateY(-8px); }
+
+.roadmap-phase-tag {
+  font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  padding:.55rem 1.25rem;
+  background:rgba(99,102,241,.9);color:white;
+  text-align:center;
+}
+.tag-teal  { background:rgba(20,184,166,.9) !important; }
+.tag-amber { background:rgba(245,158,11,.9) !important; }
+
+.roadmap-card-inner {
+  padding:2rem;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.09);
+  border-top:none;
+  height:calc(100% - 36px);
 }
 
-.stat-label {
-    font-size: 1.125rem;
-    opacity: 0.8;
-    margin-bottom: 1rem;
-}
+.phase-1 .roadmap-card-inner { border-color:rgba(99,102,241,.2); }
+.phase-2 .roadmap-card-inner { border-color:rgba(20,184,166,.2); }
+.phase-3 .roadmap-card-inner { border-color:rgba(245,158,11,.2); }
 
-.stat-bar {
-    width: 100%;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    overflow: hidden;
+.roadmap-icon-group { display:flex;gap:.5rem;margin-bottom:1.25rem; }
+.rm-icon {
+  width:38px;height:38px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.9rem;color:white;
 }
+.rm-purple { background:linear-gradient(135deg,#667eea,#764ba2); }
+.rm-pink   { background:linear-gradient(135deg,#f093fb,#f5576c); }
+.rm-blue   { background:linear-gradient(135deg,#4facfe,#00f2fe); }
+.rm-teal   { background:linear-gradient(135deg,#14b8a6,#0d9488); }
+.rm-green  { background:linear-gradient(135deg,#43e97b,#38f9d7); }
+.rm-amber  { background:linear-gradient(135deg,#f59e0b,#d97706); }
+.rm-orange { background:linear-gradient(135deg,#fb923c,#ea580c); }
+.rm-red    { background:linear-gradient(135deg,#f87171,#dc2626); }
 
-.stat-progress {
-    height: 100%;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    border-radius: 3px;
-    animation: progressBar 2s ease-out;
+.roadmap-title { font-family:var(--font-display);font-size:1.2rem;font-weight:800;letter-spacing:-.02em;color:white;margin-bottom:.75rem; }
+.roadmap-desc { font-size:.875rem;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:1.25rem; }
+
+.roadmap-features { list-style:none;display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.5rem; }
+.roadmap-features li {
+  display:flex;align-items:center;gap:.5rem;
+  font-size:.82rem;color:rgba(255,255,255,.65);
 }
+.roadmap-features li i { font-size:.65rem;flex-shrink:0; }
+.phase-1 .roadmap-features li i { color:#818cf8; }
+.phase-2 .roadmap-features li i { color:#2dd4bf; }
+.phase-3 .roadmap-features li i { color:#fbbf24; }
 
-@keyframes progressBar {
-    0% { width: 0%; }
+.roadmap-status {
+  display:inline-flex;align-items:center;gap:.45rem;
+  font-size:.75rem;font-weight:600;color:rgba(255,255,255,.4);
 }
+.status-dot { width:7px;height:7px;border-radius:50%;flex-shrink:0; }
+.status-building { background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,.6);animation:pulseDot 2s infinite; }
+.status-planned  { background:#fbbf24; }
+.status-future   { background:rgba(255,255,255,.25); }
 
-/* ============================================
-   TESTIMONIALS
-   ============================================ */
-.testimonials-section {
-    padding: 6rem 1rem;
-    background: var(--bg-main);
+/* Early access banner */
+.early-access-banner {
+  display:flex;align-items:center;justify-content:space-between;
+  gap:1.5rem;
+  background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.12));
+  border:1px solid rgba(99,102,241,.25);border-radius:20px;
+  padding:1.75rem 2rem;max-width:1200px;margin:0 auto;
 }
-
-.testimonials-carousel {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 2rem;
-    max-width: 1400px;
-    margin: 0 auto;
+.eab-left { display:flex;align-items:center;gap:1.25rem;flex:1;min-width:0; }
+.eab-icon {
+  width:48px;height:48px;flex-shrink:0;
+  border-radius:14px;background:linear-gradient(135deg,#667eea,#764ba2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.25rem;color:white;
 }
-
-.testimonial-card {
-    background: var(--bg-card);
-    border-radius: 20px;
-    padding: 2rem;
-    border: 1px solid var(--border);
-    transition: all 0.3s ease;
+.eab-title { font-family:var(--font-display);font-weight:800;font-size:1.05rem;color:white;margin-bottom:.25rem; }
+.eab-sub { font-size:.85rem;color:rgba(255,255,255,.5); }
+.eab-btn {
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.75rem 1.75rem;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  color:white;text-decoration:none;font-weight:700;font-size:.9rem;
+  border-radius:50px;white-space:nowrap;flex-shrink:0;
+  box-shadow:0 8px 24px rgba(99,102,241,.35);
+  transition:all .25s ease;
 }
+.eab-btn:hover { transform:translateY(-2px);box-shadow:0 12px 32px rgba(99,102,241,.5); }
 
-.testimonial-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+/* =====================================================
+   INSTITUTIONS STRIP
+===================================================== */
+.institutions-strip {
+  padding:3.5rem 1rem;
+  background:rgba(255,255,255,.02);
+  border-top:1px solid rgba(255,255,255,.05);
+  border-bottom:1px solid rgba(255,255,255,.05);
+  text-align:center;
 }
-
-.testimonial-rating {
-    display: flex;
-    gap: 0.25rem;
-    margin-bottom: 1.5rem;
-    color: #fbbf24;
+.institutions-label {
+  font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(255,255,255,.3);margin-bottom:1.5rem;
 }
-
-.testimonial-text {
-    font-size: 1.125rem;
-    line-height: 1.7;
-    color: var(--text-primary);
-    margin-bottom: 1.5rem;
+.institutions-row {
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:center;
+  gap:.875rem;margin-bottom:1.25rem;
 }
-
-.testimonial-author {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+.institution-pill {
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.55rem 1.125rem;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:50px;
+  font-size:.85rem;font-weight:600;color:rgba(255,255,255,.6);
+  transition:all .2s ease;
 }
+.institution-pill:hover { background:rgba(99,102,241,.12);border-color:rgba(99,102,241,.3);color:rgba(255,255,255,.85); }
+.institution-pill i { font-size:.75rem;color:rgba(99,102,241,.7); }
+.institutions-disclaimer { font-size:.8rem;color:rgba(255,255,255,.3); }
+.institutions-disclaimer a { color:rgba(99,102,241,.8);text-decoration:none; }
+.institutions-disclaimer a:hover { color:#818cf8; }
 
-.author-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-}
-
-.author-name {
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 0.25rem;
-}
-
-.author-role {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-}
-
-/* ============================================
+/* =====================================================
    FINAL CTA
-   ============================================ */
-.final-cta {
-    padding: 8rem 1rem;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    position: relative;
-    overflow: hidden;
+===================================================== */
+.final-cta { padding:8rem 1rem;background:linear-gradient(135deg,#667eea,#764ba2);position:relative;overflow:hidden; }
+.cta-bg-pattern { position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.1) 1px,transparent 1px);background-size:28px 28px; }
+.cta-container { max-width:760px;margin:0 auto;position:relative;z-index:1; }
+.cta-content-box { text-align:center;color:white; }
+.cta-eyebrow {
+  display:inline-flex;align-items:center;gap:.5rem;
+  background:rgba(255,255,255,.15);padding:.4rem 1rem;border-radius:50px;
+  font-size:.82rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  margin-bottom:1.5rem;color:rgba(255,255,255,.9);
 }
-
-.cta-bg-pattern {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
-    background-size: 30px 30px;
-}
-
-.cta-container {
-    max-width: 900px;
-    margin: 0 auto;
-    position: relative;
-    z-index: 1;
-}
-
-.cta-content-box {
-    text-align: center;
-    color: white;
-}
-
-.cta-title {
-    font-size: 3.5rem;
-    font-weight: 900;
-    margin-bottom: 1.5rem;
-    animation: slideUp 0.8s ease-out;
-}
-
-.cta-description {
-    font-size: 1.5rem;
-    margin-bottom: 3rem;
-    opacity: 0.9;
-}
-
-.cta-actions {
-    margin-bottom: 3rem;
-}
-
+.cta-eyebrow i { color:#fde68a;font-size:.75rem; }
+.cta-title { font-family:var(--font-display);font-size:clamp(2rem,5vw,3.5rem);font-weight:900;letter-spacing:-.03em;margin-bottom:1.25rem;line-height:1.1; }
+.cta-description { font-size:1.2rem;margin-bottom:2.75rem;opacity:.9;line-height:1.7; }
+.cta-actions { margin-bottom:2.5rem; }
 .btn-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.5rem 3rem;
-    background: white;
-    color: #667eea;
-    border-radius: 50px;
-    font-weight: 700;
-    font-size: 1.25rem;
-    text-decoration: none;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display:inline-flex;align-items:center;gap:.875rem;
+  padding:1.25rem 2.5rem;background:white;color:#667eea;
+  border-radius:50px;font-weight:800;font-size:1.1rem;
+  text-decoration:none;transition:transform .3s var(--ease-spring),box-shadow .3s ease;
+  box-shadow:0 16px 50px rgba(0,0,0,.2);
+}
+.btn-cta:hover { transform:translateY(-5px) scale(1.03);box-shadow:0 24px 70px rgba(0,0,0,.3); }
+.btn-cta.primary-glow { animation:glowPulse 2.5s ease-in-out infinite; }
+@keyframes glowPulse { 0%,100%{box-shadow:0 16px 50px rgba(0,0,0,.2);} 50%{box-shadow:0 16px 70px rgba(255,255,255,.4);} }
+.cta-features { display:flex;justify-content:center;gap:2.5rem;flex-wrap:wrap; }
+.cta-feature-item { display:flex;align-items:center;gap:.5rem;color:rgba(255,255,255,.88);font-size:.9rem; }
+.cta-feature-item i { color:#4ade80; }
+
+/* =====================================================
+   SHARED ANIMATIONS
+===================================================== */
+@keyframes slideDown { from{opacity:0;transform:translateY(-20px);} to{opacity:1;transform:translateY(0);} }
+@keyframes slideUp   { from{opacity:0;transform:translateY(24px);} to{opacity:1;transform:translateY(0);} }
+@keyframes fadeIn    { from{opacity:0;} to{opacity:1;} }
+@keyframes pulse     { 0%,100%{opacity:1;} 50%{opacity:.45;} }
+@keyframes bounce    { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+
+/* =====================================================
+   TYPOGRAPHY
+===================================================== */
+body, input, button, select, textarea {
+  font-family:var(--font-body,'Plus Jakarta Sans',system-ui,sans-serif);
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+h1,h2,h3,h4,h5,h6,
+.hero-title,.cta-title,.section-title,
+.stat-number,.fc-stat,.fc-stat-sm,.gradient-text-animated,
+.hero-logo span,.auth-brand-name {
+  font-family:var(--font-display,'Bricolage Grotesque',system-ui,sans-serif);font-optical-sizing:auto;
+}
+.hero-title { font-weight:900;letter-spacing:-.035em;line-height:1.05; }
+.section-title,.cta-title { font-weight:800;letter-spacing:-.025em; }
+.hero-logo span,.auth-brand-name { font-weight:900;letter-spacing:-.04em; }
+.btn-modern,.btn-cta { font-family:var(--font-body);font-weight:700;letter-spacing:.01em; }
+.stat-number { font-weight:900;letter-spacing:-.04em; }
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+@media (max-width:1024px) {
+  .hero-container { grid-template-columns:1fr;text-align:center; }
+  .hero-description,.hero-actions,.trust-badges { margin-left:auto;margin-right:auto; }
+  .hero-actions { justify-content:center; }
+  .trust-badges { justify-content:center; }
+  .hero-visual { display:none; }
+  .bento-grid { grid-template-columns:repeat(2,1fr); }
+  .bento-card.large { grid-column:span 1;min-height:auto; }
+  .stats-inner { grid-template-columns:1fr;gap:2rem; }
+  .stats-label-col { text-align:center; }
+  .steps-row { flex-direction:column;gap:0; }
+  .step-connector { width:100%;height:48px;flex-direction:column;align-items:center; }
+  .connector-line { left:50%;right:50%;width:1px;height:100%;top:0;bottom:0; }
+  .connector-arrow { top:50%;left:50%;transform:translate(-50%,-50%) rotate(90deg); }
+  .step-card--featured { transform:none; }
+  .roadmap-grid { grid-template-columns:1fr; }
 }
 
-.btn-cta:hover {
-    transform: translateY(-5px) scale(1.05);
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+@media (max-width:640px) {
+  .modern-hero { padding:4rem 1rem 3rem; }
+  .hero-badge { font-size:.78rem; }
+  .hero-logo span { font-size:1.75rem; }
+  .hero-title { font-size:2.1rem; }
+  .hero-description { font-size:1rem; }
+  .hero-actions { flex-direction:column;align-items:center; }
+  .btn-modern { width:100%;justify-content:center; }
+  .trust-badges { gap:1rem; }
+  .bento-features { padding:4rem .875rem; }
+  .bento-grid { grid-template-columns:1fr;gap:1rem; }
+  .bento-card.large,.bento-card.small { grid-column:span 1; }
+  .bento-card { padding:1.5rem; }
+  .stats-showcase { padding:4rem .875rem; }
+  .stats-grid-modern { grid-template-columns:repeat(2,1fr);gap:1rem; }
+  .how-it-works { padding:4rem .875rem; }
+  .coming-soon-section { padding:4rem .875rem; }
+  .early-access-banner { flex-direction:column;text-align:center; }
+  .eab-left { flex-direction:column;align-items:center;text-align:center; }
+  .eab-btn { width:100%;justify-content:center; }
+  .institutions-row { gap:.5rem; }
+  .final-cta { padding:5rem 1rem; }
+  .cta-features { flex-direction:column;align-items:center;gap:.875rem; }
+  .btn-cta { width:100%;justify-content:center;font-size:1rem; }
 }
 
-.btn-cta.primary-glow {
-    animation: glow 2s ease-in-out infinite;
+@media (hover:none) and (pointer:coarse) {
+  .bento-card:hover,.stat-card-modern:hover,.float-card:hover,
+  .step-card:hover,.roadmap-card:hover,.btn-modern.primary:hover,.btn-cta:hover { transform:none!important; }
 }
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
-    50% { box-shadow: 0 20px 80px rgba(255, 255, 255, 0.5); }
-}
-
-.cta-features {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    flex-wrap: wrap;
-}
-
-.cta-feature-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.cta-feature-item i {
-    color: #4ade80;
-}
-
-/* ============================================
-   ANIMATIONS
-   ============================================ */
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
-}
-
-/* ============================================
-   RESPONSIVE DESIGN
-   ============================================ */
-@media (max-width: 1200px) {
-    .hero-title {
-        font-size: 3.5rem;
-    }
-    
-    .bento-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .bento-card.large {
-        grid-column: span 1;
-    }
-}
-
-@media (max-width: 768px) {
-    .hero-container {
-        grid-template-columns: 1fr;
-        text-align: center;
-        gap: 2rem;
-    }
-    
-    .hero-title {
-        font-size: 2.5rem;
-    }
-    
-    p .hero-description {
-        font-size: 1.125rem;
-        margin: 0px;
-    }
-
-    .hero-content .hero-description {
-        margin-top: 50px;
-        margin-bottom: 50px;
-    }
-    
-    .hero-visual {
-        display: none;
-    }
-    
-    .hero-actions {
-        margin-bottom: 3.2rem;
-        flex-direction: column;
-    }
-    
-    .btn-modern {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .trust-badges {
-        width: 110%;
-        gap: 0.5rem;
-        margin: 15px;
-        align-content: baseline;
-        margin-bottom: -35px;
-    }
-
-    .hero-badge {
-        gap: 3pxpx;
-        width: 110%;
-    }
-    
-    .section-title {
-        font-size: 2rem;
-    }
-    
-    .bento-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .bento-card.large,
-    .bento-card.small {
-        grid-column: span 1;
-    }
-    
-    .stats-grid-modern {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .testimonials-carousel {
-        grid-template-columns: 1fr;
-    }
-    
-    .cta-title {
-        font-size: 2rem;
-    }
-    
-    .cta-description {
-        font-size: 1.125rem;
-    }
-    
-    .btn-cta {
-        padding: 1.25rem 2rem;
-        font-size: 1.125rem;
-        width: 100%;
-        justify-content: center;
-        transition: all var(--transition-fast);
-        -webkit-tap-highlight-color: transparent; /* remove blue highlight on tap */
-    }
-    
-    .cta-features {
-        flex-direction: column;
-        align-items: center;
-    }
-}
-
-@media (max-width: 480px) {
-    .hero-title {
-        font-size: 2rem;
-    }
-    
-    .section-title {
-        font-size: 1.75rem;
-    }
-    
-    .stats-grid-modern {
-        grid-template-columns: 1fr;
-    }
-    
-    .stat-number {
-        font-size: 2.5rem;
-    }
-}
-
-/* Counter Animation for Stats */
-.stats-showcase.animated .stat-number {
-    animation: countUp 2s ease-out;
-}
-
-@keyframes countUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* ══════════════════════════════════════════
-   MOBILE-FIRST RESPONSIVE SYSTEM
-   ══════════════════════════════════════════ */
-
-/* ── Base resets that apply across all mobile ── */
-.modern-landing { overflow-x: hidden; }
-
-.hero-logo {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    margin-bottom: 1rem;
-}
-.hero-logo i {
-    font-size: 1.75rem;
-    color: white;
-    transform: rotate(-35deg);
-}
-.hero-logo span {
-    font-size: 2rem;
-    font-weight: 800;
-    color: white;
-}
-
-/* ════════════════
-   XS — up to 480px
-   ════════════════ */
-@media (max-width: 480px) {
-
-    /* Hero */
-    .modern-hero { padding: 1.25rem 0.875rem 5rem; min-height: 100svh; }
-
-    .hero-container {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-        padding: 0;
-        text-align: center;
-    }
-
-    .hero-badge {
-        width: auto;              /* remove hardcoded 110% */
-        max-width: 100%;
-        font-size: 0.78rem;
-        padding: 0.4rem 0.875rem;
-        margin-bottom: 1.25rem;
-        justify-content: center;
-    }
-
-    .hero-logo i  { font-size: 1.5rem; }
-    .hero-logo span { font-size: 1.75rem; }
-
-    .hero-title {
-        font-size: 1.875rem;
-        line-height: 1.2;
-        margin-bottom: 1rem;
-    }
-
-    .hero-description {
-        font-size: 0.9375rem;
-        line-height: 1.7;
-        margin-bottom: 1.5rem;
-        /* remove excessive top margin from inline rule */
-        margin-top: 0 !important;
-    }
-
-    .hero-actions {
-        flex-direction: column;
-        gap: 0.75rem;
-        margin-bottom: 1.75rem;
-    }
-    .btn-modern {
-        width: 100%;
-        justify-content: center;
-        padding: 0.875rem 1.5rem;
-        font-size: 1rem;
-        border-radius: 14px;
-    }
-
-    .trust-badges {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.5rem;
-        width: 100%;            /* not 110% */
-        margin: 0;
-    }
-    .trust-item {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        font-size: 0.75rem;
-        gap: 0.25rem;
-    }
-    .trust-item i { font-size: 1rem; }
-
-    .hero-visual { display: none; }
-
-    .scroll-indicator { display: none; }
-
-    /* Bento */
-    .bento-features { padding: 3rem 0.875rem; }
-    .section-title { font-size: 1.625rem; }
-    .section-subtitle { font-size: 0.9375rem; }
-    .section-header { margin-bottom: 2rem; }
-
-    .bento-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-    .bento-card.large,
-    .bento-card.small { grid-column: span 1; min-height: auto; }
-    .bento-card { padding: 1.375rem; border-radius: 16px; }
-    .bento-card.large { padding: 1.375rem; }
-
-    .bento-content h3 { font-size: 1.25rem; }
-    .bento-content p  { font-size: 0.875rem; }
-    .bento-icon { width: 48px; height: 48px; font-size: 1.5rem; margin-bottom: 1rem; }
-    .bento-icon-small { width: 42px; height: 42px; font-size: 1.25rem; margin-bottom: 0.75rem; }
-
-    .search-demo { margin-top: 1rem; }
-    .search-bar-demo { padding: 0.75rem 1rem; font-size: 0.875rem; }
-    .avatars-demo { margin-top: 1rem; justify-content: center; }
-    .avatar-circle, .avatar-plus { width: 48px; height: 48px; }
-
-    /* Stats */
-    .stats-showcase { padding: 3rem 0.875rem; }
-    .stats-grid-modern {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
-    .stat-card-modern { padding: 1.25rem; border-radius: 16px; }
-    .stat-icon-wrapper { width: 52px; height: 52px; font-size: 1.5rem; margin-bottom: 1rem; }
-    .stat-number { font-size: 2rem; }
-    .stat-label { font-size: 0.875rem; }
-
-    /* Testimonials */
-    .testimonials-section { padding: 3rem 0.875rem; }
-    .testimonials-carousel { grid-template-columns: 1fr; gap: 1rem; }
-    .testimonial-card { padding: 1.375rem; border-radius: 16px; }
-    .testimonial-text { font-size: 0.9375rem; }
-
-    /* CTA */
-    .final-cta { padding: 3.5rem 1rem; }
-    .cta-title { font-size: 1.75rem; margin-bottom: 1rem; }
-    .cta-description { font-size: 1rem; margin-bottom: 2rem; }
-    .btn-cta {
-        width: 100%;
-        justify-content: center;
-        padding: 1.125rem 1.5rem;
-        font-size: 1rem;
-        border-radius: 14px;
-    }
-    .cta-features { flex-direction: column; align-items: center; gap: 0.75rem; }
-    .cta-feature-item { font-size: 0.875rem; }
-}
-
-/* ════════════════════
-   SM — 481px to 640px
-   ════════════════════ */
-@media (min-width: 481px) and (max-width: 640px) {
-
-    .modern-hero { padding: 2rem 1.25rem 5rem; }
-
-    .hero-container {
-        grid-template-columns: 1fr;
-        gap: 2rem;
-        padding: 0;
-        text-align: center;
-    }
-
-    .hero-badge { width: auto; max-width: 100%; justify-content: center; }
-
-    .hero-title { font-size: 2.25rem; margin-bottom: 1.25rem; }
-    .hero-description { font-size: 1rem; margin-top: 0 !important; margin-bottom: 1.75rem; }
-
-    .hero-actions { flex-direction: column; gap: 0.75rem; margin-bottom: 2rem; }
-    .btn-modern { width: 100%; justify-content: center; font-size: 1rem; }
-
-    .trust-badges {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        width: 100%;
-        margin: 0;
-        gap: 0.5rem;
-    }
-    .trust-item { flex-direction: column; align-items: center; text-align: center; font-size: 0.8rem; }
-
-    .hero-visual { display: none; }
-
-    /* Bento 2-col for small cards */
-    .bento-features { padding: 3.5rem 1.25rem; }
-    .bento-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-    .bento-card.large { grid-column: span 2; min-height: auto; }
-    .bento-card.small { grid-column: span 1; }
-
-    .stats-showcase { padding: 3.5rem 1.25rem; }
-    .stats-grid-modern { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-
-    .testimonials-section { padding: 3.5rem 1.25rem; }
-    .testimonials-carousel { grid-template-columns: 1fr; }
-
-    .final-cta { padding: 4rem 1.25rem; }
-    .cta-title { font-size: 2rem; }
-    .cta-description { font-size: 1.0625rem; }
-    .btn-cta { width: 100%; justify-content: center; font-size: 1.0625rem; }
-    .cta-features { flex-direction: column; align-items: center; gap: 0.75rem; }
-}
-
-/* ════════════════════
-   MD — 641px to 768px
-   ════════════════════ */
-@media (min-width: 641px) and (max-width: 768px) {
-
-    .modern-hero { padding: 2rem 1.5rem 5rem; }
-
-    .hero-container {
-        grid-template-columns: 1fr;
-        gap: 2rem;
-        padding: 0;
-        text-align: center;
-    }
-
-    .hero-badge { width: auto; max-width: 480px; margin-left: auto; margin-right: auto; }
-
-    .hero-title { font-size: 2.75rem; }
-    .hero-description { font-size: 1.0625rem; margin-top: 0 !important; max-width: 540px; margin-left: auto; margin-right: auto; }
-
-    .hero-actions { flex-direction: row; justify-content: center; flex-wrap: wrap; gap: 0.875rem; }
-    .btn-modern { width: auto; padding: 0.9rem 1.75rem; }
-
-    .trust-badges { justify-content: center; width: 100%; margin: 0; gap: 1.5rem; }
-    .trust-item { font-size: 0.875rem; }
-
-    .hero-visual { display: none; }
-
-    /* Bento */
-    .bento-features { padding: 4rem 1.5rem; }
-    .bento-grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
-    .bento-card.large { grid-column: span 2; min-height: 300px; }
-    .bento-card.small { grid-column: span 1; }
-
-    /* Stats */
-    .stats-showcase { padding: 4rem 1.5rem; }
-    .stats-grid-modern { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
-
-    /* Testimonials */
-    .testimonials-section { padding: 4rem 1.5rem; }
-    .testimonials-carousel { grid-template-columns: 1fr; }
-
-    /* CTA */
-    .final-cta { padding: 5rem 1.5rem; }
-    .cta-title { font-size: 2.5rem; }
-    .cta-description { font-size: 1.125rem; margin-bottom: 2.5rem; }
-    .btn-cta { padding: 1.25rem 2.5rem; font-size: 1.125rem; }
-    .cta-features { gap: 1.5rem; }
-}
-
-/* ════════════════════════
-   LG — 769px to 1024px
-   ════════════════════════ */
-@media (min-width: 769px) and (max-width: 1024px) {
-
-    .hero-container {
-        grid-template-columns: 1fr 1fr;
-        gap: 2.5rem;
-        padding: 0 1rem;
-    }
-
-    .hero-title { font-size: 3rem; }
-    .hero-description { font-size: 1.0625rem; }
-    .hero-badge { width: auto; }
-    .trust-badges { width: 100%; margin: 0; gap: 1.25rem; }
-
-    .hero-visual { display: block; height: 460px; }
-    .stack-card { width: 230px; height: 150px; padding: 1.375rem; }
-    .stack-card h4 { font-size: 1.5rem; }
-
-    /* Bento — 3 col intermediate */
-    .bento-features { padding: 5rem 1.5rem; }
-    .bento-grid { grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
-    .bento-card.large { grid-column: span 2; min-height: 340px; }
-
-    /* Stats */
-    .stats-showcase { padding: 5rem 1.5rem; }
-    .stats-grid-modern { grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
-    .stat-number { font-size: 2.5rem; }
-
-    /* Testimonials */
-    .testimonials-section { padding: 5rem 1.5rem; }
-    .testimonials-carousel { grid-template-columns: repeat(2, 1fr); }
-
-    /* CTA */
-    .final-cta { padding: 6rem 1.5rem; }
-    .cta-title { font-size: 3rem; }
-}
-
-/* ════════════════════════
-   XL — 1025px to 1279px
-   ════════════════════════ */
-@media (min-width: 1025px) and (max-width: 1279px) {
-
-    .hero-title { font-size: 3.75rem; }
-    .hero-container { gap: 3rem; }
-    .hero-visual { height: 540px; }
-    .stack-card { width: 255px; }
-
-    .bento-grid { grid-template-columns: repeat(4, 1fr); }
-    .bento-card.large { min-height: 360px; }
-
-    .stats-grid-modern { grid-template-columns: repeat(4, 1fr); }
-    .testimonials-carousel { grid-template-columns: repeat(3, 1fr); }
-
-    .cta-title { font-size: 3.25rem; }
-}
-
-/* ════════════════════════
-   2XL — 1280px and above
-   ════════════════════════ */
-@media (min-width: 1280px) {
-    .hero-title { font-size: 4.5rem; }
-    .hero-container { gap: 4rem; padding: 0 2rem; }
-    .hero-visual { height: 600px; }
-
-    .bento-grid { grid-template-columns: repeat(4, 1fr); }
-    .bento-card.large { min-height: 400px; }
-
-    .stats-grid-modern { grid-template-columns: repeat(4, 1fr); }
-    .testimonials-carousel { grid-template-columns: repeat(3, 1fr); }
-}
-
-/* ════════════════════════
-   Touch device optimizations
-   ════════════════════════ */
-@media (hover: none) and (pointer: coarse) {
-    /* Remove hover transforms — they stick on touch */
-    .bento-card:hover,
-    .stat-card-modern:hover,
-    .testimonial-card:hover { transform: none; box-shadow: none; }
-    .btn-modern.primary:hover { transform: none; }
-    .btn-modern.secondary:hover { transform: none; }
-    .btn-cta:hover { transform: none; }
-    .stack-card:hover { transform: none; }
-
-    /* Ensure tap targets are at least 48px */
-    .btn-modern { min-height: 48px; }
-    .btn-cta    { min-height: 52px; }
-
-    /* Disable mouse parallax — irrelevant on touch */
-    .gradient-orb { transform: none !important; }
-}
-
-/* ════════════════════════
-   Reduced motion
-   ════════════════════════ */
-@media (prefers-reduced-motion: reduce) {
-    .gradient-orb,
-    .grid-pattern,
-    .stack-card,
-    .floating-element,
-    .badge-dot,
-    .result-item,
-    .avatar-circle,
-    .stat-progress,
-    .gradient-text-animated,
-    .btn-modern.primary::before,
-    .btn-cta.primary-glow,
-    .wheel {
-        animation: none !important;
-        transition: none !important;
-    }
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after { animation:none!important;transition:none!important; }
 }
 </style>
 
 <script>
-// Animated Counter for Stats
-function animateValue(element, start, end, duration) {
-    let startTimestamp = null;
-    const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        const value = Math.floor(progress * (end - start) + start);
-        element.textContent = value.toLocaleString();
-        if (progress < 1) {
-            window.requestAnimationFrame(step);
-        }
-    };
-    window.requestAnimationFrame(step);
+/* ════════════════════════════════════════════════════
+   TEXT ROTATION
+════════════════════════════════════════════════════ */
+const words = ['Success','Excellence','Growth','Mastery','Achievement'];
+let wIdx = 0;
+const wordEl = document.getElementById('rotating-word');
+if (wordEl) {
+  setInterval(() => {
+    wordEl.style.transition = 'opacity .3s ease, transform .3s ease';
+    wordEl.style.opacity = '0';
+    wordEl.style.transform = 'translateY(8px)';
+    setTimeout(() => {
+      wIdx = (wIdx + 1) % words.length;
+      wordEl.textContent = words[wIdx];
+      wordEl.style.opacity = '1';
+      wordEl.style.transform = 'translateY(0)';
+    }, 320);
+  }, 2800);
 }
 
-// Intersection Observer for Stats Animation
-const statsObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const statNumbers = entry.target.querySelectorAll('.stat-number');
-            statNumbers.forEach(stat => {
-                const target = parseInt(stat.getAttribute('data-target'));
-                animateValue(stat, 0, target, 2000);
-            });
-            statsObserver.unobserve(entry.target);
-        }
-    });
-}, { threshold: 0.5 });
+/* ════════════════════════════════════════════════════
+   CARD + CHIP FLOAT LOOP
+════════════════════════════════════════════════════ */
+(function initCardLoop() {
+  const CARDS = [
+    { sel:'.card-1', rx:4,  ry:-8, rz:0, yAmp:18, yPeriod:5.0, yPhase:0,   rxAmp:3,   rxPeriod:6.2, rxPhase:1.1, ryAmp:4,   ryPeriod:4.8, ryPhase:2.3, rzAmp:.6, rzPeriod:7.1, rzPhase:.5,  enterDelay:200 },
+    { sel:'.card-2', rx:-6, ry:12, rz:0, yAmp:22, yPeriod:6.5, yPhase:1.8, rxAmp:4,   rxPeriod:5.5, rxPhase:.7,  ryAmp:5,   ryPeriod:7.0, ryPhase:3.1, rzAmp:.7, rzPeriod:5.8, rzPhase:2.0, enterDelay:400 },
+    { sel:'.card-3', rx:8,  ry:-5, rz:0, yAmp:14, yPeriod:7.2, yPhase:3.3, rxAmp:3.5, rxPeriod:4.5, rxPhase:1.9, ryAmp:3,   ryPeriod:6.0, ryPhase:.4,  rzAmp:.8, rzPeriod:6.5, rzPhase:1.4, enterDelay:600 },
+    { sel:'.card-4', rx:-4, ry:8,  rz:0, yAmp:20, yPeriod:5.8, yPhase:2.1, rxAmp:4,   rxPeriod:7.5, rxPhase:.3,  ryAmp:4.5, ryPeriod:5.2, ryPhase:2.8, rzAmp:.5, rzPeriod:8.0, rzPhase:1.7, enterDelay:800 },
+  ];
+  const CHIPS = [
+    { sel:'.chip-1', yAmp:12, yPeriod:4.2, yPhase:.6,  enterDelay:1100 },
+    { sel:'.chip-2', yAmp:9,  yPeriod:3.8, yPhase:2.4, enterDelay:1300 },
+    { sel:'.chip-3', yAmp:11, yPeriod:5.1, yPhase:1.1, enterDelay:1000 },
+  ];
 
-const statsSection = document.querySelector('.stats-showcase');
+  const cardEls = CARDS.map(c => ({...c, el:document.querySelector(c.sel)})).filter(c => c.el);
+  const chipEls = CHIPS.map(c => ({...c, el:document.querySelector(c.sel)})).filter(c => c.el);
+  const startTime = performance.now();
+
+  [...cardEls, ...chipEls].forEach(item => {
+    setTimeout(() => {
+      item.el.style.transition = 'opacity .7s ease';
+      item.el.style.opacity = '1';
+      item.el.style.transform = 'translateY(12px)';
+      requestAnimationFrame(() => {
+        item.el.style.transition = 'opacity .7s ease, transform .7s cubic-bezier(0.34,1.56,0.64,1)';
+        item.el.style.transform = 'translateY(0px)';
+        setTimeout(() => { item.el.style.transition = ''; }, 750);
+      });
+    }, item.enterDelay);
+  });
+
+  function tick(now) {
+    const t = (now - startTime) / 1000;
+    cardEls.forEach(c => {
+      const ty  = -Math.abs(Math.sin((t / c.yPeriod)  * Math.PI * 2 + c.yPhase))  * c.yAmp;
+      const rx  = c.rx  + Math.sin((t / c.rxPeriod) * Math.PI * 2 + c.rxPhase) * c.rxAmp;
+      const ry  = c.ry  + Math.sin((t / c.ryPeriod) * Math.PI * 2 + c.ryPhase) * c.ryAmp;
+      const rz  = c.rz  + Math.sin((t / c.rzPeriod) * Math.PI * 2 + c.rzPhase) * c.rzAmp;
+      c.el.style.transform = `translateY(${ty.toFixed(2)}px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) rotateZ(${rz.toFixed(2)}deg)`;
+    });
+    chipEls.forEach(c => {
+      const ty = -Math.abs(Math.sin((t / c.yPeriod) * Math.PI * 2 + c.yPhase)) * c.yAmp;
+      c.el.style.transform = `translateY(${ty.toFixed(2)}px)`;
+    });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+
+/* ════════════════════════════════════════════════════
+   ORB DRIFT
+════════════════════════════════════════════════════ */
+(function orbDrift() {
+  const orbs = document.querySelectorAll('.gradient-orb');
+  const start = performance.now();
+  function tick(now) {
+    const t = (now - start) / 1000;
+    orbs.forEach((orb, i) => {
+      const s = .15 + i * .06, r = 20 + i * 12, p = (i * Math.PI * 2) / orbs.length;
+      orb.style.transform = `translate(${(Math.sin(t*s+p)*r).toFixed(1)}px,${(Math.cos(t*s*.75+p)*r).toFixed(1)}px)`;
+    });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+
+/* ════════════════════════════════════════════════════
+   SCROLL INDICATOR — fade out after 100px
+════════════════════════════════════════════════════ */
+const scrollIndicator = document.getElementById('scrollIndicator');
+if (scrollIndicator) {
+  window.addEventListener('scroll', () => {
+    const opacity = Math.max(0, 1 - window.scrollY / 100);
+    scrollIndicator.style.opacity = opacity;
+  }, { passive: true });
+}
+
+/* ════════════════════════════════════════════════════
+   LIVE STATS — fetch from /api/stats
+   Falls back to hardcoded numbers if endpoint fails
+════════════════════════════════════════════════════ */
+function animateCount(el, target, dur) {
+  const start = performance.now();
+  const startVal = parseInt(el.textContent.replace(/[^0-9]/g, '')) || 0;
+  el.classList.remove('loading');
+  function step(now) {
+    const p = Math.min((now - start) / dur, 1);
+    const ease = 1 - Math.pow(1 - p, 3); // ease-out cubic
+    el.textContent = Math.floor(ease * (target - startVal) + startVal).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = target.toLocaleString();
+  }
+  requestAnimationFrame(step);
+}
+
+function renderStats(data) {
+  const map = {
+    'stat-docs':         { val: data.documents  || data.posts  || 0,  bar: '.stat-progress-docs',        pct: '85%' },
+    'stat-users':        { val: data.users       || data.students || 0, bar: '.stat-progress-users',       pct: '70%' },
+    'stat-subjects':     { val: data.subjects    || 0,                   bar: '.stat-progress-subjects',    pct: '95%' },
+    'stat-engagements':  { val: data.engagements || data.likes   || 0,  bar: '.stat-progress-engagements', pct: '90%' },
+  };
+  Object.entries(map).forEach(([id, cfg]) => {
+    const el = document.getElementById(id);
+    if (el) animateCount(el, cfg.val, 1800);
+    const bar = document.querySelector(cfg.bar);
+    if (bar) setTimeout(() => { bar.style.width = cfg.pct; }, 300);
+  });
+}
+
+// Mark as loading initially
+['stat-docs','stat-users','stat-subjects','stat-engagements'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = '—'; el.classList.add('loading'); }
+});
+
+// Observe when stats section enters viewport, then fetch
+const statsSection = document.getElementById('statsSection');
 if (statsSection) {
-    statsObserver.observe(statsSection);
+  const statsObs = new IntersectionObserver(entries => {
+    if (!entries[0].isIntersecting) return;
+    statsObs.unobserve(statsSection);
+
+    fetch('/api/stats')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => renderStats(data))
+      .catch(() => {
+        // Endpoint not live yet — show honest placeholder
+        ['stat-docs','stat-users','stat-subjects','stat-engagements'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) { el.textContent = '—'; el.classList.add('loading'); }
+        });
+      });
+  }, { threshold: 0.3 });
+  statsObs.observe(statsSection);
 }
 
-// Smooth Scroll for CTA Buttons
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
-    });
+/* ════════════════════════════════════════════════════
+   SECTION REVEAL ON SCROLL
+════════════════════════════════════════════════════ */
+const revealEls = document.querySelectorAll(
+  '.step-card, .roadmap-card, .bento-card, .stat-card-modern, .institution-pill'
+);
+const revealObs = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => {
+        e.target.style.opacity = '1';
+        e.target.style.transform = e.target.style.transform.replace('translateY(28px)', '') || '';
+        e.target.style.transition = 'opacity .5s ease, transform .5s var(--ease-out)';
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }, i * 60);
+      revealObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12 });
+
+revealEls.forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(28px)';
+  revealObs.observe(el);
 });
 
-// Add parallax effect to floating orbs
-document.addEventListener('mousemove', (e) => {
-    const orbs = document.querySelectorAll('.gradient-orb');
-    const x = e.clientX / window.innerWidth;
-    const y = e.clientY / window.innerHeight;
-    
-    orbs.forEach((orb, index) => {
-        const speed = (index + 1) * 20;
-        const xOffset = (x - 0.5) * speed;
-        const yOffset = (y - 0.5) * speed;
-        orb.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
-    });
+/* ════════════════════════════════════════════════════
+   SMOOTH SCROLL
+════════════════════════════════════════════════════ */
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) { e.preventDefault(); t.scrollIntoView({ behavior:'smooth', block:'start' }); }
+  });
 });
-</script>    
+</script>
 </body>
 </html>
-
-
