@@ -2,7 +2,7 @@ from flask import render_template, redirect, url_for, flash, request, current_ap
 from flask_login import current_user
 from app import db
 from app.admin import bp
-from app.forms import SubjectForm
+from app.forms import SubjectForm, BulkEmailForm
 from app.models import Subject, User, Post, Comment, Document
 from app.utils import admin_required
 import re
@@ -392,21 +392,19 @@ def send_email():
     users       = User.query.filter(User.email.isnot(None)).all()
     total_users = len(users)
 
-    if request.method == 'POST':
-        subject  = request.form.get('subject', '').strip()
-        body     = request.form.get('body', '').strip()
-        send_to  = request.form.get('send_to', 'all')
+    form = BulkEmailForm()
+    
+    if form.validate_on_submit():
+        subject  = form.subject.data.strip()
+        body     = form.body.data.strip()
+        send_to  = form.send_to.data
         selected = request.form.getlist('selected_emails')
-
-        if not subject or not body:
-            flash('Subject and message body are required.', 'danger')
-            return render_template('admin/send_email.html', users=users, total_users=total_users)
 
         recipients = [u.email for u in users] if send_to == 'all' else selected
 
         if not recipients:
             flash('No recipients selected.', 'danger')
-            return render_template('admin/send_email.html', users=users, total_users=total_users)
+            return render_template('admin/send_email.html', users=users, total_users=total_users, form=form)
 
         sender = (
             current_app.config.get('MAIL_DEFAULT_SENDER') or
@@ -451,4 +449,4 @@ def send_email():
 
         return redirect(url_for('admin.send_email'))
 
-    return render_template('admin/send_email.html', users=users, total_users=total_users)
+    return render_template('admin/send_email.html', users=users, total_users=total_users, form=form)

@@ -54,6 +54,7 @@
 
     <!-- Form -->
     <form method="POST" action="{{ url_for('admin.send_email') }}" id="emailForm">
+        {{form.csrf_token}}
 
         <!-- Recipients -->
         <div class="email-card">

@@ -111,3 +111,12 @@ class SubjectForm(FlaskForm):
     order = StringField('Display Order', validators=[Optional()])
     is_active = BooleanField('Active')
     submit = SubmitField('Save Subject')
+
+
+class BulkEmailForm(FlaskForm):
+    """Form for sending bulk emails to users."""
+    subject = StringField('Subject', validators=[DataRequired()])
+    body = TextAreaField('Message', validators=[DataRequired()])
+    send_to = SelectField('Send To', choices=[('all', 'All Users'), ('selected', 'Selected Users')], default='all')
+    selected_emails = StringField('Selected Emails')
+    submit = SubmitField('Send Email')
