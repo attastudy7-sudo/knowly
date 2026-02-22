@@ -134,6 +134,7 @@
                 {% if post.status == 'pending' %}
                 <!-- APPROVE -->
                 <form action="{{ url_for('admin.approve_post', post_id=post.id) }}" method="post" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="next" value="{{ url_for('admin.moderation', tab='pending', page=posts.page) }}">
                     <button type="submit" class="btn-action btn-approve">
                         <i class="fas fa-check"></i> Approve
@@ -148,6 +149,7 @@
                 <!-- Inline rejection form (hidden by default) -->
                 <div id="reject-panel-{{ post.id }}" class="reject-panel" style="display:none;">
                     <form action="{{ url_for('admin.reject_post', post_id=post.id) }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="next" value="{{ url_for('admin.moderation', tab='pending', page=posts.page) }}">
                         <label class="reject-label">
                             <i class="fas fa-comment-alt"></i>
@@ -175,6 +177,7 @@
                 </button>
                 <div id="reject-panel-{{ post.id }}" class="reject-panel" style="display:none;">
                     <form action="{{ url_for('admin.reject_post', post_id=post.id) }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="next" value="{{ url_for('admin.moderation', tab='approved', page=posts.page) }}">
                         <label class="reject-label">
                             <i class="fas fa-comment-alt"></i>
@@ -195,6 +198,7 @@
                 {% elif post.status == 'rejected' %}
                 <!-- Can re-approve a rejected post -->
                 <form action="{{ url_for('admin.approve_post', post_id=post.id) }}" method="post" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="next" value="{{ url_for('admin.moderation', tab='rejected', page=posts.page) }}">
                     <button type="submit" class="btn-action btn-approve">
                         <i class="fas fa-check"></i> Re-approve
@@ -206,6 +210,7 @@
                 <form action="{{ url_for('admin.delete_post', post_id=post.id) }}" method="post"
                       class="inline-form"
                       onsubmit="return confirm('Permanently delete this post?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn-action btn-delete">
                         <i class="fas fa-trash"></i> Delete
                     </button>

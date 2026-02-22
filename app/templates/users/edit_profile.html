@@ -76,6 +76,7 @@
                 <label class="form-label">
                     <i class="fas fa-pencil-alt"></i>
                     {{ form.bio.label.text }}
+                    {% if not current_user.bio %}<span class="xp-badge">+5 XP</span>{% endif %}
                 </label>
                 {{ form.bio(class="form-control textarea", rows=5, placeholder="Tell us about yourself...", id="bio") }}
                 {% if form.bio.errors %}
@@ -93,6 +94,7 @@
             <label class="form-label">
                 <i class="fas fa-university"></i>
                 School / University
+                {% if not current_user.school %}<span class="xp-badge">+10 XP</span>{% endif %}
             </label>
             <input type="text" id="school-search" placeholder="Search university..." class="form-control" autocomplete="off">
             <input type="hidden" name="school" id="school-value" value="{{ form.school.data or '' }}">
@@ -104,6 +106,7 @@
             <label class="form-label">
                 <i class="fas fa-graduation-cap"></i>
                 Programme / Course of Study
+                {% if not current_user.programme %}<span class="xp-badge">+15 XP</span>{% endif %}
             </label>
             <input type="text" id="programme-search" placeholder="Search programme..." class="form-control" autocomplete="off">
             <input type="hidden" name="programme" id="programme-value" value="{{ form.programme.data or '' }}">
@@ -307,6 +310,19 @@
 .form-label i {
     color: #667eea;
     font-size: 0.95rem;
+}
+
+.xp-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 12px;
+    margin-left: auto;
+    text-transform: none;
 }
 
 .form-control {

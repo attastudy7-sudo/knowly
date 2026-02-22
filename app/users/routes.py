@@ -33,10 +33,26 @@ def profile(username):
 def save_education():
     school = request.form.get('school', '').strip()
     programme = request.form.get('programme', '').strip()
-    if school:
+    xp_earned = 0
+    
+    # Award XP for adding school (10 XP) - only if not already set
+    if school and not current_user.school:
         current_user.school = school
-    if programme:
+        xp_earned += 10
+    elif school:
+        current_user.school = school
+    
+    # Award XP for adding programme (15 XP) - only if not already set
+    if programme and not current_user.programme:
         current_user.programme = programme
+        xp_earned += 15
+    elif programme:
+        current_user.programme = programme
+    
+    if xp_earned > 0:
+        current_user.add_xp(xp_earned)
+        flash(f'🎉 You earned {xp_earned} XP for completing your profile!', 'success')
+    
     db.session.commit()
     response = redirect(request.referrer or url_for('main.explore'))
     response.delete_cookie('education_skipped')  # let the overlay reappear if they revisit
@@ -51,10 +67,24 @@ def edit_profile():
     form = EditProfileForm()
 
     if form.validate_on_submit():
-        current_user.full_name = form.full_name.data
+        xp_earned = 0
+        
+        # Award XP for adding bio (5 XP) - only if not already set
+        if form.bio.data and not current_user.bio:
+            xp_earned += 5
         current_user.bio = form.bio.data
+        
+        # Award XP for adding school (10 XP) - only if not already set
+        if form.school.data and not current_user.school:
+            xp_earned += 10
         current_user.school = form.school.data
+        
+        # Award XP for adding programme (15 XP) - only if not already set
+        if form.programme.data and not current_user.programme:
+            xp_earned += 15
         current_user.programme = form.programme.data
+        
+        current_user.full_name = form.full_name.data
 
         # Handle profile picture upload
         if form.profile_picture.data and form.profile_picture.data.filename:
@@ -91,8 +121,13 @@ def edit_profile():
                 flash('Profile picture upload failed. Please try again.', 'danger')
                 return redirect(url_for('users.edit_profile'))
 
+        if xp_earned > 0:
+            current_user.add_xp(xp_earned)
+            flash(f'🎉 You earned {xp_earned} XP for completing your profile!', 'success')
+        else:
+            flash('Your profile has been updated!', 'success')
+        
         db.session.commit()
-        flash('Your profile has been updated!', 'success')
         return redirect(url_for('users.profile', username=current_user.username))
 
     elif request.method == 'GET':

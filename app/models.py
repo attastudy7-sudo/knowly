@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 import urllib.parse
 from flask import current_app
 from app import db, login_manager
@@ -73,6 +73,19 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
 
+    # Streak tracking
+    last_activity_date = db.Column(db.Date, nullable=True)
+    current_streak = db.Column(db.Integer, default=0, nullable=False)
+    longest_streak = db.Column(db.Integer, default=0, nullable=False)
+    
+    # XP tracking
+    xp_points = db.Column(db.Integer, default=0, nullable=False)
+    xp_level = db.Column(db.Integer, default=1, nullable=False)
+
+    xp_title = db.Column(db.String(50), nullable=True)  # e.g., "Beginner", "Intermediate", "Advanced", "Expert"
+
+
+
     # Relationships
     posts = db.relationship('Post', backref='author', lazy='dynamic', cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='author', lazy='dynamic', cascade='all, delete-orphan')
@@ -116,16 +129,98 @@ class User(UserMixin, db.Model):
         """Return the count of users this user is following."""
         return self.following.count()
 
-    # ── Gamification stubs (not yet implemented) ──────────────────────────────
-    @property
-    def streak_days(self):
-        """Stub — daily streak feature not yet implemented."""
-        return 0
+    # ── Streak System ─────────────────────────────────────────────────────────
+    def update_streak(self):
+        """
+        Update the user's activity streak.
+        Call this when the user performs an activity (post, comment, like).
+        
+        Logic:
+        - If last activity was today: do nothing (already counted)
+        - If last activity was yesterday: increment streak
+        - If last activity was before yesterday: reset streak to 1
+        - If no previous activity: start streak at 1
+        """
+        today = date.today()
+        
+        if self.last_activity_date is None:
+            # First activity ever
+            self.current_streak = 1
+        elif self.last_activity_date == today:
+            # Already active today, no change needed
+            return
+        elif self.last_activity_date == today - __import__('datetime').timedelta(days=1):
+            # Last activity was yesterday - continue streak
+            self.current_streak += 1
+        else:
+            # Streak broken - start over
+            self.current_streak = 1
+        
+        # Update the last activity date
+        self.last_activity_date = today
+        
+        # Track longest streak
+        if self.current_streak > self.longest_streak:
+            self.longest_streak = self.current_streak
+        
+        db.session.commit()
 
     @property
-    def xp_points(self):
-        """Stub — XP system not yet implemented."""
-        return 0
+    def streak_days(self):
+        """Return the current streak count."""
+        return self.current_streak
+
+    def add_xp(self, points):
+        """Add XP points to the user's total."""
+        self.xp_points += points
+        db.session.commit()
+    
+    def get_level(self):
+        """Return user's level based on XP points."""
+        if self.xp_points < 100:
+            return 1
+        elif self.xp_points < 500:
+            return 2
+        elif self.xp_points < 1500:
+            return 3
+        else:
+            return 4
+    
+    def get_title(self):
+        """Return user's title based on XP level."""
+        level = self.get_level()
+        titles = {
+            1: "Beginner",
+            2: "Intermediate", 
+            3: "Advanced",
+            4: "Expert"
+        }
+        return titles.get(level, "Novice")
+    
+    def get_next_level_xp(self):
+        """Return XP needed for next level."""
+        levels = [100, 500, 1500, 2500]
+        for threshold in levels:
+            if self.xp_points < threshold:
+                return threshold
+        return None
+    
+    def get_current_level_xp(self):
+        """Return the XP threshold for the current level."""
+        levels = [0, 100, 500, 1500]
+        level = self.get_level()
+        return levels[level - 1] if level <= len(levels) else levels[-1]
+    
+    def get_xp_progress(self):
+        """Return XP progress percentage towards next level (0-100)."""
+        next_level = self.get_next_level_xp()
+        if next_level is None:
+            return 100  # Max level
+        current_level_xp = self.get_current_level_xp()
+        xp_in_level = self.xp_points - current_level_xp
+        xp_needed = next_level - current_level_xp
+        return min(100, max(0, (xp_in_level / xp_needed) * 100))
+
     # ─────────────────────────────────────────────────────────────────────────
 
     @property

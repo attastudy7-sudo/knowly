@@ -59,11 +59,30 @@
             <div class="xp-streak-bar">
                 <div class="streak-info">
                     <span class="streak-fire">🔥</span>
-                    <span class="streak-text"><strong id="streakDays">{{ current_user.streak_days or 0 }}</strong> day streak</span>
+                    <span class="streak-text"><strong id="streakDays">{{ current_user.current_streak or 0 }}</strong> day streak</span>
                 </div>
                 <div class="xp-info">
                     <span class="xp-bolt">⚡</span>
                     <span class="xp-text"><strong id="xpPoints">{{ current_user.xp_points or 0 }}</strong> XP</span>
+                </div>
+            </div>
+            <!-- XP Progress Bar -->
+            <div class="xp-progress-container">
+                <div class="xp-level-info">
+                    <span class="xp-level-badge">{{ current_user.get_title() }}</span>
+                    <span class="xp-level-label">Level {{ current_user.get_level() }}</span>
+                </div>
+                <div class="xp-progress-bar">
+                    <div class="xp-progress-fill" style="width: {{ current_user.get_xp_progress() }}%;"></div>
+                </div>
+                <div class="xp-progress-text">
+                    {% set next_xp = current_user.get_next_level_xp() %}
+                    {% if next_xp %}
+                        <span>{{ current_user.xp_points or 0 }} / {{ next_xp }} XP</span>
+                        <span class="xp-next-level">{{ next_xp - (current_user.xp_points or 0) }} XP to next level</span>
+                    {% else %}
+                        <span>Max level reached!</span>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
@@ -183,6 +202,28 @@
                 </div>
             </div>
 
+            <!-- Mobile XP Progress Bar -->
+            {% if current_user.is_authenticated %}
+            <div class="mobile-xp-progress mobile-only">
+                <div class="mobile-xp-header">
+                    <span class="mobile-xp-badge">{{ current_user.get_title() }}</span>
+                    <span class="mobile-xp-streak">🔥 {{ current_user.current_streak or 0 }}</span>
+                </div>
+                <div class="mobile-xp-bar">
+                    <div class="mobile-xp-fill" style="width: {{ current_user.get_xp_progress() }}%;"></div>
+                </div>
+                <div class="mobile-xp-info">
+                    {% set next_xp = current_user.get_next_level_xp() %}
+                    {% if next_xp %}
+                        <span>⭐ {{ current_user.xp_points or 0 }} XP</span>
+                        <span>{{ next_xp - (current_user.xp_points or 0) }} to level up</span>
+                    {% else %}
+                        <span>⭐ {{ current_user.xp_points or 0 }} XP - Max Level!</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Mobile subject chips -->
             {% if subjects %}
             <div class="subject-filter mobile-only">
@@ -231,6 +272,7 @@
                                 <a href="{{ url_for('posts.edit', post_id=post.id) }}"><i class="fas fa-edit"></i> Edit</a>
                                 <form action="{{ url_for('posts.delete', post_id=post.id) }}" method="post"
                                       onsubmit="return confirm('Delete this post?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit"><i class="fas fa-trash"></i> Delete</button>
                                 </form>
                             </div>
@@ -486,8 +528,80 @@
 }
 
 /* ════════════════════════════════════
-   SIDEBAR
+   XP PROGRESS BAR
    ════════════════════════════════════ */
+.xp-progress-container {
+    padding: 0.6rem 0.875rem;
+    margin: 0 0.375rem 0.375rem;
+    background: linear-gradient(135deg, rgba(99,102,241,0.07), rgba(139,92,246,0.03));
+    border-radius: 9px;
+    border: 1px solid rgba(99, 102, 241, 0.12);
+}
+.xp-level-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+.xp-level-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.xp-level-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+.xp-progress-bar {
+    height: 6px;
+    background: rgba(99, 102, 241, 0.15);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 0.4rem;
+}
+.xp-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa);
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+.xp-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+.xp-progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+.xp-next-level {
+    color: #8b5cf6;
+    font-weight: 500;
+}
+
+/* ════════════════════════════════════
+    SIDEBAR
+    ════════════════════════════════════ */
 .filter-sidebar {
     position: sticky;
     top: 80px;
@@ -1090,6 +1204,73 @@
     border-color: rgba(239, 68, 68, 0.25);
 }
 [data-theme="dark"] .sidebar-notice p { color: #fca5a5; }
+
+/* ════════════════════════════════════
+   MOBILE XP PROGRESS BAR
+   ════════════════════════════════════ */
+.mobile-xp-progress {
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.04));
+    border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+    border-radius: 15px;
+}
+.mobile-xp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+.mobile-xp-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.mobile-xp-streak {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.mobile-xp-bar {
+    height: 8px;
+    background: rgba(99, 102, 241, 0.15);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+.mobile-xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa);
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+.mobile-xp-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+.mobile-xp-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.mobile-xp-info span:last-child {
+    color: #8b5cf6;
+    font-weight: 500;
+}
 
 /* ── Responsive ── */
 @media (max-width: 900px) {

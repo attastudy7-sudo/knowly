@@ -4,6 +4,7 @@
     <meta property="og:image" content="https://res.cloudinary.com/dvufjcpw7/image/upload/v1771464708/edushare_oqvbt9.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="eDuShare - Educational social media platform for students">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}{% endblock %} - eDuShare</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -384,13 +385,18 @@
             </div>
             <h2>Complete Your Profile</h2>
             <p>Tell us where you study so you can connect with students from your school!</p>
+            
+            <div class="onboarding-xp-info">
+                <span class="xp-reward"><i class="fas fa-star"></i> Add school: <strong>+10 XP</strong></span>
+                <span class="xp-reward"><i class="fas fa-star"></i> Add programme: <strong>+15 XP</strong></span>
+            </div>
 
             <form method="post" action="{{ url_for('users.save_education') }}" class="onboarding-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <!-- School -->
                 <div class="onboarding-field">
-                    <label><i class="fas fa-university"></i> School / University</label>
+                    <label><i class="fas fa-university"></i> School / University <span class="xp-badge">+10 XP</span></label>
                     <input type="text" id="ob-school-search" placeholder="Search your university..." class="ob-input" autocomplete="off">
                     <input type="hidden" name="school" id="ob-school-value">
                     <div class="ob-dropdown" id="ob-school-dropdown"></div>
@@ -398,7 +404,7 @@
 
                 <!-- Programme -->
                 <div class="onboarding-field">
-                    <label><i class="fas fa-book"></i> Programme / Course</label>
+                    <label><i class="fas fa-book"></i> Programme / Course <span class="xp-badge">+15 XP</span></label>
                     <input type="text" id="ob-programme-search" placeholder="Search your programme..." class="ob-input" autocomplete="off">
                     <input type="hidden" name="programme" id="ob-programme-value">
                     <div class="ob-dropdown" id="ob-programme-dropdown"></div>

@@ -40,6 +40,7 @@
                     </td>
                     <td>
                         <form action="{{ url_for('admin.toggle_subject', subject_id=subject.id) }}" method="post" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn-toggle {% if subject.is_active %}active{% endif %}">
                                 {% if subject.is_active %}
                                     <i class="fas fa-check-circle"></i> Active
@@ -56,6 +57,7 @@
                         <form action="{{ url_for('admin.delete_subject', subject_id=subject.id) }}" method="post" 
                               style="display: inline;"
                               onsubmit="return confirm('Delete {{ subject.name }}? This will unlink all posts from this subject.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-danger">
                                 <i class="fas fa-trash"></i> Delete
                             </button>

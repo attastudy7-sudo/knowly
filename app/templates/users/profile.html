@@ -39,6 +39,22 @@
                     <span class="stat-label">Following</span>
                 </a>
             </div>
+            <div class="stat streak-stat">
+                <span class="stat-value streak-value">
+                    {% if user.current_streak > 0 %}
+                        🔥 {{ user.current_streak }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </span>
+                <span class="stat-label">Day Streak</span>
+            </div>
+            <div class="stat xp-stat">
+                <span class="stat-value xp-value">
+                    ⭐ {{ user.xp_points|default(0) }}
+                </span>
+                <span class="stat-label">{{ user.get_title()|default('Newcomer') }}</span>
+            </div>
         </div>
 
         <!-- Bio -->
@@ -114,12 +130,14 @@
                 {% else %}
                     {% if current_user.is_following(user) %}
                     <form action="{{ url_for('users.unfollow', username=user.username) }}" method="post" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-secondary">
                             <i class="fas fa-user-minus"></i> Unfollow
                         </button>
                     </form>
                     {% else %}
                     <form action="{{ url_for('users.follow', username=user.username) }}" method="post" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-user-plus"></i> Follow
                         </button>
@@ -194,6 +212,7 @@
                         {# FIX #3: Like button is interactive for authenticated users, static for guests #}
                         {% if current_user.is_authenticated %}
                         <form action="{{ url_for('posts.like', post_id=post.id) }}" method="post" class="action-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="action-btn {% if post.is_liked_by(current_user) %}liked{% endif %}">
                                 <i class="fas fa-heart"></i>
                                 <span>{{ post.like_count() }}</span>

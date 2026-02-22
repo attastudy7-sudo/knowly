@@ -313,6 +313,11 @@ def create():
 
         db.session.add(post)
         db.session.commit()
+        
+        # Update user's activity streak and add XP
+        current_user.update_streak()
+        current_user.add_xp(10)  # +10 XP for creating a post
+        
         flash(
             'Your post has been submitted and is awaiting admin approval. '
             'It will appear in the feed once reviewed.',
@@ -473,12 +478,27 @@ def like(post_id):
     if existing_like:
         db.session.delete(existing_like)
         db.session.commit()
-        flash('Post unliked.', 'info')
+        # Update streak and XP only when liking (not unliking)
+        current_user.update_streak()
+        current_user.add_xp(2)
+        liked = False
     else:
         db.session.add(Like(user_id=current_user.id, post_id=post.id))
         db.session.commit()
-        flash('Post liked!', 'success')
+        # Update user's activity streak when they like a post
+        current_user.update_streak()
+        # Add XP for liking a post (+2 XP)
+        current_user.add_xp(2)
+        liked = True
 
+    # Return JSON for AJAX requests
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'liked': liked,
+            'like_count': post.like_count()
+        })
+    
+    flash('Post liked!' if liked else 'Post unliked.', 'success' if liked else 'info')
     return redirect(request.referrer or url_for('main.index'))
 
 
@@ -495,6 +515,10 @@ def comment(post_id):
             post=post,
         ))
         db.session.commit()
+        # Update user's activity streak when they comment
+        current_user.update_streak()
+        # Add XP for commenting (+5 XP)
+        current_user.add_xp(5)
         flash('Your comment has been posted!', 'success')
 
     return redirect(url_for('posts.view', post_id=post.id))

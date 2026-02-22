@@ -81,6 +81,7 @@
                         {% if user.id != current_user.id %}
                         <form action="{{ url_for('admin.toggle_user_active', user_id=user.id) }}"
                               method="post" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit"
                                     class="btn btn-sm {% if user.is_active %}btn-warning{% else %}btn-success{% endif %}"
                                     title="{% if user.is_active %}Deactivate{% else %}Activate{% endif %}">
@@ -91,6 +92,7 @@
                         <form action="{{ url_for('admin.delete_user', user_id=user.id) }}"
                               method="post" style="display: inline;"
                               onsubmit="return confirm('Delete user {{ user.username }} and ALL their content? This cannot be undone!');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-danger" title="Delete User">
                                 <i class="fas fa-trash"></i>
                             </button>

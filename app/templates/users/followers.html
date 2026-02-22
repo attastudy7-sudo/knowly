@@ -61,6 +61,7 @@
             <div class="user-actions">
                 {% if current_user.is_following(follower) %}
                 <form action="{{ url_for('users.unfollow', username=follower.username) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-secondary">
                         <i class="fas fa-user-minus"></i>
                         Unfollow
@@ -68,6 +69,7 @@
                 </form>
                 {% else %}
                 <form action="{{ url_for('users.follow', username=follower.username) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-user-plus"></i>
                         Follow
@@ -111,6 +113,7 @@
         {% if current_user.is_authenticated and current_user.id != user.id %}
             {% if not current_user.is_following(user) %}
             <form action="{{ url_for('users.follow', username=user.username) }}" method="post" style="margin-top: 1.5rem;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-user-plus"></i>
                     Be the first to follow
