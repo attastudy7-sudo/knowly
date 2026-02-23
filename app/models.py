@@ -60,6 +60,13 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    
+    # Subscription information
+    subscription_tier = db.Column(db.String(20), default='free', nullable=False)  # free, pro, enterprise
+    subscription_start_date = db.Column(db.DateTime)
+    subscription_end_date = db.Column(db.DateTime)
+    free_quiz_attempts = db.Column(db.Integer, default=3, nullable=False)
+    free_quiz_attempts_reset_date = db.Column(db.Date)
 
     # Profile information
     full_name = db.Column(db.String(120))
@@ -72,6 +79,9 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # Premium access - granted by admin to access all paid content
+    can_access_all_content = db.Column(db.Boolean, default=False, nullable=False)
 
     # Streak tracking
     last_activity_date = db.Column(db.Date, nullable=True)
@@ -240,6 +250,39 @@ class User(UserMixin, db.Model):
         # Fallback: generated initials avatar — no static file required
         return _initials_avatar_url(self.username, self.full_name)
 
+    def check_and_reset_free_attempts(self):
+        """
+        Check if the free quiz attempts should be reset (each month) and reset if needed.
+        """
+        today = date.today()
+        
+        # If no reset date set, initialize it to current month
+        if not self.free_quiz_attempts_reset_date:
+            self.free_quiz_attempts_reset_date = today.replace(day=1)
+            self.free_quiz_attempts = 3
+            db.session.commit()
+            return
+        
+        # Check if we've moved to a new month
+        if (today.year > self.free_quiz_attempts_reset_date.year or 
+            today.month > self.free_quiz_attempts_reset_date.month):
+            self.free_quiz_attempts_reset_date = today.replace(day=1)
+            self.free_quiz_attempts = 3
+            db.session.commit()
+    
+    def has_free_quiz_attempts(self):
+        """Check if user has remaining free quiz attempts this month."""
+        self.check_and_reset_free_attempts()
+        return self.free_quiz_attempts > 0
+    
+    def use_free_quiz_attempt(self):
+        """Use one free quiz attempt."""
+        if self.has_free_quiz_attempts():
+            self.free_quiz_attempts -= 1
+            db.session.commit()
+            return True
+        return False
+    
     def __repr__(self):
         return f'<User {self.username}>'
 
@@ -334,6 +377,7 @@ class Document(db.Model):
     file_path = db.Column(db.String(500), nullable=False)
     file_type = db.Column(db.String(50))
     file_size = db.Column(db.Integer)
+    json_sidecar_path = db.Column(db.String(500), nullable=True)
     is_paid = db.Column(db.Boolean, default=False)
     price = db.Column(db.Float, default=0.0)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -345,8 +389,13 @@ class Document(db.Model):
     def has_access(self, user):
         """
         Free documents: everyone has access.
-        Paid documents: only if user has a completed purchase.
+        Paid documents: only if user has a completed purchase, subscription, or premium access.
+        Admins and users with premium access can access everything.
         """
+        # Admins and users with premium access can access everything
+        if getattr(user, 'is_admin', False) or getattr(user, 'can_access_all_content', False):
+            return True
+        
         if not self.is_paid:
             return True
         return Purchase.query.filter_by(
@@ -379,3 +428,53 @@ class Subject(db.Model):
 
     def __repr__(self):
         return f'<Subject {self.name}>'
+
+
+class QuizLeaderboard(db.Model):
+    __tablename__ = 'quiz_leaderboard'
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
+    score_pct = db.Column(db.Float, nullable=False)
+    earned_marks = db.Column(db.Float, nullable=False)
+    xp_earned = db.Column(db.Integer, nullable=False)
+    time_taken = db.Column(db.Integer, nullable=False)  # seconds
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', backref='leaderboard_entries')
+    post = db.relationship('Post', backref=db.backref('leaderboard_entries', cascade='all, delete-orphan'))
+    
+    __table_args__ = (
+        db.UniqueConstraint('post_id', 'user_id', name='unique_leaderboard_entry'),
+        db.Index('idx_leaderboard_post_score', 'post_id', 'score_pct', 'earned_marks', 'created_at'),
+    )
+
+    def __repr__(self):
+        return f'<QuizLeaderboard post_id={self.post_id} user_id={self.user_id} score={self.score_pct:.1f}>'
+
+class QuizData(db.Model):
+    __tablename__ = 'quiz_data'
+    id         = db.Column(db.Integer, primary_key=True)
+    post_id    = db.Column(db.Integer, db.ForeignKey('post.id', ondelete='CASCADE'), unique=True, nullable=False)
+    questions  = db.Column(db.Text, nullable=False)   # JSON string
+    total_marks = db.Column(db.Integer, default=0)
+    xp_reward  = db.Column(db.Integer, default=0)
+    meta       = db.Column(db.Text)                   # JSON string
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    post       = db.relationship('Post', backref=db.backref('quiz', uselist=False, cascade='all, delete-orphan'))
+
+class QuizAttempt(db.Model):
+    __tablename__ = 'quiz_attempts'
+    id           = db.Column(db.Integer, primary_key=True)
+    post_id      = db.Column(db.Integer, db.ForeignKey('post.id', ondelete='CASCADE'), nullable=False)
+    user_id      = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
+    answers      = db.Column(db.Text)       # JSON: {"0": "C", "1": "T", ...}
+    score_pct    = db.Column(db.Float, default=0)
+    earned_marks = db.Column(db.Float, default=0)
+    xp_earned    = db.Column(db.Integer, default=0)
+    timed_out    = db.Column(db.Boolean, default=False)
+    time_taken   = db.Column(db.Integer, default=0)  # seconds
+    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
+    user         = db.relationship('User', backref='quiz_attempts')
+    post         = db.relationship('Post', backref=db.backref('quiz_attempts', cascade='all, delete-orphan'))
