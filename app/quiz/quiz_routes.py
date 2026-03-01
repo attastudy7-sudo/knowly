@@ -34,9 +34,19 @@ def quiz_start(post_id):
     session[_quiz_start_key(post_id)] = datetime.utcnow().isoformat()
     session.modified = True
     
+    # Get the post first
+    post = Post.query.get_or_404(post_id)
+    
+    # ── Check payment access for paid posts ─────────────────────────────────────
+    # If the post has a document that is paid, user must have purchased it
+    if post.document and post.document.is_paid:
+        if not post.document.has_access(current_user):
+            from flask import flash, redirect, url_for
+            flash('You need to purchase this content to access the quiz.', 'warning')
+            return redirect(url_for('payments.checkout', post_id=post.id))
+    
     # If it's a GET request, render the quiz page directly
     if request.method == 'GET':
-        post = Post.query.get_or_404(post_id)
         quiz_data = QuizData.query.filter_by(post_id=post_id).first_or_404()
         
         # Parse quiz meta data if available
@@ -65,7 +75,6 @@ def quiz_start(post_id):
             quiz_json = {'questions': [], 'total_marks': 0, 'xp_reward': 0}
         
         # Debug: Check current_user
-        from flask_login import current_user
         print(f"Current user: {type(current_user)}")
         print(f"Is authenticated: {current_user.is_authenticated}")
         if current_user.is_authenticated:
@@ -103,6 +112,22 @@ def quiz_submit(post_id):
     submitted_key = _quiz_submitted_key(post_id)
     if session.get(submitted_key):
         return jsonify({'error': 'already_submitted'}), 409
+
+    # ── Check payment access for paid posts ─────────────────────────────────────
+    # If the post has a document that is paid, user must have purchased it
+    if post.document and post.document.is_paid:
+        if not post.document.has_access(current_user):
+            return jsonify({
+                'error': 'payment_required',
+                'message': 'You need to purchase this content to access the quiz.'
+            }), 403
+
+    # ── Check free attempts ───────────────────────────────────────────────────
+    if not current_user.use_free_attempt():
+        return jsonify({
+            'error': 'no_free_attempts',
+            'message': 'You have no free attempts remaining. Subscribe to get unlimited attempts!'
+        }), 403
 
     # ── Server-side timing ───────────────────────────────────────────────────
     start_key  = _quiz_start_key(post_id)

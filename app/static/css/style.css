@@ -952,7 +952,7 @@ a:hover { color: var(--primary-dark); }
 .login-prompt { text-align: center; padding: var(--spacing-xl); color: var(--text-muted); }
 
 .empty-comments { text-align: center; padding: var(--spacing-2xl); color: var(--text-muted); }
-.empty-comments i { font-size: 3rem; margin-bottom: var(--spacing-md); opacity: 0.5; display: block; }
+.empty-comments i { font-size: 3rem; margin-bottom: var(--spacing-md); opacity: 0.5; display: block; color: #fff }
 
 /* ===========================
    CREATE / EDIT PAGES

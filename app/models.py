@@ -70,6 +70,24 @@ class User(UserMixin, db.Model):
         
         return self.free_quiz_attempts
     
+    def use_free_attempt(self):
+        """
+        Consume one free attempt. Returns True if successful, False if no attempts left.
+        Premium users can take unlimited quizzes - this method returns True for them.
+        """
+        # Premium users have unlimited attempts
+        if self.is_premium or self.has_active_subscription:
+            return True
+        
+        # Check if user has free attempts remaining
+        if self.free_attempts_left <= 0:
+            return False
+        
+        # Decrement the free attempts
+        self.free_quiz_attempts -= 1
+        db.session.commit()
+        return True
+    
     # Property to check if user has active subscription
     @property
     def has_active_subscription(self):

@@ -116,9 +116,15 @@
                     {% endif %}
                     {% if post.has_document and post.document and post.document.file_type == 'pdf' %}
                         {% if has_quiz %}
-                        <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="btn btn-primary">
-                            <i class="fas fa-brain"></i> Take Quiz
-                        </a>
+                            {% if post.document.has_access(current_user) %}
+                            <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="btn btn-primary">
+                                <i class="fas fa-brain"></i> Take Quiz
+                            </a>
+                            {% else %}
+                            <span class="quiz-unavailable-badge" title="Purchase the document to access the quiz">
+                                <i class="fas fa-lock"></i> Purchase to Take Quiz
+                            </span>
+                            {% endif %}
                         {% else %}
                         <span class="quiz-unavailable-badge" title="This document was uploaded without quiz data">
                             <i class="fas fa-info-circle"></i> Quiz not available

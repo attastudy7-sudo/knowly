@@ -172,7 +172,7 @@
         transform: translateY(-1px);
         box-shadow: 0 5px 18px rgba(99,102,241,0.38) !important;
     }
-    .create-btn i { font-size: 0.8rem; }
+    .create-btn i { font-size: 0.8rem; color: #fff }
 
     .nav-btn-login {
         display: inline-flex; align-items: center;
@@ -551,17 +551,6 @@
                     </div>
                     <span class="auth-brand-name">eDuShare</span>
                 </a>
-
-                <!-- Desktop search -->
-                {% if request.endpoint != 'users.search' %}
-                <div class="nav-search-wrap mobile-hidden">
-                    <form action="{{ url_for('users.search') }}" method="get" class="search-form" role="search">
-                        <i class="fas fa-search search-icon" aria-hidden="true"></i>
-                        <input type="text" name="q" placeholder="Search students, notes, subjects…"
-                               class="search-input" autocomplete="off" aria-label="Search">
-                    </form>
-                </div>
-                {% endif %}
 
                 <!-- Desktop nav right -->
                 <div class="nav-right mobile-hidden">

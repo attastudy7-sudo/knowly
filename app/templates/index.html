@@ -28,6 +28,17 @@
             </div>
         </div>
 
+                            <!-- Desktop search -->
+                {% if request.endpoint != 'users.search' %}
+                <div class="nav-search-wrap mobile-hidden">
+                    <form action="{{ url_for('users.search') }}" method="get" class="search-form" role="search">
+                        <i class="fas fa-search search-icon" aria-hidden="true"></i>
+                        <input type="text" name="q" placeholder="Search students, notes, subjects…"
+                               class="search-input desktop" autocomplete="off" aria-label="Search">
+                    </form>
+                </div>
+                {% endif %}
+
         <div class="sidebar-section">
             <div class="sidebar-header">
                 <i class="fas fa-compass"></i>
@@ -629,7 +640,7 @@
     font-weight: 600;
     transition: all var(--transition-fast);
 }
-.sidebar-nav-item i { width: 16px; text-align: center; color: var(--text-muted); transition: color var(--transition-fast); }
+.sidebar-nav-item i { width: 16px; text-align: center; color: var(--primary); transition: color var(--transition-fast); }
 .sidebar-nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
 .sidebar-nav-item:hover i { color: var(--primary); }
 .sidebar-nav-item.active { background: rgba(99, 102, 241, 0.1); color: var(--primary); }
@@ -765,6 +776,11 @@
     color: #fff;
     flex-shrink: 0;
 }
+
+.header-icon-wrapper i {
+    color: #fff;
+}
+
 .header-text h1 { margin: 0 0 0.175rem; font-size: 1.25rem; font-weight: 800; color: var(--text-primary); }
 .feed-subtitle { display: flex; align-items: center; gap: 0.35rem; margin: 0; color: var(--text-secondary); font-size: 0.825rem; }
 .feed-subtitle i { color: var(--primary); }
@@ -776,6 +792,18 @@
 .feed-header .search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
 .feed-header .search-btn { position: absolute; right: 0.3rem; width: 36px; height: 36px; background: var(--primary); border: none; border-radius: 50%; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; transition: background var(--transition-fast); }
 .feed-header .search-btn:hover { background: var(--primary-dark); }
+
+/* Desktop sidebar search - fill available width */
+.nav-search-wrap { width: 100%; padding: 0 0.5rem; }
+.nav-search-wrap .search-form { width: 100%; }
+.nav-search-wrap .search-input {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.625rem 0.75rem 0.625rem 2.25rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+.nav-search-wrap .search-icon { left: 0.75rem; font-size: 0.8rem; }
 
 /* Mobile feed toggle */
 .feed-toggle { margin: 0.875rem 0; }
@@ -801,7 +829,8 @@
     font-size: 0.875rem;
     transition: color var(--transition-base);
 }
-.toggle-btn.active { color: #fff; }
+.toggle-btn.active i { color: #fff; }
+.toggle-btn.active {color: #fff;}
 .toggle-slider {
     position: absolute;
     top: 0.25rem;
@@ -876,6 +905,7 @@
     color: #fff;
     border-color: var(--subject-color, var(--primary));
 }
+.subject-btn.active i {color: #fff;}
 .subject-btn.clear-btn { color: var(--text-muted); }
 .subject-btn.clear-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
@@ -1076,7 +1106,7 @@
     transition: background var(--transition-fast), color var(--transition-fast);
 }
 .action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-.action-btn.liked { color: var(--danger); }
+.action-btn.liked i{ color: var(--danger); }
 .action-btn.liked i { animation: heartPop 0.3s ease; }
 @keyframes heartPop {
     0%   { transform: scale(1); }
