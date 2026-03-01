@@ -27,6 +27,7 @@
     </div>
     <div class="hero-container">
       <div class="hero-content">
+        <div class="hero-top">
         <div class="hero-badge">
           <span class="badge-dot"></span>
           <span id="hero-badge-text">Now live — join the founding community</span>
@@ -35,10 +36,11 @@
           <i class="fas fa-graduation-cap"></i>
           <span>eDuShare</span>
         </div>
+        </div>
         <h1 class="hero-title">
           Your Study Hub for
           <span class="gradient-text-animated">
-            <span class="text-rotate" id="rotating-word">Success</span>
+<span class="text-rotate" id="rotating-word">Success</span>
           </span>
         </h1>
         <p class="hero-description">
@@ -566,13 +568,18 @@
 .hero-title { font-size:clamp(2.4rem,4.5vw,4.2rem);font-weight:900;line-height:1.1;margin-bottom:1.5rem;animation:slideUp .8s .15s var(--ease-out) both; }
 .gradient-text-animated {
   display:block;
-  background:linear-gradient(90deg,#c4b5fd,#818cf8,#f0abfc,#fb7185,#818cf8,#c4b5fd);
-  background-size:300% 300%;
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  animation:gradShift 6s ease infinite;
 }
 @keyframes gradShift { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
-.text-rotate { display:inline-block;min-width:180px; }
+.text-rotate { 
+  display:inline-block;
+  min-width:180px;
+  background:linear-gradient(90deg,#c4b5fd,#818cf8,#f0abfc,#fb7185,#818cf8,#c4b5fd);
+  background-size:300% 300%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:gradShift 6s ease infinite;
+}
 .hero-description { font-size:1.125rem;line-height:1.8;color:rgba(255,255,255,.8);max-width:520px;margin-bottom:2.5rem;animation:fadeIn 1s .3s both; }
 .hero-actions { display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:2.5rem;animation:fadeIn 1s .45s both; }
 .btn-modern {
@@ -581,8 +588,6 @@
   text-decoration:none;transition:all .3s ease;position:relative;overflow:hidden;
 }
 .btn-modern.primary { background:linear-gradient(135deg,#667eea,#764ba2);color:white;box-shadow:0 8px 32px rgba(102,126,234,.45); }
-
-
 .btn-modern.primary::after {
   content:'';position:absolute;inset:0;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);
@@ -921,9 +926,10 @@ h1,h2,h3,h4,h5,h6,.hero-title,.cta-title,.section-title,.stat-number,.fc-stat,.f
   .hero-description { font-size:1rem;margin:0; }
   p.hero-description { margin:25px; }
   .hero-actions { flex-direction:column;align-items:center; }
-  .hero-actions .btn-modern.primary span {content: "Join free"}
   .btn-modern { width:100%;justify-content:center; }
-  .trust-badges { gap:1rem; }
+  .trust-badges { gap:1rem; justify-content:center; }
+  .trust-item { font-size:.8rem; gap:.35rem; }
+  .trust-item i { font-size:.8rem; }
   .bento-features { padding:4rem .875rem; }
   .bento-grid { grid-template-columns:1fr;gap:1rem; }
   .bento-card.large,.bento-card.small { grid-column:span 1; }
@@ -1046,8 +1052,8 @@ if (scrollIndicator) {
 }
 
 /* ════════════════════════════════════════════════════
-   STATS — single fetch, wires EVERYTHING
-   Hero cards + stats section all from one /api/stats call
+   STATS — fetched immediately on page load
+   Wires hero float cards + stats section from one call
 ════════════════════════════════════════════════════ */
 function animateCount(el, target, dur) {
   if (!el) return;
@@ -1063,83 +1069,67 @@ function animateCount(el, target, dur) {
 }
 
 function applyStats(data) {
-  const docs        = data.documents +300   || 0;
-  const users       = data.users    +560    || 0;
-  const subjects    = data.subjects     || 0;
-  const engagements = data.engagements + 900 || 0;
+  const docs        = (data.documents  || 0) + 300;
+  const users       = (data.users      || 0) + 560;
+  const subjects    =  data.subjects   || 0;
+  const engagements = (data.engagements|| 0) + 900;
 
-  /* ── Stats section ── */
-  const statMap = {
-    'stat-docs':        { val: docs,        bar: '.stat-progress-docs',        pct: docs        > 0 ? Math.min(98, 30 + docs)        + '%' : '8%' },
-    'stat-users':       { val: users,       bar: '.stat-progress-users',       pct: users       > 0 ? Math.min(95, 20 + users * 2)   + '%' : '8%' },
-    'stat-subjects':    { val: subjects,    bar: '.stat-progress-subjects',    pct: subjects    > 0 ? Math.min(98, subjects * 2)      + '%' : '8%' },
-    'stat-engagements': { val: engagements, bar: '.stat-progress-engagements', pct: engagements > 0 ? Math.min(95, 15 + engagements) + '%' : '8%' },
-  };
-  Object.entries(statMap).forEach(([id, cfg]) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.classList.remove('loading');
-      animateCount(el, cfg.val, 1800);
-    }
-    const bar = document.querySelector(cfg.bar);
-    if (bar) setTimeout(() => { bar.style.width = cfg.pct; }, 400);
-  });
-
-  /* ── Hero float cards ── */
-  animateCount(document.getElementById('hero-docs'),        docs,        1400);
-  animateCount(document.getElementById('hero-users'),       users,       1400);
-  animateCount(document.getElementById('hero-subjects'),    subjects,    1400);
-  animateCount(document.getElementById('hero-engagements'), engagements, 1400);
+  /* ── Hero float cards (animate immediately) ── */
+  animateCount(document.getElementById('hero-docs'),        docs,        1200);
+  animateCount(document.getElementById('hero-users'),       users,       1200);
+  animateCount(document.getElementById('hero-subjects'),    subjects,    1200);
+  animateCount(document.getElementById('hero-engagements'), engagements, 1200);
 
   /* ── Hero badge text ── */
   const badge = document.getElementById('hero-badge-text');
   if (badge) {
-    if (users >= 10) {
-      badge.textContent = `Join ${users.toLocaleString()}+ students already here`;
-    } else {
-      badge.textContent = 'Now live — join the founding community';
-    }
+    badge.textContent = users >= 10
+      ? `Join ${users.toLocaleString()}+ students already here`
+      : 'Now live — join the founding community';
   }
 
-  /* ── Hero users avatar overflow counter ── */
+  /* ── Hero avatar overflow counter ── */
   const moreEl = document.getElementById('hero-users-more');
   if (moreEl && users > 3) {
     moreEl.textContent = '+' + (users - 3).toLocaleString();
   }
-}
 
-/* Show dashes while loading */
-['stat-docs','stat-users','stat-subjects','stat-engagements',
- 'hero-docs','hero-users','hero-subjects','hero-engagements'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.textContent = '—';
-});
+  /* ── Stats section cards ── */
+  const statMap = {
+    'stat-docs':        { val: docs,        bar: '.stat-progress-docs',        pct: Math.min(98, 30 + docs)        + '%' },
+    'stat-users':       { val: users,       bar: '.stat-progress-users',       pct: Math.min(95, 20 + users * 2)   + '%' },
+    'stat-subjects':    { val: subjects,    bar: '.stat-progress-subjects',    pct: Math.min(98, subjects * 2)      + '%' },
+    'stat-engagements': { val: engagements, bar: '.stat-progress-engagements', pct: Math.min(95, 15 + engagements) + '%' },
+  };
 
-/* Fetch once when stats section enters viewport */
-const statsSection = document.getElementById('statsSection');
-let statsFetched = false;
-if (statsSection) {
-  const obs = new IntersectionObserver(entries => {
-    if (!entries[0].isIntersecting || statsFetched) return;
-    statsFetched = true;
-    obs.unobserve(statsSection);
-
-    fetch('/api/stats')
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => applyStats(data))
-      .catch(() => {
-        /* Endpoint not ready — show honest zeros */
-        applyStats({ documents: 0, users: 0, subjects: 0, engagements: 0 });
+  /* Animate stats section numbers when they scroll into view */
+  const statsSection = document.getElementById('statsSection');
+  if (statsSection) {
+    const obs = new IntersectionObserver(entries => {
+      if (!entries[0].isIntersecting) return;
+      obs.unobserve(statsSection);
+      Object.entries(statMap).forEach(([id, cfg]) => {
+        animateCount(document.getElementById(id), cfg.val, 1800);
+        const bar = document.querySelector(cfg.bar);
+        if (bar) setTimeout(() => { bar.style.width = cfg.pct; }, 300);
       });
-  }, { threshold: 0.2 });
-  obs.observe(statsSection);
-} else {
-  /* Fetch immediately if stats section not found */
-  fetch('/api/stats')
-    .then(r => r.ok ? r.json() : Promise.reject())
-    .then(data => applyStats(data))
-    .catch(() => applyStats({ documents: 0, users: 0, subjects: 0, engagements: 0 }));
+    }, { threshold: 0.15 });
+    obs.observe(statsSection);
+  } else {
+    /* Fallback: no section found, animate immediately */
+    Object.entries(statMap).forEach(([id, cfg]) => {
+      animateCount(document.getElementById(id), cfg.val, 1800);
+      const bar = document.querySelector(cfg.bar);
+      if (bar) setTimeout(() => { bar.style.width = cfg.pct; }, 300);
+    });
+  }
 }
+
+/* Fetch stats immediately on page load — no scroll gate */
+fetch('/api/stats')
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(data => applyStats(data))
+  .catch(() => applyStats({ documents: 0, users: 0, subjects: 0, engagements: 0 }));
 
 /* ════════════════════════════════════════════════════
    SECTION REVEAL ON SCROLL

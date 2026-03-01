@@ -185,6 +185,46 @@ def toggle_user_active(user_id):
     return redirect(url_for('admin.users'))
 
 
+@bp.route('/users/<int:user_id>/toggle-premium-access', methods=['POST'])
+@admin_required
+def toggle_premium_access(user_id):
+    """Toggle user's ability to access all paid content and quizzes."""
+    user = User.query.get_or_404(user_id)
+    user.can_access_all_content = not user.can_access_all_content
+    db.session.commit()
+    status = 'granted' if user.can_access_all_content else 'revoked'
+    flash(f'Premium access {status} for user "{user.username}".', 'success')
+    return redirect(url_for('admin.users'))
+
+
+@bp.route('/users/<int:user_id>/set-subscription', methods=['POST'])
+@admin_required
+def set_subscription(user_id):
+    """Set a user's subscription tier."""
+    user = User.query.get_or_404(user_id)
+    tier = request.form.get('tier', 'free')
+    start_date = request.form.get('start_date')
+    end_date = request.form.get('end_date')
+    
+    from datetime import datetime
+    if start_date:
+        user.subscription_start_date = datetime.strptime(start_date, '%Y-%m-%d')
+    if end_date:
+        user.subscription_end_date = datetime.strptime(end_date, '%Y-%m-%d')
+    
+    old_tier = user.subscription_tier
+    user.subscription_tier = tier
+    db.session.commit()
+    
+    # Send subscription activation email if tier is not free and was previously free
+    if tier != 'free' and old_tier == 'free':
+        from app.utils import send_subscription_activation_email
+        send_subscription_activation_email(user, tier)
+    
+    flash(f'Subscription tier set to {tier} for user "{user.username}".', 'success')
+    return redirect(url_for('admin.users'))
+
+
 @bp.route('/users/<int:user_id>/delete', methods=['POST'])
 @admin_required
 def delete_user(user_id):
@@ -207,6 +247,14 @@ def delete_user(user_id):
             doc_path = post.document.file_path
             if os.path.exists(doc_path):
                 os.remove(doc_path)
+            # Delete JSON sidecar file if it exists
+            if post.document.json_sidecar_path:
+                json_path = post.document.json_sidecar_path
+                if os.path.exists(json_path):
+                    try:
+                        os.remove(json_path)
+                    except Exception as e:
+                        current_app.logger.error(f"Error deleting JSON sidecar {json_path}: {e}")
 
     db.session.delete(user)
     db.session.commit()
@@ -267,6 +315,14 @@ def delete_post(post_id):
         file_path = post.document.file_path
         if os.path.exists(file_path):
             os.remove(file_path)
+        # Delete JSON sidecar file if it exists
+        if post.document.json_sidecar_path:
+            json_path = post.document.json_sidecar_path
+            if os.path.exists(json_path):
+                try:
+                    os.remove(json_path)
+                except Exception as e:
+                    current_app.logger.error(f"Error deleting JSON sidecar {json_path}: {e}")
 
     db.session.delete(post)
     db.session.commit()
@@ -310,13 +366,69 @@ def moderation():
 @admin_required
 def approve_post(post_id):
     post = Post.query.get_or_404(post_id)
+
     post.status           = 'approved'
     post.rejection_reason = None
     db.session.commit()
+
+    # Attach quiz from JSON sidecar if one was uploaded with this post
+    from app.posts.routes import on_post_approved
+    on_post_approved(post)
+
+    # Send notifications to students with matching programmes
+    import threading
+
+    def send_programme_notifications_background(post_id):
+        """Background task to send programme-specific notifications without blocking."""
+        from app import create_app
+        app = create_app()
+        with app.app_context():
+            try:
+                from app.models import User, Post
+                from app.utils import send_programme_relevant_post_email
+
+                post = Post.query.get(post_id)
+                if post:
+                    # Get all active users with programmes that might be relevant
+                    users = User.query.filter(
+                        User.is_active == True,
+                        User.programme.isnot(None),
+                        User.programme != '',
+                        User.id != post.author.id
+                    ).all()
+
+                    # Extract keywords from post for matching
+                    post_text = f"{post.title} {post.description} {post.subject.name if post.subject else ''}".lower()
+
+                    # Find users with matching programmes
+                    matching_users = []
+                    for user in users:
+                        programme_keywords = user.programme.lower()
+                        if any(keyword in post_text for keyword in programme_keywords.split() if len(keyword) >= 3):
+                            matching_users.append(user)
+
+                    # Send notifications
+                    sent_count = 0
+                    for user in matching_users:
+                        success = send_programme_relevant_post_email(user, post)
+                        if success:
+                            sent_count += 1
+
+                    app.logger.info(f"Sent programme-specific notifications to {sent_count} users for post {post_id}")
+
+            except Exception as e:
+                app.logger.error(f"Failed to send programme notifications for post {post_id}: {e}")
+
+    notification_thread = threading.Thread(
+        target=send_programme_notifications_background,
+        args=(post.id,)
+    )
+    notification_thread.daemon = True
+    notification_thread.start()
+
     flash(f'Post "{post.title}" approved and is now live.', 'success')
     next_url = request.form.get('next') or url_for('admin.moderation')
     return redirect(next_url)
-
 
 @bp.route('/moderation/<int:post_id>/reject', methods=['POST'])
 @admin_required

@@ -33,8 +33,7 @@
         {% for followed_user in following.items %}
         <div class="user-card">
             <a href="{{ url_for('users.profile', username=followed_user.username) }}" class="user-avatar-link">
-                <img src="{{ url_for('static', filename='uploads/profiles/' + followed_user.profile_picture) }}" 
-                     alt="{{ followed_user.username }}"
+                    <img src="{{ user.profile_picture_url }}"                     alt="{{ followed_user.username }}"
                      class="user-avatar"
                      onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
             </a>

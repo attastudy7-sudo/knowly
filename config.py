@@ -37,7 +37,7 @@ class Config:
     if not SECRET_KEY:
         if IS_DEVELOPMENT:
             SECRET_KEY = 'dev-key-for-local-only-CHANGE-IN-PRODUCTION'
-            print("⚠️  WARNING: Using default SECRET_KEY. Set SECRET_KEY env var for production!")
+            print("WARNING: Using default SECRET_KEY. Set SECRET_KEY env var for production!")
         else:
             raise ValueError("SECRET_KEY environment variable must be set in production")
     
@@ -70,9 +70,9 @@ class Config:
             SQLALCHEMY_DATABASE_URI = DATABASE_URL
 
         print("\n" + "="*70)
-        print("🚀 USING REMOTE DATABASE")
+        print("USING REMOTE DATABASE")
         print("="*70)
-        print("☁️  Connected to Cloud Database")
+        print("Connected to Cloud Database")
         print("="*70 + "\n")
 
     else:
@@ -81,12 +81,12 @@ class Config:
         
         if IS_WINDOWS:
             print("\n" + "="*70)
-            print("🪟 WINDOWS DEVELOPMENT MODE")
+            print("WINDOWS DEVELOPMENT MODE")
             print("="*70)
-            print("📁 Using local SQLite: edushare_dev.db")
+            print("Using local SQLite: edushare_dev.db")
             print("="*70 + "\n")
         else:
-            print("\n⚠️  Using local SQLite: edushare_dev.db\n")
+            print("\nUsing local SQLite: edushare_dev.db\n")
 
     # SQLAlchemy settings
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -151,3 +151,14 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or os.environ.get('MAIL_USERNAME')
     BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
+    
+    # ============================================================================
+    # AI Configuration (for Quiz Generation)
+    # ============================================================================
+    
+    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+    
+    # Quiz generation settings
+    QUIZ_DEFAULT_TIME_MINUTES = int(os.environ.get('QUIZ_DEFAULT_TIME_MINUTES', 30))
+    QUIZ_DEFAULT_XP_REWARD = int(os.environ.get('QUIZ_DEFAULT_XP_REWARD', 50))

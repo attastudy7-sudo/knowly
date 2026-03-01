@@ -2,13 +2,10 @@
 
 {% block title %}{{ title }}{% endblock %}
 
-{# Remove the navbar entirely on checkout #}
 {% block navbar %}{% endblock %}
 
 {% block content %}
 <div class="checkout-page">
-
-    <!-- Minimal top bar replaces navbar -->
     <div class="checkout-topbar">
         <a href="{{ url_for('main.index') }}" class="topbar-back">
             <i class="fas fa-arrow-left"></i>
@@ -27,57 +24,59 @@
     <div class="checkout-container">
         <div class="checkout-card">
 
-            <!-- Header -->
-            <div class="checkout-header">
+            {% if document %}
+            <!-- ══ DOCUMENT PURCHASE FLOW ══════════════════════════════════ -->
+
+            <div class="checkout-header document-header">
                 <div class="checkout-icon">
-                    <i class="fas fa-lock"></i>
+                    <i class="fas fa-file-alt"></i>
                 </div>
-                <h1>Complete Your Purchase</h1>
-                <p>You're one step away from accessing this document</p>
+                <h1>Purchase Document</h1>
+                <p>Get access to this document</p>
             </div>
 
-            <!-- Document Info -->
-            <div class="doc-preview">
-                <div class="doc-icon-wrap">
-                    <i class="fas fa-file-{{ document.file_type }}"></i>
-                </div>
-                <div class="doc-details">
-                    <h2 class="doc-name">{{ document.original_filename }}</h2>
-                    <div class="doc-meta">
-                        <span><i class="fas fa-tag"></i> {{ document.file_type.upper() }}</span>
-                        <span><i class="fas fa-database"></i> {{ (document.file_size / 1024 / 1024)|round(2) }} MB</span>
-                        <span><i class="fas fa-download"></i> {{ document.download_count }} downloads</span>
+            <div class="document-summary-block">
+                <div class="document-summary-left">
+                    <div class="document-name">{{ document.original_filename }}</div>
+                    <div class="document-duration">
+                        <i class="fas fa-calendar-alt"></i>
+                        Lifetime access
                     </div>
                 </div>
-                <div class="doc-price">GHS {{ "%.2f"|format(document.price) }}</div>
+                <div class="document-price-col">
+                    <div class="document-price">GHS {{ "%.2f"|format(document.price) }}</div>
+                </div>
             </div>
 
-            <!-- What you get -->
             <div class="benefits">
-                <h3><i class="fas fa-check-circle"></i> What you get</h3>
+                <h3><i class="fas fa-check-circle"></i> What you'll get</h3>
                 <ul>
-                    <li><i class="fas fa-check"></i> Instant access after payment</li>
-                    <li><i class="fas fa-check"></i> Unlimited downloads</li>
-                    <li><i class="fas fa-check"></i> Online preview</li>
-                    <li><i class="fas fa-check"></i> Lifetime access to this document</li>
+                    <li><i class="fas fa-check"></i> Instant download access</li>
+                    <li><i class="fas fa-check"></i> Lifetime access to the document</li>
+                    <li><i class="fas fa-check"></i> Secure payment processing</li>
+                    <li><i class="fas fa-check"></i> Access starts immediately</li>
                 </ul>
             </div>
 
-            <!-- Order Summary -->
             <div class="order-summary">
                 <div class="summary-row">
-                    <span>Document</span>
+                    <span>{{ document.original_filename }}</span>
                     <span>GHS {{ "%.2f"|format(document.price) }}</span>
                 </div>
                 <div class="summary-row summary-total">
-                    <span>Total</span>
+                    <span>Total today</span>
                     <span>GHS {{ "%.2f"|format(document.price) }}</span>
                 </div>
             </div>
 
-            <!-- Pay section -->
             <div class="pay-section">
-                <button id="pay-btn" class="btn-pay" onclick="payWithPaystack()">
+                <button id="pay-btn" class="btn-pay"
+                        data-public-key="{{ paystack_public_key }}"
+                        data-email="{{ current_user.email }}"
+                        data-amount="{{ amount_pesewas }}"
+                        data-document-id="{{ document.id }}"
+                        data-document-name="{{ document.original_filename }}"
+                        data-verify-url="{{ url_for('payments.verify', document_id=document.id, _external=False) }}">
                     <i class="fas fa-lock"></i>
                     Pay GHS {{ "%.2f"|format(document.price) }} Securely
                 </button>
@@ -101,321 +100,348 @@
             </a>
             {% endif %}
 
+            {% else %}
+            <!-- ══ PLAN / SUBSCRIPTION FLOW ════════════════════════════════ -->
+
+            <div class="checkout-header plan-header">
+                <div class="checkout-icon">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <h1>{{ plan_name or 'Unlimited Access' }}</h1>
+                <p>Unlock unlimited quizzes and premium features</p>
+            </div>
+
+            <div class="document-summary-block">
+                <div class="document-summary-left">
+                    <div class="document-name">{{ plan_name or 'Monthly Unlimited Plan' }}</div>
+                    <div class="document-duration">
+                        <i class="fas fa-calendar-alt"></i>
+                        30-day access — renew anytime
+                    </div>
+                </div>
+                <div class="document-price-col">
+                    <div class="document-price">GHS {{ "%.2f"|format(amount) }}</div>
+                </div>
+            </div>
+
+            <div class="benefits">
+                <h3><i class="fas fa-check-circle"></i> What you'll get</h3>
+                <ul>
+                    <li><i class="fas fa-check"></i> Unlimited quiz attempts for 30 days</li>
+                    <li><i class="fas fa-check"></i> Full answer explanations</li>
+                    <li><i class="fas fa-check"></i> Leaderboard access</li>
+                    <li><i class="fas fa-check"></i> Priority grading</li>
+                    <li><i class="fas fa-check"></i> Access starts immediately</li>
+                </ul>
+            </div>
+
+            <div class="order-summary">
+                <div class="summary-row">
+                    <span>{{ plan_name or 'Monthly Unlimited Plan' }}</span>
+                    <span>GHS {{ "%.2f"|format(amount) }}</span>
+                </div>
+                <div class="summary-row summary-total">
+                    <span>Total today</span>
+                    <span>GHS {{ "%.2f"|format(amount) }}</span>
+                </div>
+            </div>
+
+            <div class="pay-section">
+                <button id="pay-btn" class="btn-pay"
+                        data-public-key="{{ paystack_public_key }}"
+                        data-email="{{ current_user.email }}"
+                        data-amount="{{ amount_pesewas }}"
+                        data-plan-key="{{ plan_key or '' }}"
+                        data-plan-name="{{ plan_name or 'Monthly Unlimited' }}"
+                        data-verify-url="{{ verify_url }}">
+                    <i class="fas fa-lock"></i>
+                    Pay GHS {{ "%.2f"|format(amount) }} Securely
+                </button>
+
+                {% if fallback_url %}
+                <form action="{{ fallback_url }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn-fallback">
+                        Or pay via Paystack redirect <i class="fas fa-arrow-right"></i>
+                    </button>
+                </form>
+                {% endif %}
+
+                <p class="secure-note">
+                    <i class="fas fa-shield-alt"></i>
+                    Payments processed securely by Paystack. Your card details are never stored.
+                </p>
+            </div>
+
+            {% if next_url %}
+            <a href="{{ next_url }}" class="back-to-post">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+            {% endif %}
+
+            {% endif %}
+            <!-- ══ END FLOW BRANCHES ═══════════════════════════════════════ -->
+
         </div>
     </div>
 </div>
 
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <script>
-function payWithPaystack() {
-    const btn    = document.getElementById('pay-btn');
-    const key    = '{{ paystack_public_key }}';
-    const email  = '{{ current_user.email }}';
-    const amount = {{ amount_pesewas }};
+document.getElementById('pay-btn').addEventListener('click', function() {
+    const btn       = this;
+    const key       = btn.getAttribute('data-public-key');
+    const email     = btn.getAttribute('data-email');
+    const amount    = parseInt(btn.getAttribute('data-amount'));
+    const verifyUrl = btn.getAttribute('data-verify-url');
 
-    if (!key || key === 'None' || !key.startsWith('pk_')) {
-        alert('Payment configuration error. Please contact support.');
+    // Document purchase fields
+    const documentId   = btn.getAttribute('data-document-id');
+    const documentName = btn.getAttribute('data-document-name');
+
+    // Plan purchase fields
+    const planKey  = btn.getAttribute('data-plan-key');
+    const planName = btn.getAttribute('data-plan-name');
+
+    if (!key || !key.startsWith('pk_')) {
+        alert('Payment configuration error. Please use the redirect button below.');
         return;
     }
-    if (!email || email === 'None') {
-        alert('Could not read your account email. Please log out and back in.');
-        return;
-    }
-    if (!amount || amount <= 0) {
-        alert('Invalid payment amount. Please contact support.');
-        return;
-    }
+
+    const isDocPurchase = !!documentId;
+    const label = isDocPurchase ? documentName : (planName || 'Subscription');
+    const ref   = isDocPurchase
+        ? 'edushare_doc_' + documentId + '_' + Math.floor(Math.random() * 1e9)
+        : 'edushare_plan_' + (planKey || 'sub') + '_' + Math.floor(Math.random() * 1e9);
 
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening payment…';
 
     const handler = PaystackPop.setup({
-        key:      key,
-        email:    email,
-        amount:   amount,
+        key,
+        email,
+        amount,
         currency: 'GHS',
-        ref:      'edushare_' + Math.floor(Math.random() * 1e9),
-        metadata: {
-            user_id:     {{ current_user.id }},
-            document_id: {{ document.id }},
-        },
+        ref,
+        label,
         callback: function(response) {
-            window.location.href =
-                "{{ url_for('payments.verify', document_id=document.id) }}"
-                + '?reference=' + response.reference;
+            window.location.href = verifyUrl + '?reference=' + response.reference;
         },
         onClose: function() {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-lock"></i> Pay GHS {{ "%.2f"|format(document.price) }} Securely';
-        },
+            btn.innerHTML = '<i class="fas fa-lock"></i> Pay Securely';
+        }
     });
 
     handler.openIframe();
-}
+});
 </script>
 
 <style>
 .checkout-page {
+    background: #f8fafc;
     min-height: 100vh;
-    background: var(--bg-main);
-    display: flex;
-    flex-direction: column;
+    padding: 20px;
 }
 
-/* ── Top bar ── */
 .checkout-topbar {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 0.875rem 1.5rem;
-    background: rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 1px 0 var(--border-light), 0 1px 6px rgba(0, 0, 0, 0.04);
+    align-items: center;
+    max-width: 600px;
+    margin: 0 auto 30px;
+    padding: 10px 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .topbar-back {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-secondary);
+    gap: 8px;
+    color: #64748b;
     text-decoration: none;
-    padding: 0.45rem 0.875rem;
-    border-radius: 10px;
-    border: 1.5px solid var(--border);
-    transition: all var(--transition-fast);
+    font-size: 0.9rem;
 }
-.topbar-back:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: rgba(99, 102, 241, 0.06);
-}
+.topbar-back:hover { color: #3b82f6; }
 
 .topbar-brand {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
-    font-size: 1rem;
-    font-weight: 800;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
-}
-.topbar-brand i {
-    color: var(--primary);
+    gap: 8px;
+    font-weight: 700;
+    color: #1e293b;
 }
 
 .topbar-secure {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #10b981;
+    gap: 8px;
+    color: #64748b;
+    font-size: 0.9rem;
 }
 
-/* ── Card ── */
-.checkout-container {
-    max-width: 480px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    width: 100%;
-}
+.checkout-container { max-width: 600px; margin: 0 auto; }
 
 .checkout-card {
-    background: var(--bg-card);
-    border-radius: 14px;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-md);
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     overflow: hidden;
 }
 
-/* Header */
-.checkout-header {
-    background: var(--primary);
-    padding: 1.75rem 1.5rem 1.5rem;
+.document-header {
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 60%, #60a5fa 100%);
+    color: white;
+    padding: 40px 30px;
     text-align: center;
-    color: #fff;
 }
+
+.plan-header {
+    background: linear-gradient(135deg, #92400e 0%, #c47a00 40%, #f59e0b 100%);
+    color: white;
+    padding: 40px 30px;
+    text-align: center;
+}
+
 .checkout-icon {
-    width: 44px;
-    height: 44px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 9px;
+    width: 60px;
+    height: 60px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
-    margin: 0 auto 0.75rem;
+    margin: 0 auto 20px;
+    font-size: 1.5rem;
 }
-.checkout-header h1 { font-size: 1.2rem; font-weight: 800; margin: 0 0 0.275rem; letter-spacing: -0.02em; }
-.checkout-header p  { margin: 0; opacity: 0.85; font-size: 0.825rem; }
 
-/* Doc preview */
-.doc-preview {
+.checkout-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 10px; }
+.checkout-header p  { font-size: 0.9rem; opacity: 0.9; }
+
+.document-summary-block {
     display: flex;
     align-items: center;
-    gap: 0.875rem;
+    justify-content: space-between;
+    gap: 1rem;
     padding: 1.125rem 1.25rem;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid #e2e8f0;
+    flex-wrap: wrap;
 }
-.doc-icon-wrap {
-    width: 44px;
-    height: 44px;
-    flex-shrink: 0;
-    background: var(--primary);
-    border-radius: 9px;
+
+.document-summary-left { flex: 1; min-width: 200px; }
+
+.document-name {
+    font-size: .95rem;
+    font-weight: 800;
+    color: #1e293b;
+    letter-spacing: -.02em;
+    margin-bottom: .2rem;
+}
+
+.document-duration {
+    font-size: .78rem;
+    color: #64748b;
+    font-weight: 500;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+    gap: .35rem;
 }
-.doc-details { flex: 1; min-width: 0; }
-.doc-name {
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0 0 0.275rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    letter-spacing: -0.01em;
-}
-.doc-meta { display: flex; flex-wrap: wrap; gap: 0.45rem; font-size: 0.72rem; color: var(--text-muted); }
-.doc-meta i { color: var(--primary); margin-right: 0.1rem; }
-.doc-price { font-size: 1.1rem; font-weight: 800; color: var(--primary); flex-shrink: 0; }
+.document-duration i { color: #6366f1; font-size: .7rem; }
 
-/* Benefits */
-.benefits {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--border-light);
+.document-price-col { text-align: right; flex-shrink: 0; }
+
+.document-price {
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: #6366f1;
+    letter-spacing: -.03em;
+    line-height: 1.1;
 }
-.benefits h3 {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin: 0 0 0.625rem;
+
+.benefits { padding: 30px; }
+.benefits h3 { font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 20px; }
+.benefits ul { list-style: none; padding: 0; }
+.benefits li {
+    padding: 10px 0;
+    color: #475569;
+    font-size: 0.95rem;
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 12px;
 }
-.benefits h3 i { color: #10b981; }
-.benefits ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
-.benefits li { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-secondary); }
-.benefits li i { color: #10b981; font-size: 0.72rem; }
+.benefits li i { color: #10b981; font-size: 1.1rem; }
 
-/* Order summary */
 .order-summary {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--border-light);
+    padding: 30px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
 }
 .summary-row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    padding: 0.25rem 0;
+    margin-bottom: 10px;
+    color: #475569;
 }
 .summary-total {
-    font-size: 0.95rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    color: var(--text-primary);
-    border-top: 1px solid var(--border-light);
-    margin-top: 0.375rem;
-    padding-top: 0.625rem;
+    color: #1e293b;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 2px solid #e2e8f0;
 }
 
-/* Pay section */
-.pay-section { padding: 1.125rem 1.25rem 0.75rem; }
+.pay-section { padding: 30px; }
 
 .btn-pay {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
     width: 100%;
-    padding: 0.8rem;
-    border-radius: 10px;
+    padding: 15px;
+    background: linear-gradient(135deg, #1e40af, #3b82f6) !important;
+    color: white;
     border: none;
-    cursor: pointer;
-    font-size: 0.95rem;
+    border-radius: 8px;
+    font-size: 1rem;
     font-weight: 700;
-    color: #fff;
-    background: var(--primary);
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.28);
-    transition: all var(--transition-fast);
-    margin-bottom: 0.5rem;
+    cursor: pointer;
+    margin-bottom: 15px;
 }
 .btn-pay:hover:not(:disabled) {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.36);
+    background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
+    box-shadow: 0 4px 14px rgba(37,99,235,.45) !important;
 }
-.btn-pay:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+.btn-pay:disabled { opacity: 0.7; cursor: not-allowed; }
 
 .btn-fallback {
-    display: block;
     width: 100%;
-    padding: 0.575rem;
-    border-radius: 9px;
-    border: 1.5px solid var(--border);
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    font-weight: 600;
+    padding: 15px;
+    background: white;
+    color: #3b82f6;
+    border: 2px solid #3b82f6;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: all var(--transition-fast);
 }
-.btn-fallback:hover { border-color: var(--primary); color: var(--primary); }
+.btn-fallback:hover { background: #f0f9ff; }
 
 .secure-note {
     text-align: center;
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    margin: 0.625rem 0 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 20px;
 }
-.secure-note i { color: #10b981; }
 
-/* Back to post */
 .back-to-post {
     display: block;
     text-align: center;
-    padding: 0.75rem;
-    font-size: 0.825rem;
-    font-weight: 600;
-    color: var(--text-muted);
+    padding: 15px;
+    color: #64748b;
     text-decoration: none;
-    border-top: 1px solid var(--border-light);
-    transition: color var(--transition-fast);
+    font-size: 0.9rem;
 }
-.back-to-post:hover { color: var(--primary); }
-
-.top-nav {
-    display: none
-}
-
-.top-nav .logo {
-    display: none;
-}
-
-@media (max-width: 480px) {
-    .checkout-container { padding: 0 0.75rem; margin: 1rem auto; }
-    .topbar-secure span { display: none; }
-    .doc-preview { flex-wrap: wrap; }
-    .doc-price { width: 100%; text-align: right; }
-}
+.back-to-post:hover { color: #3b82f6; background: #f8fafc; }
 </style>
 {% endblock %}

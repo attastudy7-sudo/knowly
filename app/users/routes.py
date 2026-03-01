@@ -1,5 +1,5 @@
 import cloudinary.uploader
-from flask import render_template, redirect, url_for, flash, request, current_app
+from flask import render_template, redirect, url_for, flash, request, current_app, session
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
@@ -55,7 +55,9 @@ def save_education():
     
     db.session.commit()
     response = redirect(request.referrer or url_for('main.explore'))
-    response.delete_cookie('education_skipped')  # let the overlay reappear if they revisit
+    # Clear the session variable so the overlay won't reappear
+    if 'education_skipped' in session:
+        del session['education_skipped']
     return response
 
 @bp.route('/edit-profile', methods=['GET', 'POST'])
@@ -114,7 +116,8 @@ def edit_profile():
                 )
 
                 # Store the public_id so we can delete it later if needed
-                current_user.profile_picture = result['public_id']
+                current_user.profile_picture = result['secure_url']
+
 
             except Exception as e:
                 current_app.logger.error(f"Cloudinary profile picture upload failed: {e}")
@@ -258,3 +261,10 @@ def search():
                            query=query,
                            users=users,
                            posts=posts)
+
+@bp.route('/skip-education', methods=['POST'])
+@login_required
+def skip_education():
+    """Mark education onboarding as skipped in the session."""
+    session['education_skipped'] = True
+    return '', 204

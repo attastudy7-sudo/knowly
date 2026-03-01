@@ -1,638 +1,1197 @@
 {% extends "base.html" %}
-
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="create-container">
-    <div class="create-card">
-        <div class="create-header">
-            <div class="header-icon">
-                <i class="fas fa-plus-circle"></i>
-            </div>
-            <h1>Create New Post</h1>
-            <p>Share your knowledge with the community</p>
-        </div>
-        
-        <form method="post" enctype="multipart/form-data" class="create-form" novalidate>
-            {{ form.hidden_tag() }}
-            
-            <div class="form-group">
-                {{ form.title.label }}
-                {{ form.title(class="form-control", placeholder="Give your post a descriptive title") }}
-                {% if form.title.errors %}
-                    <span class="error">{{ form.title.errors[0] }}</span>
-                {% endif %}
-            </div>
-            
-            <!-- Description — Markdown editor -->
-            <div class="form-group">
-                {{ form.description.label }}
+<div class="cp-shell">
 
-                <div class="md-editor-wrapper">
-                    <div class="md-toolbar" role="toolbar" aria-label="Formatting options">
-                        <div class="md-toolbar-group">
-                            <button type="button" class="md-btn" data-action="bold"   title="Bold (Ctrl+B)">      <i class="fas fa-bold"></i></button>
-                            <button type="button" class="md-btn" data-action="italic" title="Italic (Ctrl+I)">    <i class="fas fa-italic"></i></button>
-                            <button type="button" class="md-btn" data-action="strike" title="Strikethrough">      <i class="fas fa-strikethrough"></i></button>
-                        </div>
-                        <div class="md-toolbar-sep"></div>
-                        <div class="md-toolbar-group">
-                            <button type="button" class="md-btn" data-action="h2"    title="Heading">             <i class="fas fa-heading"></i></button>
-                            <button type="button" class="md-btn" data-action="quote" title="Blockquote">          <i class="fas fa-quote-left"></i></button>
-                            <button type="button" class="md-btn" data-action="code"  title="Inline code">         <i class="fas fa-code"></i></button>
-                        </div>
-                        <div class="md-toolbar-sep"></div>
-                        <div class="md-toolbar-group">
-                            <button type="button" class="md-btn" data-action="ul"   title="Bullet list">          <i class="fas fa-list-ul"></i></button>
-                            <button type="button" class="md-btn" data-action="ol"   title="Numbered list">        <i class="fas fa-list-ol"></i></button>
-                            <button type="button" class="md-btn" data-action="link" title="Insert link (Ctrl+K)"> <i class="fas fa-link"></i></button>
-                        </div>
-                        <div class="md-toolbar-sep"></div>
-                        <div class="md-toolbar-group">
-                            <button type="button" class="md-btn md-btn--preview" data-action="preview" title="Toggle preview">
-                                <i class="fas fa-eye"></i> <span>Preview</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="md-panes">
-                        {{ form.description(
-                            id="md-textarea",
-                            class="md-textarea",
-                            placeholder="Describe what you're sharing…\n\nMarkdown supported: **bold**, *italic*, ## headings, - lists, > quotes, `code`, [links](url)"
-                        ) }}
-                        <div class="md-preview prose-content" id="md-preview" hidden>
-                            <div class="md-preview-empty">
-                                <i class="fas fa-eye-slash"></i>
-                                <span>Nothing to preview yet</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="md-footer">
-                        <span class="md-hint"><i class="fab fa-markdown"></i> Markdown supported</span>
-                        <span class="md-char-count" id="md-char-count">0 chars</span>
-                    </div>
-                </div>
-
-                {% if form.description.errors %}
-                    <span class="error">{{ form.description.errors[0] }}</span>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                {{ form.subject.label }}
-                {{ form.subject(class="form-control") }}
-                {% if form.subject.errors %}
-                    <span class="error">{{ form.subject.errors[0] }}</span>
-                {% endif %}
-                <small class="form-hint">Categorize your post for better discovery</small>
-            </div>
-            
-            <div class="form-group">
-                <label for="document">
-                    <i class="fas fa-file-upload"></i> Upload Document (Optional)
-                </label>
-                <div class="file-upload-container">
-                    {{ form.document(class="file-input", id="document", onchange="updateFileName(this)") }}
-                    <label for="document" class="file-label">
-                        <div class="upload-icon">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                        </div>
-                        <span id="file-name" class="file-name-text">Choose a file</span>
-                        <span class="file-types">PDF, DOCX, PPTX, TXT</span>
-                    </label>
-                </div>
-                {% if form.document.errors %}
-                    <span class="error">{{ form.document.errors[0] }}</span>
-                {% endif %}
-                <small class="form-hint"><i class="fas fa-info-circle"></i> Max file size: 5 MB</small>
-            </div>
-            
-{% if show_pricing %}
-            <div class="payment-section">                <div class="payment-header">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <h3>Payment Options</h3>
-                </div>
-                
-                <div class="form-group checkbox-group">
-                    {{ form.is_paid() }}
-                    {{ form.is_paid.label }}
-                </div>
-                
-                <div class="form-group" id="price-group" style="display: none;">
-                    {{ form.price.label }}
-                    <div class="price-input-wrapper">
-                        <span class="currency-symbol">GHS</span>
-                        {{ form.price(class="form-control price-input", placeholder="0.00") }}
-                    </div>
-                    <small class="form-hint">Set your price in GHS (e.g. 5.00)</small>
-                </div>
-            </div>
-            
-{% endif %}
-            <div class="copyright-warning">                <i class="fas fa-exclamation-circle"></i>
-                <span>
-                    <strong>No copyrighted material.</strong>
-                    Only upload your own personal notes, personal quizzes, AI-generated notes,
-                    explanations, or quizzes that other students may find helpful.
-                    Copyrighted textbooks, lecture slides, past exam papers, or any
-                    third-party protected content will be <strong>taken down immediately.</strong>
-                </span>
-            </div>
-
-            <div class="form-actions">
-                <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
-                    <i class="fas fa-times"></i>
-                    <span>Cancel</span>
-                </a>
-                {{ form.submit(class="btn btn-primary") }}
-            </div>
-        </form>
+  <!-- Page Header -->
+  <div class="cp-page-header">
+    <a href="{{ url_for('main.index') }}" class="cp-back-link">
+      <i class="fas fa-arrow-left"></i>
+      <span>Back to Feed</span>
+    </a>
+    <div class="cp-header-content">
+      <div class="cp-header-icon">
+        <i class="fas fa-plus"></i>
+      </div>
+      <div>
+        <h1 class="cp-page-title">Create Post</h1>
+        <p class="cp-page-sub">Share notes, guides, or resources with fellow students</p>
+      </div>
     </div>
+  </div>
+
+  <!-- Form -->
+  <form method="post" enctype="multipart/form-data" novalidate id="cpForm">
+    {{ form.hidden_tag() }}
+
+    <div class="cp-form-body">
+
+      <!-- ── TITLE ── -->
+      <div class="cp-section">
+        <label class="cp-label" for="{{ form.title.id }}">
+          Title <span class="cp-req">*</span>
+        </label>
+        {{ form.title(
+          id=form.title.id,
+          class="cp-input cp-title-input",
+          placeholder="Give your post a clear, searchable title…",
+          autocomplete="off"
+        ) }}
+        {% if form.title.errors %}
+          <p class="cp-error"><i class="fas fa-circle-exclamation"></i> {{ form.title.errors[0] }}</p>
+        {% endif %}
+      </div>
+
+      <!-- ── DESCRIPTION ── -->
+      <div class="cp-section">
+        <div class="cp-label-row">
+          <label class="cp-label" for="cpTextarea">Description</label>
+          <div class="cp-editor-tabs" role="tablist">
+            <button type="button" class="cp-tab cp-tab--active" id="cpTabWrite" onclick="cpSetTab('write')" role="tab">
+              <i class="fas fa-pen"></i> Write
+            </button>
+            <button type="button" class="cp-tab" id="cpTabPreview" onclick="cpSetTab('preview')" role="tab">
+              <i class="fas fa-eye"></i> Preview
+            </button>
+          </div>
+          <span class="cp-char-count" id="cpCharCount"><span id="cpCharNum">0</span>/5000</span>
+        </div>
+
+        <div class="cp-editor-card" id="cpEditorCard">
+          <!-- Formatting toolbar -->
+          <div class="cp-toolbar" id="cpToolbar">
+            <button type="button" class="cp-tb-btn" data-md="bold"   title="Bold"><i class="fas fa-bold"></i></button>
+            <button type="button" class="cp-tb-btn" data-md="italic" title="Italic"><i class="fas fa-italic"></i></button>
+            <button type="button" class="cp-tb-btn" data-md="h2"     title="Heading"><i class="fas fa-heading"></i></button>
+            <span class="cp-tb-sep"></span>
+            <button type="button" class="cp-tb-btn" data-md="ul"     title="List"><i class="fas fa-list-ul"></i></button>
+            <button type="button" class="cp-tb-btn" data-md="quote"  title="Quote"><i class="fas fa-quote-left"></i></button>
+            <button type="button" class="cp-tb-btn" data-md="code"   title="Code"><i class="fas fa-code"></i></button>
+            <button type="button" class="cp-tb-btn" data-md="link"   title="Link"><i class="fas fa-link"></i></button>
+            <div class="cp-tb-hints">
+              <kbd>Ctrl+B</kbd><kbd>Ctrl+I</kbd>
+            </div>
+          </div>
+          {{ form.description(
+            id="cpTextarea",
+            class="cp-textarea",
+            placeholder="Describe what you're sharing…"
+          ) }}
+          <div class="cp-preview cp-prose" id="cpPreview" hidden>
+            <div class="cp-preview-empty">
+              <i class="fas fa-feather-pointed"></i>
+              <span>Preview appears here as you write…</span>
+            </div>
+          </div>
+          <div class="cp-editor-footer">
+            <span class="cp-md-hint"><i class="fab fa-markdown"></i> Markdown supported</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SUBJECT ── -->
+      <div class="cp-section">
+        <label class="cp-label">
+          Subject <span class="cp-optional">optional</span>
+        </label>
+        {{ form.subject(class="cp-hidden-sel", id=form.subject.id, tabindex="-1", **{"aria-hidden": "true"}) }}
+        <div class="cp-subject-widget">
+          <div class="cp-search-wrap">
+            <i class="fas fa-magnifying-glass cp-search-ico"></i>
+            <input type="text" id="cpSubjectSearch" class="cp-search-input"
+              placeholder="Search subjects…" autocomplete="off" spellcheck="false"/>
+            <button type="button" id="cpSubjectClear" class="cp-search-clear"
+              style="display:none;" aria-label="Clear subject">
+              <i class="fas fa-xmark"></i>
+            </button>
+          </div>
+          <div class="cp-chips" id="cpSubjectChips"></div>
+        </div>
+        {% if form.subject.errors %}
+          <p class="cp-error"><i class="fas fa-circle-exclamation"></i> {{ form.subject.errors[0] }}</p>
+        {% endif %}
+      </div>
+
+      <!-- ── DOCUMENT UPLOAD ── -->
+      <div class="cp-section">
+        <label class="cp-label">
+          Attachment <span class="cp-optional">optional</span>
+        </label>
+        <div class="cp-drop-zone" id="cpDropZone"
+          ondragover="cpDrag(event,'cpDropZone',true)"
+          ondragleave="cpDrag(event,'cpDropZone',false)"
+          ondrop="cpDrag(event,'cpDropZone',false)">
+          {{ form.document(id="cpFileInput", class="cp-drop-input", onchange="cpHandleFile(this)") }}
+          <label for="cpFileInput" class="cp-drop-label">
+            <div class="cp-drop-icon" id="cpDropIcon">
+              <i class="fas fa-cloud-arrow-up" id="cpDropIco"></i>
+            </div>
+            <div class="cp-drop-text">
+              <strong id="cpDropName">Drop file or click to browse</strong>
+              <span id="cpDropTypes">PDF · DOCX · PPTX · TXT — max 5 MB</span>
+            </div>
+          </label>
+          <button type="button" class="cp-drop-rm" id="cpFileRm"
+            onclick="cpClearFile()" style="display:none;" aria-label="Remove file">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+        {% if form.document.errors %}
+          <p class="cp-error"><i class="fas fa-circle-exclamation"></i> {{ form.document.errors[0] }}</p>
+        {% endif %}
+
+        <!-- JSON sidecar (PDF only) -->
+        <div id="cpSidecarSection" style="display:none;" class="cp-sidecar">
+          <label class="cp-label cp-label--sm">
+            <i class="fas fa-brain"></i> Quiz Sidecar <span class="cp-optional">optional</span>
+          </label>
+          <div class="cp-drop-zone cp-drop-zone--sm" id="cpJsonZone"
+            ondragover="cpDrag(event,'cpJsonZone',true)"
+            ondragleave="cpDrag(event,'cpJsonZone',false)"
+            ondrop="cpDrag(event,'cpJsonZone',false)">
+            {% if form.json_sidecar is defined %}
+              {{ form.json_sidecar(id="cpJsonInput", class="cp-drop-input", onchange="cpHandleJson(this)") }}
+            {% else %}
+              <input type="file" name="json_sidecar" accept=".json" id="cpJsonInput" class="cp-drop-input" onchange="cpHandleJson(this)">
+            {% endif %}
+            <label for="cpJsonInput" class="cp-drop-label">
+              <div class="cp-drop-icon cp-drop-icon--cyan" id="cpJsonIcon">
+                <i class="fas fa-file-code" id="cpJsonIco"></i>
+              </div>
+              <div class="cp-drop-text">
+                <strong id="cpJsonName">Attach .json quiz file</strong>
+                <span>Pre-built questions for this PDF</span>
+              </div>
+            </label>
+            <button type="button" class="cp-drop-rm" id="cpJsonRm"
+              onclick="cpClearJson()" style="display:none;" aria-label="Remove JSON">
+              <i class="fas fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PRICING (admin only) ── -->
+      {% if show_pricing %}
+      <div class="cp-section">
+        <div class="cp-pricing-card">
+          <div class="cp-pricing-head">
+            <div class="cp-pricing-label">
+              <i class="fas fa-coins"></i>
+              <span>Pricing</span>
+            </div>
+            <div class="cp-toggle-wrap">
+              {{ form.is_paid(id="is_paid", class="cp-toggle-inp") }}
+              <label for="is_paid" class="cp-toggle" aria-label="Enable paid access"></label>
+              <span class="cp-toggle-label" id="cpPriceLabel">Free</span>
+            </div>
+          </div>
+          <div id="cpPriceBody" style="display:none;" class="cp-price-body">
+            <div class="cp-price-row">
+              <span class="cp-price-ccy">GHS</span>
+              {{ form.price(class="cp-input cp-price-inp", placeholder="0.00") }}
+            </div>
+            {% if form.price.errors %}
+              <p class="cp-error"><i class="fas fa-circle-exclamation"></i> {{ form.price.errors[0] }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- ── NOTICE ── -->
+      <div class="cp-notice">
+        <i class="fas fa-shield-halved"></i>
+        <p>Only upload <strong>your own notes</strong>, AI-assisted guides, or original resources. Copyrighted material will be removed immediately.</p>
+      </div>
+
+      <!-- ── DESKTOP ACTIONS ── -->
+      <div class="cp-actions">
+        <a href="{{ url_for('main.index') }}" class="cp-btn-ghost">
+          <i class="fas fa-xmark"></i> Discard
+        </a>
+        {{ form.submit(class="cp-btn-primary", id="cpSubmitDesk") }}
+      </div>
+
+    </div><!-- /cp-form-body -->
+
+    <!-- Mobile sticky bar -->
+    <div class="cp-mobile-bar">
+      <a href="{{ url_for('main.index') }}" class="cp-btn-ghost cp-btn-ghost--ico" aria-label="Discard">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <button type="submit" class="cp-btn-primary cp-btn-primary--full">
+        <i class="fas fa-paper-plane"></i> Submit Post
+      </button>
+    </div>
+
+  </form>
 </div>
 
+
 <style>
-.create-container {
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: var(--spacing-xl) var(--spacing-md);
+/* ══════════════════════════════════════
+   CREATE PAGE — scoped to .cp-shell
+   ══════════════════════════════════════ */
+
+.cp-shell {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 6rem;
+  font-family: var(--font-body, system-ui, sans-serif);
+  -webkit-tap-highlight-color: transparent;
 }
 
-.create-card {
-    background: var(--bg-card);
-    border-radius: 24px;
-    border: 1px solid #667eea;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
-    padding: var(--spacing-xl);
-    width: 100%;
-    position: relative;
-    overflow: hidden;
+/* ── Page Header ── */
+.cp-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-bottom: 1.25rem;
+  transition: color 0.15s ease;
+}
+.cp-back-link:hover { color: var(--primary); }
+
+.cp-header-content {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1.1rem 1.25rem;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 14px;
+  margin-bottom: 1.5rem;
+}
+.cp-header-icon {
+  width: 44px;
+  height: 44px;
+  background: var(--primary, #6366f1);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+.cp-page-title {
+  margin: 0 0 0.15rem;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.cp-page-sub {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
 }
 
-.create-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
+/* ── Form body ── */
+.cp-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── Sections ── */
+.cp-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+/* ── Labels ── */
+.cp-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.cp-label--sm { font-size: 0.7rem; margin-top: 0.75rem; }
+.cp-req { color: #f87171; font-size: 1rem; line-height: 1; font-weight: 400; }
+.cp-optional {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-hover, #f1f5f9);
+  padding: 0.1rem 0.4rem;
+  border-radius: 20px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.cp-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.cp-label-row .cp-label { margin: 0; }
+
+/* ── Inputs ── */
+.cp-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  background: var(--bg-main, #f9fafb);
+  color: var(--text-primary);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  box-sizing: border-box;
+}
+.cp-input:focus {
+  border-color: var(--primary, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  background: var(--bg-card);
+}
+.cp-title-input {
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0.875rem 1rem;
+}
+
+/* ── Editor tabs ── */
+.cp-editor-tabs {
+  display: flex;
+  background: var(--bg-hover, #f1f5f9);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+  margin-left: auto;
+}
+.cp-tab {
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.15s ease;
+}
+.cp-tab i { font-size: 0.65rem; }
+.cp-tab--active {
+  background: var(--bg-card);
+  color: var(--primary, #6366f1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.cp-char-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-hover, #f1f5f9);
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.cp-char-count.cp--warn { color: #f59e0b; background: rgba(245,158,11,.1); }
+.cp-char-count.cp--over { color: #ef4444; background: rgba(239,68,68,.1); }
+
+/* ── Editor card ── */
+.cp-editor-card {
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-card);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.cp-editor-card:focus-within {
+  border-color: var(--primary, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.cp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-light, #f1f5f9);
+  background: var(--bg-main, #f9fafb);
+  flex-wrap: wrap;
+}
+.cp-tb-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.cp-tb-btn:hover {
+  background: var(--bg-hover, #f1f5f9);
+  color: var(--text-primary);
+  transform: scale(1.08);
+}
+.cp-tb-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 0.3rem;
+}
+.cp-tb-hints {
+  margin-left: auto;
+  display: flex;
+  gap: 0.25rem;
+}
+.cp-tb-hints kbd {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  background: var(--bg-hover, #f1f5f9);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  font-family: inherit;
+}
+
+.cp-textarea {
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  padding: 1rem 1.1rem;
+  border: none;
+  background: transparent;
+  resize: vertical;
+  font-size: 0.9rem;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  color: var(--text-primary);
+  outline: none;
+  line-height: 1.8;
+  box-sizing: border-box;
+}
+.cp-textarea::placeholder {
+  color: var(--text-muted);
+  font-family: inherit;
+  font-style: italic;
+}
+.cp-preview {
+  min-height: 220px;
+  padding: 1rem 1.1rem;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+.cp-preview[hidden] { display: none; }
+.cp-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-height: 200px;
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+.cp-preview-empty i { font-size: 2rem; opacity: 0.2; }
+.cp-editor-footer {
+  padding: 0.4rem 0.75rem;
+  background: var(--bg-main, #f9fafb);
+  border-top: 1px solid var(--border-light, #f1f5f9);
+}
+.cp-md-hint {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.cp-md-hint i { color: var(--primary, #6366f1); }
+
+/* ── Subject widget ── */
+.cp-hidden-sel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.cp-subject-widget { display: flex; flex-direction: column; gap: 0.625rem; }
+
+.cp-search-wrap { position: relative; }
+.cp-search-ico {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.cp-search-input {
+  width: 100%;
+  padding: 0.6rem 0.875rem 0.6rem 2.25rem;
+  border: 1.5px solid var(--border);
+  border-radius: 50px;
+  background: var(--bg-main, #f9fafb);
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  box-sizing: border-box;
+}
+.cp-search-input:focus {
+  border-color: var(--primary, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+.cp-search-clear {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-hover, #f1f5f9);
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.cp-search-clear:hover { background: rgba(239,68,68,.12); color: #ef4444; }
+
+.cp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.cp-chips:empty { display: none; }
+.cp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 50px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.cp-chip:hover {
+  border-color: rgba(99,102,241,.35);
+  color: var(--primary, #6366f1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(99,102,241,.15);
+}
+.cp-chip.cp-chip--on {
+  background: var(--chip-color, var(--primary, #6366f1));
+  border-color: var(--chip-color, var(--primary, #6366f1));
+  color: #fff;
+}
+.cp-chip.cp-chip--hide { display: none; }
+.cp-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.65;
+}
+.cp-chip.cp-chip--on .cp-chip-dot { opacity: 0.85; background: rgba(255,255,255,.7); }
+
+/* ── File drop zone ── */
+.cp-drop-zone {
+  position: relative;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+  overflow: hidden;
+}
+.cp-drop-zone:hover,
+.cp-drop-zone.cp--drag {
+  border-color: var(--primary, #6366f1);
+  background: rgba(99, 102, 241, 0.04);
+}
+.cp-drop-zone.cp--done {
+  border-style: solid;
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.04);
+}
+.cp-drop-zone--sm {
+  border-radius: 10px;
+  margin-top: 0.75rem;
+}
+.cp-drop-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+.cp-drop-label {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1.25rem;
+  cursor: pointer;
+}
+.cp-drop-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--primary, #6366f1);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.cp-drop-icon--cyan {
+  background: #06b6d4;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+.cp-drop-zone:hover .cp-drop-icon,
+.cp-drop-zone.cp--drag .cp-drop-icon {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+}
+.cp-drop-zone.cp--done .cp-drop-icon {
+  background: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+.cp-drop-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.cp-drop-text strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+.cp-drop-text span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.cp-drop-rm {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 3;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  border: none;
+  color: #ef4444;
+  font-size: 0.68rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.cp-drop-rm:hover { background: rgba(239, 68, 68, 0.22); transform: scale(1.1); }
+
+.cp-sidecar { margin-top: 0; }
+
+/* ── Pricing card ── */
+.cp-pricing-card {
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.cp-pricing-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  background: var(--bg-main, #f9fafb);
+  border-bottom: 1px solid var(--border-light, transparent);
+}
+.cp-pricing-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.cp-pricing-label i { color: #f59e0b; }
+.cp-toggle-wrap { display: flex; align-items: center; gap: 0.625rem; }
+.cp-toggle-inp { display: none; }
+.cp-toggle {
+  display: inline-block;
+  width: 40px;
+  height: 23px;
+  background: var(--border);
+  border-radius: 50px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+}
+.cp-toggle::after {
+  content: '';
+  position: absolute;
+  top: 3.5px;
+  left: 3.5px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+  transition: transform 0.2s ease;
+}
+.cp-toggle-inp:checked + .cp-toggle { background: #10b981; }
+.cp-toggle-inp:checked + .cp-toggle::after { transform: translateX(17px); }
+.cp-toggle-label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
+.cp-price-body { padding: 0.875rem 1rem; }
+.cp-price-row { position: relative; }
+.cp-price-ccy {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  pointer-events: none;
+  z-index: 1;
+}
+.cp-price-inp { padding-left: 3.5rem !important; font-weight: 600; }
+
+/* ── Notice ── */
+.cp-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.875rem 1rem;
+  background: rgba(249, 115, 22, 0.05);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-left: 3px solid #fb923c;
+  border-radius: 12px;
+}
+.cp-notice i { color: #f97316; font-size: 0.85rem; margin-top: 0.1rem; flex-shrink: 0; }
+.cp-notice p { margin: 0; font-size: 0.78rem; color: #92400e; line-height: 1.55; }
+.cp-notice strong { color: #7c2d12; }
+[data-theme="dark"] .cp-notice { background: rgba(249,115,22,.07); }
+[data-theme="dark"] .cp-notice p { color: #fdba74; }
+[data-theme="dark"] .cp-notice strong { color: #fed7aa; }
+
+/* ── Errors ── */
+.cp-error {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: #ef4444;
+  margin: 0;
+}
+
+/* ── Actions ── */
+.cp-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+.cp-mobile-bar { display: none; }
+
+.cp-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.8rem 1.75rem;
+  background: var(--primary, #6366f1);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+  transition: background 0.15s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
+}
+.cp-btn-primary:hover {
+  background: var(--primary-dark, #4f46e5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5);
+  color: #fff;
+}
+.cp-btn-primary:active { transform: translateY(0); }
+.cp-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+.cp-btn-primary--full { flex: 1; }
+
+.cp-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.8rem 1.25rem;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1.5px solid var(--border);
+  border-radius: 50px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.cp-btn-ghost:hover { border-color: var(--primary, #6366f1); color: var(--primary, #6366f1); }
+.cp-btn-ghost--ico { padding: 0.8rem; aspect-ratio: 1; }
+
+/* ── Prose preview ── */
+.cp-prose { word-wrap: break-word; overflow-wrap: break-word; }
+.cp-prose p { margin: 0 0 0.75rem; }
+.cp-prose p:last-child { margin: 0; }
+.cp-prose h2 { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin: 1rem 0 0.35rem; }
+.cp-prose h3 { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0.8rem 0 0.3rem; }
+.cp-prose strong { font-weight: 700; color: var(--text-primary); }
+.cp-prose em { font-style: italic; }
+.cp-prose a { color: var(--primary, #6366f1); text-decoration: underline; text-underline-offset: 3px; }
+.cp-prose ul, .cp-prose ol { margin: 0.3rem 0 0.75rem 1.25rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.cp-prose ul { list-style: disc; } .cp-prose ol { list-style: decimal; }
+.cp-prose blockquote { border-left: 3px solid var(--primary, #6366f1); margin: 0.6rem 0; padding: 0.4rem 0 0.4rem 0.875rem; background: rgba(99,102,241,.05); border-radius: 0 8px 8px 0; color: var(--text-secondary); font-style: italic; }
+.cp-prose code { background: var(--bg-hover, #f1f5f9); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.38em; font-size: 0.84em; font-family: 'Fira Code','Consolas',monospace; color: var(--primary, #6366f1); }
+.cp-prose pre { background: #16131f; border-radius: 10px; padding: 0.875rem 1rem; overflow-x: auto; margin: 0.6rem 0; }
+.cp-prose pre code { background: none; border: none; padding: 0; color: #e2e8f0; }
+.cp-prose hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+
+/* ── Dark mode ── */
+[data-theme="dark"] .cp-section { background: var(--bg-card); border-color: var(--border); }
+[data-theme="dark"] .cp-editor-card { background: var(--bg-card); border-color: var(--border); }
+[data-theme="dark"] .cp-toolbar { background: var(--bg-hover); }
+[data-theme="dark"] .cp-editor-footer { background: var(--bg-hover); }
+[data-theme="dark"] .cp-input { background: var(--bg-hover); }
+[data-theme="dark"] .cp-input:focus { background: var(--bg-card); }
+[data-theme="dark"] .cp-search-input { background: var(--bg-hover); }
+[data-theme="dark"] .cp-search-input:focus { background: var(--bg-card); }
+[data-theme="dark"] .cp-chip { background: var(--bg-hover); }
+[data-theme="dark"] .cp-btn-ghost { background: var(--bg-card); }
+[data-theme="dark"] .cp-pricing-head { background: var(--bg-hover); }
+[data-theme="dark"] .cp-pricing-card { border-color: var(--border); }
+[data-theme="dark"] .cp-tab--active { background: var(--bg-card); }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .cp-shell { padding: 1rem 0.875rem 5.5rem; }
+  .cp-actions { display: none; }
+  .cp-mobile-bar {
+    display: flex;
+    gap: 0.75rem;
+    position: fixed;
+    bottom: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    background-size: 200% 100%;
-    animation: gradient-shift 3s ease infinite;
-}
-
-@keyframes gradient-shift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-}
-
-.create-header {
-    text-align: center;
-    margin-bottom: 2.5rem;
-    padding-bottom: var(--spacing-lg);
-    border-bottom: 1px solid var(--border-light);
-}
-
-.header-icon {
-    width: 70px;
-    height: 70px;
-    margin: 0 auto 1rem;
-    background: #667eea;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    color: white;
-}
-
-.copyright-warning {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.6rem;
-    padding: 0.75rem 1rem;
-    background: #fff1f1;
-    border: 1px solid #fca5a5;
-    border-left: 3px solid #ef4444;
-    border-radius: 10px;
-    margin-bottom: 1.5rem;
-    color: #b91c1c;
-    font-size: 0.8rem;
-    line-height: 1.5;
-}
-.copyright-warning i { flex-shrink: 0; margin-top: 0.15rem; font-size: 0.9rem; color: #ef4444; }
-.copyright-warning strong { color: #991b1b; }
-
-.create-header h1 {
-    margin-bottom: var(--spacing-sm);
-    color: var(--text-primary);
-    font-size: 2rem;
-    font-weight: 800;
-    word-wrap: break-word;
-}
-.create-header p { color: var(--text-secondary); font-size: 1rem; }
-
-.create-form { width: 100%; }
-.form-group { margin-bottom: 1.75rem; }
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    font-size: 0.95rem;
-}
-
-.form-control {
-    width: 100%;
-    padding: 1rem 1.25rem;
-    border: 2px solid var(--border);
-    border-radius: 14px;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    background: var(--bg-main);
-    color: var(--text-primary);
-}
-.form-control:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    background: var(--bg-card);
-}
-.form-control.textarea { resize: vertical; min-height: 140px; font-family: inherit; }
-
-.form-hint { display: block; margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary); }
-.form-hint i { margin-right: 0.25rem; color: #667eea; }
-
-/* ── Markdown editor ── */
-.md-editor-wrapper {
-    border: 2px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
-    background: var(--bg-main);
-    transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
-}
-.md-editor-wrapper:focus-within {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    background: var(--bg-card);
-}
-
-.md-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 0.2rem;
-    padding: 0.5rem 0.75rem;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
-}
-.md-toolbar-group { display: flex; gap: 0.1rem; }
-.md-toolbar-sep {
-    width: 1px;
-    height: 18px;
-    background: var(--border);
-    margin: 0 0.2rem;
-    flex-shrink: 0;
-    align-self: center;
-}
-
-.md-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.3rem 0.55rem;
-    border: 1px solid transparent;
-    border-radius: 7px;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.15s;
-    line-height: 1;
-    -webkit-tap-highlight-color: transparent;
-}
-.md-btn:hover { background: var(--bg-secondary, rgba(0,0,0,0.04)); border-color: var(--border); color: var(--text-primary); }
-.md-btn.active { background: rgba(102, 126, 234, 0.12); border-color: rgba(102, 126, 234, 0.3); color: #667eea; }
-.md-btn--preview { font-size: 0.775rem; font-weight: 600; }
-.md-btn--preview span { font-size: 0.775rem; }
-
-.md-panes { position: relative; }
-
-.md-textarea {
-    display: block;
-    width: 100%;
-    min-height: 150px;
-    padding: 1rem 1.25rem;
-    border: none;
-    background: transparent;
-    font-size: 0.925rem;
-    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
-    color: var(--text-primary);
-    resize: vertical;
-    outline: none;
-    box-sizing: border-box;
-    line-height: 1.7;
-    tab-size: 2;
-}
-.md-textarea::placeholder { color: var(--text-muted); font-family: inherit; font-size: 0.875rem; white-space: pre-line; }
-
-.md-preview {
-    min-height: 150px;
-    padding: 1rem 1.25rem;
-    font-size: 0.925rem;
-    color: var(--text-secondary);
-    line-height: 1.75;
-}
-.md-preview[hidden] { display: none; }
-.md-preview-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    color: var(--text-muted);
-    font-size: 0.875rem;
-    padding: 2rem 0;
-}
-
-.md-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.375rem 0.875rem;
+    z-index: 100;
+    padding: 0.875rem 1.25rem;
     background: var(--bg-card);
     border-top: 1px solid var(--border);
-}
-.md-hint { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; }
-.md-hint i { margin-right: 0.25rem; }
-.md-char-count { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; font-variant-numeric: tabular-nums; }
-.md-char-count.warn { color: #f59e0b; }
-.md-char-count.over { color: #dc2626; font-weight: 700; }
-
-/* ── Prose rendering (preview pane + post_view.html) ── */
-.prose-content { word-wrap: break-word; overflow-wrap: break-word; }
-.prose-content p { margin: 0 0 0.875rem; line-height: 1.75; }
-.prose-content p:last-child { margin-bottom: 0; }
-.prose-content h1,.prose-content h2,.prose-content h3,
-.prose-content h4,.prose-content h5,.prose-content h6 {
-    font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em;
-    margin: 1.25rem 0 0.5rem; line-height: 1.25;
-}
-.prose-content h1 { font-size: 1.5rem; }
-.prose-content h2 { font-size: 1.25rem; }
-.prose-content h3 { font-size: 1.1rem; }
-.prose-content strong { font-weight: 700; color: var(--text-primary); }
-.prose-content em { font-style: italic; }
-.prose-content a { color: #667eea; text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
-.prose-content a:hover { color: #4f46e5; }
-.prose-content ul, .prose-content ol { margin: 0.5rem 0 0.875rem 1.375rem; display: flex; flex-direction: column; gap: 0.3rem; padding: 0; }
-.prose-content ul { list-style: disc; }
-.prose-content ol { list-style: decimal; }
-.prose-content ul li, .prose-content ol li { padding-left: 0.25rem; line-height: 1.65; }
-.prose-content blockquote {
-    border-left: 3px solid #667eea;
-    margin: 0.75rem 0; padding: 0.5rem 0 0.5rem 1rem;
-    background: rgba(102, 126, 234, 0.05); border-radius: 0 8px 8px 0;
-    color: var(--text-secondary); font-style: italic;
-}
-.prose-content code {
-    background: var(--bg-secondary, rgba(0,0,0,0.05));
-    border: 1px solid var(--border);
-    border-radius: 5px; padding: 0.15em 0.4em;
-    font-size: 0.85em; font-family: 'Fira Code','Consolas',monospace;
-    color: #4f46e5;
-}
-.prose-content pre {
-    background: #1e1b2e; border-radius: 10px;
-    padding: 1rem 1.25rem; overflow-x: auto; margin: 0.75rem 0;
-}
-.prose-content pre code { background: none; border: none; padding: 0; color: #e2e8f0; font-size: 0.85rem; }
-.prose-content hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
-.prose-content img { max-width: 100%; border-radius: 8px; margin: 0.5rem 0; }
-.prose-content table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.875rem; }
-.prose-content th { background: rgba(102,126,234,0.07); font-weight: 700; color: var(--text-primary); padding: 0.5rem 0.75rem; border: 1px solid var(--border); text-align: left; }
-.prose-content td { padding: 0.45rem 0.75rem; border: 1px solid var(--border); color: var(--text-secondary); }
-.prose-content tr:nth-child(even) td { background: rgba(102,126,234,0.03); }
-
-/* File Upload */
-.file-upload-container { position: relative; }
-.file-input { position: absolute; width: 0.1px; height: 0.1px; opacity: 0; overflow: hidden; z-index: -1; }
-.file-label {
-    display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
-    padding: 2rem; background: linear-gradient(135deg, rgba(102,126,234,0.05), rgba(118,75,162,0.05));
-    border: 2px dashed var(--border); border-radius: 16px; cursor: pointer;
-    transition: all 0.3s ease; text-align: center;
-}
-.file-label:hover { border-color: #667eea; background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1)); transform: translateY(-2px); }
-.upload-icon { width: 60px; height: 60px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; color: white; margin-bottom: 0.5rem; }
-.upload-icon i { color: white; }
-.file-name-text { font-weight: 600; color: var(--text-primary); font-size: 1rem; }
-.file-types { font-size: 0.875rem; color: var(--text-secondary); }
-
-/* Payment Section */
-.payment-section {
-    background: linear-gradient(135deg, rgba(102,126,234,0.05), rgba(118,75,162,0.05));
-    padding: 1.75rem; border-radius: 16px; margin-top: 2rem; margin-bottom: 2rem;
-    border: 1px solid rgba(102,126,234,0.1);
-}
-.payment-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
-.payment-header i { color: #10b981; font-size: 1.25rem; }
-.payment-header h3 { margin: 0; font-size: 1.125rem; font-weight: 700; color: var(--text-primary); }
-
-.checkbox-group { display: flex; align-items: center; gap: 0.75rem; }
-.checkbox-group input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
-.checkbox-group label { margin: 0; cursor: pointer; font-weight: 500; }
-
-.price-input-wrapper { position: relative; }
-.currency-symbol { position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--text-secondary); font-size: 0.95rem; pointer-events: none; }
-.price-input { padding-left: 4rem !important; }
-
-/* Form Actions */
-.form-actions { display: flex; gap: 1rem; margin-top: 2.5rem; }
-.form-actions .btn {
-    flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    padding: 1rem 2rem; border: none; border-radius: 14px; font-weight: 600; font-size: 1rem;
-    cursor: pointer; transition: all 0.3s ease;
-}
-.btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; box-shadow: 0 10px 30px rgba(102,126,234,0.3); }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(102,126,234,0.4); }
-.btn-secondary { background: var(--bg-main); color: var(--text-secondary); border: 2px solid var(--border); text-decoration: none; }
-.btn-secondary:hover { background: var(--bg-hover); border-color: var(--text-secondary); }
-
-.error { display: block; color: #ef4444; font-size: 0.875rem; margin-top: 0.5rem; }
-
-/* Mobile */
-@media (max-width: 768px) {
-    .create-container { padding: 1.5rem 1rem; }
-    .create-card { padding: 2rem 1.5rem; border-radius: 20px; }
-    .header-icon { width: 60px; height: 60px; font-size: 1.75rem; }
-    .create-header h1 { font-size: 1.5rem; }
-    .create-header p { font-size: 0.9rem; }
-    .form-group { margin-bottom: 1.5rem; }
-    .form-control { padding: 0.875rem 1rem; font-size: 1rem; border-radius: 12px; }
-    .file-label { padding: 1.75rem 1rem; }
-    .upload-icon { width: 50px; height: 50px; font-size: 1.5rem; }
-    .payment-section { padding: 1.5rem; border-radius: 14px; }
-    .payment-header h3 { font-size: 1rem; }
-    .form-actions { flex-direction: column-reverse; gap: 0.75rem; margin-top: 2rem; }
-    .form-actions .btn { width: 100%; padding: 1rem; border-radius: 12px; }
-    .md-toolbar-sep:nth-child(6) { display: none; }
-    .md-btn--preview span { display: none; }
+    box-shadow: 0 -4px 20px rgba(0,0,0,.1);
+  }
 }
 
-@media (max-width: 480px) {
-    .container { padding: .75rem 0.25rem; }
-    .create-container { padding: 0.6rem 0.35rem; }
-    .create-card { padding: 1.5rem 1.25rem; }
-    .create-header { margin-bottom: 2rem; }
-    .header-icon { width: 55px; height: 55px; font-size: 1.5rem; }
-    .create-header h1 { font-size: 1.375rem; }
-    .file-label { padding: 1.5rem 0.75rem; }
-    .file-name-text { font-size: 0.9rem; }
-    .file-types { font-size: 0.8rem; }
+@media (max-width: 600px) {
+  .cp-shell { padding: 0.875rem 0.75rem 5.5rem; }
+  .cp-section { padding: 1rem; }
+  .cp-header-content { padding: 0.875rem 1rem; }
+  .cp-page-title { font-size: 1.05rem; }
+  .cp-label-row { gap: 0.5rem; }
+  .cp-editor-tabs { order: 3; }
+  .cp-char-count { order: 4; }
+  .cp-tb-hints { display: none; }
+  .cp-textarea { min-height: 180px; }
+  .cp-preview { min-height: 180px; }
+  .cp-drop-label { padding: 1rem; gap: 0.75rem; }
+  .cp-drop-icon { width: 38px; height: 38px; font-size: 1rem; }
+  .cp-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .cp-chips::-webkit-scrollbar { display: none; }
+  .cp-chip { flex-shrink: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-drop-icon, .cp-btn-primary, .cp-btn-ghost { transition: none !important; }
 }
 </style>
 
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script>
-/* ── File name display ── */
-function updateFileName(input) {
-    const fileNameSpan = document.getElementById('file-name');
-    const fileTypesSpan = document.querySelector('.file-types');
-    if (input.files && input.files[0]) {
-        fileNameSpan.textContent = input.files[0].name;
-        fileTypesSpan.style.display = 'none';
-    } else {
-        fileNameSpan.textContent = 'Choose a file';
-        fileTypesSpan.style.display = 'block';
-    }
-}
-
-/* ── Price toggle ── */
-const isPaidCheckbox = document.getElementById('is_paid');
-if (isPaidCheckbox) {
-    isPaidCheckbox.addEventListener('change', function() {
-        document.getElementById('price-group').style.display = this.checked ? 'block' : 'none';
-    });
-}
-
-/* ── Markdown editor ── */
 (function () {
+  'use strict';
+
+  if (typeof marked !== 'undefined') {
     marked.setOptions({ breaks: true, gfm: true });
-    const renderer = new marked.Renderer();
-    renderer.link = (href, title, text) => {
-        const ext = href && (href.startsWith('http://') || href.startsWith('https://'));
-        return `<a href="${href}"${title ? ` title="${title}"` : ''}${ext ? ' target="_blank" rel="noopener noreferrer"' : ''}>${text}</a>`;
-    };
-    marked.use({ renderer });
+  }
 
-    const textarea  = document.getElementById('md-textarea');
-    const preview   = document.getElementById('md-preview');
-    const charCount = document.getElementById('md-char-count');
-    const MAX       = 5000;
+  const ta   = document.getElementById('cpTextarea');
+  const prev = document.getElementById('cpPreview');
+  const cnum = document.getElementById('cpCharNum');
+  const ctr  = document.getElementById('cpCharCount');
+  const MAX  = 5000;
 
-    if (!textarea) return;
-
-    /* char counter */
-    function updateCount() {
-        const n = textarea.value.length;
-        charCount.textContent = n.toLocaleString() + ' chars';
-        charCount.className = 'md-char-count' + (n > MAX ? ' over' : n > MAX * 0.85 ? ' warn' : '');
+  function updateCount() {
+    if (!ta || !cnum) return;
+    const n = ta.value.length;
+    cnum.textContent = n.toLocaleString();
+    if (ctr) {
+      ctr.className = 'cp-char-count' +
+        (n > MAX ? ' cp--over' : n > MAX * .85 ? ' cp--warn' : '');
     }
-    textarea.addEventListener('input', updateCount);
-    updateCount();
+  }
+  ta && ta.addEventListener('input', updateCount);
+  updateCount();
 
-    /* toolbar actions */
-    const ACTIONS = {
-        bold:    { wrap: ['**','**'], placeholder: 'bold text'   },
-        italic:  { wrap: ['*', '*'], placeholder: 'italic text' },
-        strike:  { wrap: ['~~','~~'],placeholder: 'struck text' },
-        code:    { wrap: ['`', '`'], placeholder: 'code'        },
-        h2:      { line: '## ',      placeholder: 'Heading'     },
-        quote:   { line: '> ',       placeholder: 'Blockquote'  },
-        ul:      { line: '- ',       placeholder: 'List item'   },
-        ol:      { line: '1. ',      placeholder: 'List item'   },
-        link:    { special: 'link' },
-    };
-
-    function insertMarkdown(action) {
-        const cfg = ACTIONS[action];
-        if (!cfg) return;
-        const start = textarea.selectionStart, end = textarea.selectionEnd;
-        const sel = textarea.value.slice(start, end);
-        let before = textarea.value.slice(0, start), after = textarea.value.slice(end);
-        let insert = '', cursor = 0;
-
-        if (cfg.special === 'link') {
-            const url = prompt('Enter URL:', 'https://'); if (!url) return;
-            insert = `[${sel || 'link text'}](${url})`; cursor = insert.length;
-        } else if (cfg.wrap) {
-            const [o, c] = cfg.wrap;
-            insert = sel ? (sel.startsWith(o) && sel.endsWith(c) ? sel.slice(o.length, -c.length) : o+sel+c) : o+cfg.placeholder+c;
-            cursor = insert.length;
-        } else if (cfg.line) {
-            if (before.length && !before.endsWith('\n')) before += '\n';
-            if (after.length && !after.startsWith('\n')) after = '\n' + after;
-            insert = (sel || cfg.placeholder).split('\n').map(l => cfg.line + l).join('\n');
-            cursor = insert.length;
-        }
-
-        textarea.value = before + insert + after;
-        textarea.selectionStart = before.length;
-        textarea.selectionEnd   = before.length + cursor;
-        textarea.focus();
-        textarea.dispatchEvent(new Event('input'));
+  window.cpSetTab = function (mode) {
+    const tw = document.getElementById('cpTabWrite');
+    const tp = document.getElementById('cpTabPreview');
+    const tb = document.getElementById('cpToolbar');
+    if (mode === 'write') {
+      ta.hidden = false; prev.hidden = true;
+      tw.classList.add('cp-tab--active'); tp.classList.remove('cp-tab--active');
+      if (tb) { tb.style.opacity = ''; tb.style.pointerEvents = ''; }
+      ta.focus();
+    } else {
+      const html = (typeof marked !== 'undefined') ? marked.parse(ta.value || '') : '';
+      prev.innerHTML = html.trim()
+        ? `<div class="cp-prose">${html}</div>`
+        : `<div class="cp-preview-empty"><i class="fas fa-feather-pointed"></i><span>Preview appears here as you write…</span></div>`;
+      ta.hidden = true; prev.hidden = false;
+      tp.classList.add('cp-tab--active'); tw.classList.remove('cp-tab--active');
+      if (tb) { tb.style.opacity = '.35'; tb.style.pointerEvents = 'none'; }
     }
+  };
 
-    document.querySelectorAll('.md-btn[data-action]').forEach(btn => {
-        if (btn.dataset.action !== 'preview') btn.addEventListener('click', () => insertMarkdown(btn.dataset.action));
+  const MD = {
+    bold:   { wrap: ['**','**'], ph: 'bold text' },
+    italic: { wrap: ['*','*'],   ph: 'italic text' },
+    code:   { wrap: ['`','`'],   ph: 'code' },
+    h2:     { line: '## ',       ph: 'Heading' },
+    quote:  { line: '> ',        ph: 'Blockquote' },
+    ul:     { line: '- ',        ph: 'List item' },
+    ol:     { line: '1. ',       ph: 'List item' },
+    link:   { special: 'link' },
+    hr:     { special: 'hr' },
+  };
+
+  function insertMd(action) {
+    if (!ta || ta.hidden) return;
+    const c = MD[action]; if (!c) return;
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    const sel = ta.value.slice(s, e);
+    let before = ta.value.slice(0, s), after = ta.value.slice(e), ins = '';
+    if (c.special === 'link') {
+      const url = prompt('Enter URL:', 'https://'); if (!url) return;
+      ins = `[${sel || 'link text'}](${url})`;
+    } else if (c.special === 'hr') {
+      if (before && !before.endsWith('\n')) before += '\n'; ins = '\n---\n';
+    } else if (c.wrap) {
+      const [o, cl] = c.wrap;
+      ins = sel ? (sel.startsWith(o) && sel.endsWith(cl) ? sel.slice(o.length, -cl.length) : o + sel + cl) : o + c.ph + cl;
+    } else if (c.line) {
+      if (before && !before.endsWith('\n')) before += '\n';
+      ins = (sel || c.ph).split('\n').map(l => c.line + l).join('\n');
+    }
+    ta.value = before + ins + after;
+    ta.selectionStart = before.length; ta.selectionEnd = before.length + ins.length;
+    ta.focus(); ta.dispatchEvent(new Event('input'));
+  }
+
+  document.querySelectorAll('.cp-tb-btn[data-md]').forEach(btn =>
+    btn.addEventListener('click', () => insertMd(btn.dataset.md))
+  );
+
+  ta && ta.addEventListener('keydown', ev => {
+    if (ev.ctrlKey || ev.metaKey) {
+      if (ev.key === 'b') { ev.preventDefault(); insertMd('bold'); }
+      if (ev.key === 'i') { ev.preventDefault(); insertMd('italic'); }
+      if (ev.key === 'k') { ev.preventDefault(); insertMd('link'); }
+    }
+    if (ev.key === 'Tab') {
+      ev.preventDefault();
+      const p = ta.selectionStart;
+      ta.value = ta.value.slice(0, p) + '  ' + ta.value.slice(ta.selectionEnd);
+      ta.selectionStart = ta.selectionEnd = p + 2;
+    }
+  });
+
+  window.cpDrag = function (ev, id, on) {
+    ev.preventDefault();
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('cp--drag', on);
+  };
+
+  window.cpHandleFile = function (input) {
+    if (!input.files || !input.files[0]) return;
+    const f = input.files[0];
+    const ext = f.name.split('.').pop().toLowerCase();
+    document.getElementById('cpDropName').textContent = `${f.name}  ·  ${(f.size/1048576).toFixed(1)} MB`;
+    document.getElementById('cpDropIco').className = 'fas fa-circle-check';
+    const types = document.getElementById('cpDropTypes');
+    if (types) types.style.display = 'none';
+    document.getElementById('cpDropZone').classList.add('cp--done');
+    document.getElementById('cpFileRm').style.display = 'flex';
+    const sc = document.getElementById('cpSidecarSection');
+    if (sc) sc.style.display = ext === 'pdf' ? 'block' : 'none';
+  };
+
+  window.cpClearFile = function () {
+    document.getElementById('cpFileInput').value = '';
+    document.getElementById('cpDropName').textContent = 'Drop file or click to browse';
+    document.getElementById('cpDropIco').className = 'fas fa-cloud-arrow-up';
+    const types = document.getElementById('cpDropTypes');
+    if (types) types.style.display = '';
+    document.getElementById('cpDropZone').classList.remove('cp--done');
+    document.getElementById('cpFileRm').style.display = 'none';
+    const sc = document.getElementById('cpSidecarSection');
+    if (sc) sc.style.display = 'none';
+    cpClearJson();
+  };
+
+  window.cpHandleJson = function (input) {
+    if (!input.files || !input.files[0]) return;
+    document.getElementById('cpJsonName').textContent = input.files[0].name;
+    document.getElementById('cpJsonIco').className = 'fas fa-circle-check';
+    document.getElementById('cpJsonZone').classList.add('cp--done');
+    document.getElementById('cpJsonRm').style.display = 'flex';
+  };
+
+  window.cpClearJson = function () {
+    const i = document.getElementById('cpJsonInput'); if (i) i.value = '';
+    const n = document.getElementById('cpJsonName');  if (n) n.textContent = 'Attach .json quiz file';
+    const ic = document.getElementById('cpJsonIco');  if (ic) ic.className = 'fas fa-file-code';
+    const z  = document.getElementById('cpJsonZone'); if (z) z.classList.remove('cp--done');
+    const r  = document.getElementById('cpJsonRm');   if (r) r.style.display = 'none';
+  };
+
+  const paidToggle = document.getElementById('is_paid');
+  if (paidToggle) {
+    paidToggle.addEventListener('change', function () {
+      const pb = document.getElementById('cpPriceBody');
+      const lbl = document.getElementById('cpPriceLabel');
+      if (pb) pb.style.display = this.checked ? 'block' : 'none';
+      if (lbl) lbl.textContent = this.checked ? 'Paid' : 'Free';
+    });
+  }
+
+  const form = document.getElementById('cpForm');
+  if (form) {
+    form.addEventListener('submit', function () {
+      document.querySelectorAll('.cp-btn-primary').forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+      });
+    });
+  }
+
+  /* Subject chips */
+  const hiddenSel = document.getElementById('{{ form.subject.id }}');
+  const searchIn  = document.getElementById('cpSubjectSearch');
+  const chipsWrap = document.getElementById('cpSubjectChips');
+  const clearBtn  = document.getElementById('cpSubjectClear');
+
+  if (hiddenSel && searchIn && chipsWrap) {
+    const opts = Array.from(hiddenSel.options)
+      .filter(o => o.value && o.value !== '0')
+      .map(o => ({ v: o.value, l: o.text, c: o.dataset.color || 'var(--primary, #6366f1)' }));
+
+    let current = (hiddenSel.value && hiddenSel.value !== '0') ? hiddenSel.value : '';
+
+    opts.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cp-chip' + (opt.v === current ? ' cp-chip--on' : '');
+      btn.dataset.v = opt.v;
+      btn.dataset.l = opt.l.toLowerCase();
+      btn.style.setProperty('--chip-color', opt.c);
+      btn.innerHTML = `<span class="cp-chip-dot"></span>${opt.l}`;
+      btn.addEventListener('click', () => selectChip(btn, opt));
+      chipsWrap.appendChild(btn);
     });
 
-    /* keyboard shortcuts */
-    textarea.addEventListener('keydown', e => {
-        if (e.ctrlKey || e.metaKey) {
-            if (e.key === 'b') { e.preventDefault(); insertMarkdown('bold');   }
-            if (e.key === 'i') { e.preventDefault(); insertMarkdown('italic'); }
-            if (e.key === 'k') { e.preventDefault(); insertMarkdown('link');   }
-        }
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            const s = textarea.selectionStart;
-            textarea.value = textarea.value.slice(0, s) + '  ' + textarea.value.slice(textarea.selectionEnd);
-            textarea.selectionStart = textarea.selectionEnd = s + 2;
-        }
-    });
-
-    /* preview toggle */
-    const previewBtn = document.querySelector('.md-btn--preview');
-    let previewOpen = false;
-
-    function renderPreview() {
-        const html = marked.parse(textarea.value || '');
-        preview.innerHTML = html.trim()
-            ? html
-            : '<div class="md-preview-empty"><i class="fas fa-eye-slash"></i><span>Nothing to preview yet</span></div>';
+    if (current) {
+      const pre = opts.find(o => o.v === current);
+      if (pre) { searchIn.value = pre.l; if (clearBtn) clearBtn.style.display = 'flex'; }
     }
 
-    previewBtn && previewBtn.addEventListener('click', () => {
-        previewOpen = !previewOpen;
-        if (previewOpen) {
-            renderPreview();
-            textarea.hidden = true;
-            preview.hidden  = false;
-            previewBtn.classList.add('active');
-            previewBtn.querySelector('span').textContent = 'Edit';
-            previewBtn.querySelector('i').className = 'fas fa-pen';
-        } else {
-            textarea.hidden = false;
-            preview.hidden  = true;
-            previewBtn.classList.remove('active');
-            previewBtn.querySelector('span').textContent = 'Preview';
-            previewBtn.querySelector('i').className = 'fas fa-eye';
-            textarea.focus();
-        }
+    function selectChip(btn, opt) {
+      chipsWrap.querySelectorAll('.cp-chip.cp-chip--on').forEach(b => b.classList.remove('cp-chip--on'));
+      if (current === opt.v) { clearSel(); return; }
+      btn.classList.add('cp-chip--on');
+      current = opt.v; hiddenSel.value = opt.v;
+      searchIn.value = opt.l;
+      if (clearBtn) clearBtn.style.display = 'flex';
+      btn.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    }
+
+    function clearSel() {
+      current = ''; hiddenSel.value = '0'; searchIn.value = '';
+      if (clearBtn) clearBtn.style.display = 'none';
+      chipsWrap.querySelectorAll('.cp-chip.cp-chip--on').forEach(b => b.classList.remove('cp-chip--on'));
+      filter(''); searchIn.focus();
+    }
+
+    if (clearBtn) clearBtn.addEventListener('click', clearSel);
+
+    function filter(q) {
+      q = q.trim().toLowerCase();
+      chipsWrap.querySelectorAll('.cp-chip').forEach(c => {
+        c.classList.toggle('cp-chip--hide', q ? !c.dataset.l.includes(q) : false);
+      });
+    }
+
+    searchIn.addEventListener('input', () => {
+      filter(searchIn.value);
+      if (!searchIn.value.trim() && current) clearSel();
     });
+  }
+
 })();
 </script>
 {% endblock %}

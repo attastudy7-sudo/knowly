@@ -6,8 +6,7 @@ from flask import render_template, redirect, url_for, flash, request, current_ap
 from flask_login import login_required, current_user
 from app import db
 from app.payments import bp
-from app.models import Document, Purchase
-
+from app.models import Purchase, Document, User, Subscription
 
 def _paystack_headers():
     """Return auth headers for Paystack API calls."""
@@ -111,6 +110,356 @@ def initiate(document_id):
         },
     }
 
+"""
+ADD THESE TO: app/payments/routes.py
+─────────────────────────────────────
+Paste after the existing imports and before (or after) the existing routes.
+Also add the Subscription model import once you create it (see models section below).
+"""
+
+# ── Add to existing imports at top of routes.py ──────────────────────────────
+# from app.models import Document, Purchase, Subscription   ← add Subscription
+# from datetime import datetime, timedelta                  ← add this
+# (requests, hmac, hashlib, json, flask imports already present)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PLAN REGISTRY
+# Single source of truth for all subscription plans.
+# Add more plans here without touching route logic.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+PLANS = {
+    'monthly_unlimited': {
+        'name':        'Monthly Unlimited',
+        'amount_ghs':  20.00,
+        'duration_days': 30,
+        'description': 'Unlimited quizzes for 30 days',
+        'features': [
+            'Unlimited quiz attempts',
+            'Full answer explanations',
+            'Leaderboard access',
+            'Priority grading',
+        ],
+    },
+    # Add more plans here e.g. 'term_unlimited', 'annual_unlimited'
+}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROUTE 1 — /checkout  (plan-based, replaces the quiz upgrade url_for target)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@bp.route('/checkout/plan')
+@login_required
+def plan_checkout():
+    """
+    Unified checkout entry point.
+
+    Handles two call signatures:
+      A) Plan checkout (from quiz upgrade):
+           /checkout/plan?plan=monthly_unlimited&amount=20&currency=GHS&source=quiz&post_id=5
+
+      B) Document checkout (existing behaviour, backward-compatible):
+           /checkout/<int:document_id>  — kept as separate route below
+
+    Query params (plan checkout):
+      plan     : key from PLANS dict
+      amount   : display amount in GHS (validated against PLANS; not trusted for billing)
+      currency : expected 'GHS'
+      source   : where the user came from ('quiz', 'profile', etc.)
+      post_id  : optional, used for back-link after payment
+    """
+    plan_key = request.args.get('plan', '').strip()
+
+    # ── Plan checkout path ────────────────────────────────────────────────────
+    if plan_key:
+        plan = PLANS.get(plan_key)
+        if not plan:
+            flash('Unknown subscription plan.', 'danger')
+            return redirect(url_for('main.index'))
+
+        # Guard: already subscribed
+        if _user_has_active_subscription(current_user):
+            flash('You already have an active subscription.', 'info')
+            post_id = request.args.get('post_id')
+            if post_id:
+                return redirect(url_for('posts.view', post_id=post_id))
+            return redirect(url_for('main.index'))
+
+        source  = request.args.get('source', 'unknown')
+        post_id = request.args.get('post_id')
+
+        amount_pesewas = int(plan['amount_ghs'] * 100)
+
+        return render_template(
+            'payments/checkout.html',
+            title='Upgrade to Unlimited',
+            # ── plan fields (no `document` key!) ──
+            plan_key='monthly_unlimited',
+            plan_name='Monthly Unlimited Plan',
+            amount=20.0,                    # float, used for display
+            amount_pesewas=2000,            # int, passed to Paystack (amount * 100)
+            paystack_public_key=current_app.config['PAYSTACK_PUBLIC_KEY'],
+            verify_url=url_for('payments.subscribe_verify', _external=False),
+            fallback_url=url_for('payments.subscribe_initiate'),   # optional
+            next_url=request.args.get('next', ''))
+
+    # ── No plan param → wrong endpoint, send to index ────────────────────────
+    flash('No plan selected.', 'warning')
+    return redirect(url_for('main.index'))
+
+
+# ── Keep the original document checkout as its own route ─────────────────────
+# (already exists as /checkout/<int:document_id> — no changes needed there)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROUTE 2 — /subscribe/initiate  (server-side Paystack init for plans)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@bp.route('/subscribe/initiate', methods=['POST'])
+@login_required
+def subscribe_initiate():
+    """
+    Create a Paystack transaction for a subscription plan and redirect
+    the user to Paystack's hosted payment page (fallback path).
+    """
+    plan_key = request.form.get('plan_key', '').strip()
+    post_id  = request.form.get('post_id', '').strip()
+    source   = request.form.get('source', 'unknown')
+
+    plan = PLANS.get(plan_key)
+    if not plan:
+        flash('Invalid plan.', 'danger')
+        return redirect(url_for('main.index'))
+
+    if _user_has_active_subscription(current_user):
+        flash('You already have an active subscription.', 'info')
+        if post_id:
+            return redirect(url_for('posts.view', post_id=post_id))
+        return redirect(url_for('main.index'))
+
+    amount_pesewas = int(plan['amount_ghs'] * 100)
+    callback_url   = url_for(
+        'payments.subscribe_verify',
+        plan_key=plan_key,
+        post_id=post_id or '',
+        _external=True,
+    )
+
+    payload = {
+        'email':        current_user.email,
+        'amount':       amount_pesewas,
+        'currency':     'GHS',
+        'callback_url': callback_url,
+        'metadata': {
+            'user_id':  current_user.id,
+            'plan_key': plan_key,
+            'post_id':  post_id,
+            'source':   source,
+            'type':     'subscription',
+            'custom_fields': [
+                {
+                    'display_name':  'Plan',
+                    'variable_name': 'plan_name',
+                    'value':         plan['name'],
+                },
+                {
+                    'display_name':  'Buyer',
+                    'variable_name': 'buyer_username',
+                    'value':         current_user.username,
+                },
+            ],
+        },
+    }
+
+    try:
+        response = requests.post(
+            'https://api.paystack.co/transaction/initialize',
+            headers=_paystack_headers(),
+            json=payload,
+            timeout=15,
+        )
+        data = response.json()
+
+        if data.get('status'):
+            return redirect(data['data']['authorization_url'])
+        else:
+            current_app.logger.error(f"Paystack subscribe init failed: {data}")
+            flash('Payment could not be initiated. Please try again.', 'danger')
+            return redirect(url_for('payments.plan_checkout', plan=plan_key, post_id=post_id, source=source))
+
+
+    except requests.exceptions.RequestException as e:
+        current_app.logger.error(f"Paystack subscribe request error: {e}")
+        flash('A network error occurred. Please try again.', 'danger')
+        return redirect(url_for('payments.plan_checkout', plan=plan_key, post_id=post_id, source=source))
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROUTE 3 — /subscribe/verify  (called by Paystack redirect after payment)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@bp.route('/subscribe/verify')
+@login_required
+def subscribe_verify():
+    """
+    Paystack redirects here after subscription payment.
+    Verifies server-side, records Subscription, grants access.
+    """
+    reference = request.args.get('reference', '').strip()
+    plan_key  = request.args.get('plan_key', '').strip()
+    post_id   = request.args.get('post_id', '').strip()
+
+    plan = PLANS.get(plan_key)
+    if not plan:
+        flash('Unknown plan in callback.', 'danger')
+        return redirect(url_for('main.index'))
+
+    if not reference:
+        flash('Invalid payment reference.', 'danger')
+        return redirect(url_for('payments.plan_checkout', plan=plan_key))
+
+    # Idempotency guard
+    existing = Subscription.query.filter_by(transaction_id=reference).first()
+    if existing:
+        flash('This payment has already been processed.', 'info')
+        if post_id:
+            return redirect(url_for('posts.view', post_id=post_id))
+        return redirect(url_for('main.index'))
+
+    try:
+        response = requests.get(
+            f'https://api.paystack.co/transaction/verify/{reference}',
+            headers=_paystack_headers(),
+            timeout=15,
+        )
+        data = response.json()
+
+        if not data.get('status'):
+            flash('Payment verification failed. Please contact support.', 'danger')
+            return redirect(url_for('payments.plan_checkout', plan=plan_key))
+
+        tx              = data['data']
+        expected_pesewas = int(plan['amount_ghs'] * 100)
+
+        if tx['status'] == 'success' and tx['amount'] >= expected_pesewas:
+            # ── Grant subscription ────────────────────────────────────────────
+            now        = datetime.utcnow()
+            expires_at = now + timedelta(days=plan['duration_days'])
+
+            subscription = Subscription(
+                user_id=current_user.id,
+                plan_key=plan_key,
+                plan_name=plan['name'],
+                amount_paid=tx['amount'] / 100,
+                currency='GHS',
+                payment_method=tx.get('channel', 'paystack'),
+                transaction_id=reference,
+                status='active',
+                started_at=now,
+                expires_at=expires_at,
+            )
+            db.session.add(subscription)
+            db.session.commit()
+
+            # Optional: send confirmation email
+            try:
+                from app.utils import send_subscription_activation_email
+                send_subscription_confirmation_email(current_user, subscription, plan)
+            except Exception as email_err:
+                current_app.logger.warning(f"Sub confirmation email failed: {email_err}")
+
+            flash(
+                f'🎉 Subscription activated! You have unlimited access for {plan["duration_days"]} days.',
+                'success'
+            )
+            if post_id:
+                return redirect(url_for('posts.view', post_id=post_id))
+            return redirect(url_for('main.index'))
+
+        else:
+            # Payment exists but failed / cancelled
+            failed_sub = Subscription(
+                user_id=current_user.id,
+                plan_key=plan_key,
+                plan_name=plan['name'],
+                amount_paid=0,
+                currency='GHS',
+                payment_method=tx.get('channel', 'paystack'),
+                transaction_id=reference,
+                status=tx['status'],
+                started_at=datetime.utcnow(),
+                expires_at=datetime.utcnow(),
+            )
+            db.session.add(failed_sub)
+            db.session.commit()
+
+            flash(
+                f'Payment was not completed (status: {tx["status"]}). No charge was made.',
+                'warning'
+            )
+            return redirect(url_for('payments.plan_checkout', plan=plan_key))
+
+    except requests.exceptions.RequestException as e:
+        current_app.logger.error(f"Paystack subscribe verify error: {e}")
+        flash(
+            f'Could not verify payment. Please contact support with reference: {reference}',
+            'danger'
+        )
+        return redirect(url_for('payments.plan_checkout', plan=plan_key))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WEBHOOK ADDITION — handle subscription charge.success events
+# ═══════════════════════════════════════════════════════════════════════════════
+# In your existing webhook() route, add this block inside the
+# `if event.get('event') == 'charge.success':` handler,
+# AFTER the existing document purchase logic:
+
+"""
+        # ── Subscription payment via webhook ──────────────────────────────
+        plan_key = metadata.get('plan_key')
+        if plan_key and metadata.get('type') == 'subscription':
+            plan = PLANS.get(plan_key)
+            if plan and not Subscription.query.filter_by(transaction_id=reference).first():
+                now = datetime.utcnow()
+                sub = Subscription(
+                    user_id=user_id,
+                    plan_key=plan_key,
+                    plan_name=plan['name'],
+                    amount_paid=tx['amount'] / 100,
+                    currency='GHS',
+                    payment_method=tx.get('channel', 'paystack'),
+                    transaction_id=reference,
+                    status='active',
+                    started_at=now,
+                    expires_at=now + timedelta(days=plan['duration_days']),
+                )
+                db.session.add(sub)
+                db.session.commit()
+"""
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HELPER — check active subscription (used in routes above + quiz template)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _user_has_active_subscription(user) -> bool:
+    """
+    Returns True if the user has a currently active subscription.
+    Add this as a method on your User model too (see models section).
+    """
+    from datetime import datetime
+    sub = Subscription.query.filter_by(
+        user_id=user.id,
+        status='active',
+    ).filter(
+        Subscription.expires_at > datetime.utcnow()
+    ).first()
+    return sub is not None
     try:
         response = requests.post(
             'https://api.paystack.co/transaction/initialize',
@@ -182,6 +531,10 @@ def verify(document_id):
             )
             db.session.add(purchase)
             db.session.commit()
+
+            # Send purchase confirmation email
+            from app.utils import send_purchase_confirmation_email
+            send_purchase_confirmation_email(current_user, purchase, document)
 
             flash(
                 f'Payment successful! You now have full access to '
@@ -272,6 +625,13 @@ def webhook():
         )
         db.session.add(purchase)
         db.session.commit()
+        
+        # Send purchase confirmation email
+        from app.utils.emails import send_purchase_confirmation_email
+        from app.models import User
+        user = User.query.get(user_id)
+        send_purchase_confirmation_email(user, purchase, document)
+        
         current_app.logger.info(
             f"Webhook: purchase recorded for doc {document_id} by user {user_id}"
         )

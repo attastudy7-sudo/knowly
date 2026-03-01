@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import urllib.parse
 from flask import current_app
 from app import db, login_manager
@@ -46,8 +46,7 @@ def _initials_avatar_url(username: str, full_name: str | None) -> str:
         f'dominant-baseline="central" letter-spacing="-2">{initials}</text>'
         f'</svg>'
     )
-    return f"data:image/svg+xml,{urllib.parse.quote(svg)}"
-
+    return f"data:image/svg+xml,{urllib.parse.quote(svg, safe='')}"
 
 class User(UserMixin, db.Model):
     """
@@ -57,12 +56,44 @@ class User(UserMixin, db.Model):
     __tablename__ = 'profiles'
 
     id = db.Column(db.Integer, primary_key=True)
+    
+    # Property to calculate free attempts left
+    @property
+    def free_attempts_left(self):
+        # Reset free attempts if reset date is in the past
+        today = date.today()
+        if self.free_quiz_attempts_reset_date and self.free_quiz_attempts_reset_date < today:
+            self.free_quiz_attempts = 3
+            # Reset to next week (7 days from now)
+            self.free_quiz_attempts_reset_date = today + timedelta(days=7)
+            db.session.commit()
+        
+        return self.free_quiz_attempts
+    
+    # Property to check if user has active subscription
+    @property
+    def has_active_subscription(self):
+        if self.subscription_tier != 'free' and self.subscription_end_date:
+            return datetime.utcnow() < self.subscription_end_date
+        return False
+    
+    @property
+    def profile_picture_url(self):
+        if not self.profile_picture or self.profile_picture == 'default.jpg':
+            return _initials_avatar_url(self.username, self.full_name)
+        if self.profile_picture.startswith('http'):
+            return self.profile_picture
+        return _initials_avatar_url(self.username, self.full_name)
+
+    @property
+    def is_premium(self):
+        return self.subscription_tier != 'free' or self.can_access_all_content
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     
     # Subscription information
-    subscription_tier = db.Column(db.String(20), default='free', nullable=False)  # free, pro, enterprise
+    subscription_tier = db.Column(db.String(20), default='free', nullable=False)
     subscription_start_date = db.Column(db.DateTime)
     subscription_end_date = db.Column(db.DateTime)
     free_quiz_attempts = db.Column(db.Integer, default=3, nullable=False)
@@ -71,7 +102,7 @@ class User(UserMixin, db.Model):
     # Profile information
     full_name = db.Column(db.String(120))
     bio = db.Column(db.Text)
-    profile_picture = db.Column(db.String(200), default='default.jpg')
+    profile_picture = db.Column(db.String(500), default='default.jpg')
     school = db.Column(db.String(200), nullable=True)
     programme = db.Column(db.String(200), nullable=True)
 
@@ -91,18 +122,13 @@ class User(UserMixin, db.Model):
     # XP tracking
     xp_points = db.Column(db.Integer, default=0, nullable=False)
     xp_level = db.Column(db.Integer, default=1, nullable=False)
-
-    xp_title = db.Column(db.String(50), nullable=True)  # e.g., "Beginner", "Intermediate", "Advanced", "Expert"
-
-
+    xp_title = db.Column(db.String(50), nullable=True)
 
     # Relationships
     posts = db.relationship('Post', backref='author', lazy='dynamic', cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='author', lazy='dynamic', cascade='all, delete-orphan')
     likes = db.relationship('Like', backref='user', lazy='dynamic', cascade='all, delete-orphan')
 
-    
-    # Self-referential many-to-many for follows
     following = db.relationship(
         'User',
         secondary=followers,
@@ -113,6 +139,11 @@ class User(UserMixin, db.Model):
     )
 
     purchases = db.relationship('Purchase', backref='buyer', lazy='dynamic', cascade='all, delete-orphan')
+    subscriptions = db.relationship(
+        'Subscription', back_populates='user',
+        lazy='dynamic', cascade='all, delete-orphan',
+        order_by='Subscription.created_at.desc()'
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -132,178 +163,87 @@ class User(UserMixin, db.Model):
         return self.following.filter(followers.c.followed_id == user.id).count() > 0
 
     def followers_count(self):
-        """Return the count of users following this user."""
         return self.followers.count()
 
     def following_count(self):
-        """Return the count of users this user is following."""
         return self.following.count()
 
-    # ── Streak System ─────────────────────────────────────────────────────────
+    # ── Streak System ──────────────────────────────────────────────────────────
     def update_streak(self):
-        """
-        Update the user's activity streak.
-        Call this when the user performs an activity (post, comment, like).
-        
-        Logic:
-        - If last activity was today: do nothing (already counted)
-        - If last activity was yesterday: increment streak
-        - If last activity was before yesterday: reset streak to 1
-        - If no previous activity: start streak at 1
-        """
         today = date.today()
-        
         if self.last_activity_date is None:
-            # First activity ever
             self.current_streak = 1
         elif self.last_activity_date == today:
-            # Already active today, no change needed
             return
         elif self.last_activity_date == today - __import__('datetime').timedelta(days=1):
-            # Last activity was yesterday - continue streak
             self.current_streak += 1
         else:
-            # Streak broken - start over
             self.current_streak = 1
-        
-        # Update the last activity date
         self.last_activity_date = today
-        
-        # Track longest streak
         if self.current_streak > self.longest_streak:
             self.longest_streak = self.current_streak
-        
         db.session.commit()
 
     @property
     def streak_days(self):
-        """Return the current streak count."""
         return self.current_streak
 
     def add_xp(self, points):
-        """Add XP points to the user's total."""
         self.xp_points += points
         db.session.commit()
     
     def get_level(self):
-        """Return user's level based on XP points."""
-        if self.xp_points < 100:
+        if self.xp_points < 1000:
             return 1
-        elif self.xp_points < 500:
+        elif self.xp_points < 5000:
             return 2
-        elif self.xp_points < 1500:
+        elif self.xp_points < 15000:
             return 3
         else:
             return 4
     
     def get_title(self):
-        """Return user's title based on XP level."""
         level = self.get_level()
-        titles = {
-            1: "Beginner",
-            2: "Intermediate", 
-            3: "Advanced",
-            4: "Expert"
-        }
+        titles = {1: "Beginner", 2: "Intermediate", 3: "Advanced", 4: "Expert"}
         return titles.get(level, "Novice")
     
     def get_next_level_xp(self):
-        """Return XP needed for next level."""
-        levels = [100, 500, 1500, 2500]
+        levels = [1000, 5000, 15000, 25000]
         for threshold in levels:
             if self.xp_points < threshold:
                 return threshold
         return None
     
     def get_current_level_xp(self):
-        """Return the XP threshold for the current level."""
-        levels = [0, 100, 500, 1500]
+        levels = [0, 1000, 5000, 15000]
         level = self.get_level()
         return levels[level - 1] if level <= len(levels) else levels[-1]
     
     def get_xp_progress(self):
-        """Return XP progress percentage towards next level (0-100)."""
-        next_level = self.get_next_level_xp()
-        if next_level is None:
-            return 100  # Max level
-        current_level_xp = self.get_current_level_xp()
-        xp_in_level = self.xp_points - current_level_xp
-        xp_needed = next_level - current_level_xp
-        return min(100, max(0, (xp_in_level / xp_needed) * 100))
+        current = self.get_current_level_xp()
+        next_lvl = self.get_next_level_xp()
+        if next_lvl is None:
+            return 100
+        span = next_lvl - current
+        earned = self.xp_points - current
+        return min(100, int((earned / span) * 100)) if span > 0 else 100
 
-    # ─────────────────────────────────────────────────────────────────────────
-
-    @property
-    def profile_picture_url(self) -> str:
-        """
-        Return the user's profile picture URL.
-
-        - Has uploaded a picture → Cloudinary URL with fill crop
-        - No picture (new account / default.jpg) → SVG initials avatar
-        """
-        if self.profile_picture and self.profile_picture != 'default.jpg':
-            cloud_name = current_app.config['CLOUDINARY_CLOUD_NAME']
-            return (
-                f"https://res.cloudinary.com/{cloud_name}"
-                f"/image/upload/w_200,h_200,c_fill/{self.profile_picture}"
-            )
-        # Fallback: generated initials avatar — no static file required
-        return _initials_avatar_url(self.username, self.full_name)
-
-    def check_and_reset_free_attempts(self):
-        """
-        Check if the free quiz attempts should be reset (each month) and reset if needed.
-        """
-        today = date.today()
-        
-        # If no reset date set, initialize it to current month
-        if not self.free_quiz_attempts_reset_date:
-            self.free_quiz_attempts_reset_date = today.replace(day=1)
-            self.free_quiz_attempts = 3
-            db.session.commit()
-            return
-        
-        # Check if we've moved to a new month
-        if (today.year > self.free_quiz_attempts_reset_date.year or 
-            today.month > self.free_quiz_attempts_reset_date.month):
-            self.free_quiz_attempts_reset_date = today.replace(day=1)
-            self.free_quiz_attempts = 3
-            db.session.commit()
-    
-    def has_free_quiz_attempts(self):
-        """Check if user has remaining free quiz attempts this month."""
-        self.check_and_reset_free_attempts()
-        return self.free_quiz_attempts > 0
-    
-    def use_free_quiz_attempt(self):
-        """Use one free quiz attempt."""
-        if self.has_free_quiz_attempts():
-            self.free_quiz_attempts -= 1
-            db.session.commit()
-            return True
-        return False
-    
-    def __repr__(self):
-        return f'<User {self.username}>'
 
 
 class Post(db.Model):
     __tablename__ = 'post'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
+    description = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
     subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=True)
-    has_document = db.Column(db.Boolean, default=False)
     document_id = db.Column(db.Integer, db.ForeignKey('document.id'), nullable=True)
-
-    comments = db.relationship('Comment', backref='post', lazy='dynamic', cascade='all, delete-orphan')
+    has_document = db.Column(db.Boolean, default=False)
+    # document = db.relationship('Document', foreign_keys=[document_id], backref='post_ref', uselist=False)
     likes = db.relationship('Like', backref='post', lazy='dynamic', cascade='all, delete-orphan')
-    # FIXED: use back_populates + explicit foreign_keys to avoid ambiguity
-    document = db.relationship('Document', back_populates='post', foreign_keys=[document_id], uselist=False)
+    comments = db.relationship('Comment', backref='post', lazy='dynamic', cascade='all, delete-orphan')
     status = db.Column(db.String(20), nullable=False, default='pending')
     rejection_reason = db.Column(db.Text, nullable=True)
 
@@ -317,8 +257,11 @@ class Post(db.Model):
         return self.likes.filter_by(user_id=user.id).first() is not None
 
     def is_bookmarked_by(self, user):
-        """Stub — bookmark feature not yet implemented."""
         return False
+
+    def has_quiz(self):
+        """Check if this post has an associated quiz."""
+        return hasattr(self, 'quiz') and self.quiz is not None
 
     def __repr__(self):
         return f'<Post {self.title}>'
@@ -329,7 +272,6 @@ class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
-
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
 
@@ -338,7 +280,6 @@ class Like(db.Model):
     __tablename__ = 'like'
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
     __table_args__ = (db.UniqueConstraint('user_id', 'post_id', name='unique_like'),)
@@ -383,19 +324,11 @@ class Document(db.Model):
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     download_count = db.Column(db.Integer, default=0)
 
-    # FIXED: explicit reverse side of the Post.document relationship
-    post = db.relationship('Post', back_populates='document', foreign_keys='Post.document_id', uselist=False)
+    post = db.relationship('Post', foreign_keys='Post.document_id', backref='document', uselist=False, overlaps="post_ref")
 
     def has_access(self, user):
-        """
-        Free documents: everyone has access.
-        Paid documents: only if user has a completed purchase, subscription, or premium access.
-        Admins and users with premium access can access everything.
-        """
-        # Admins and users with premium access can access everything
         if getattr(user, 'is_admin', False) or getattr(user, 'can_access_all_content', False):
             return True
-        
         if not self.is_paid:
             return True
         return Purchase.query.filter_by(
@@ -430,51 +363,142 @@ class Subject(db.Model):
         return f'<Subject {self.name}>'
 
 
+# ── Helper: format seconds for display ────────────────────────────────────────
+def format_time_taken(seconds: int) -> str:
+    """
+    Convert integer seconds to a human-readable string.
+    Returns MM:SS if under 1 hour, HH:MM:SS otherwise.
+    """
+    seconds = max(0, int(seconds))
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    s = seconds % 60
+    if h > 0:
+        return f"{h:02d}:{m:02d}:{s:02d}"
+    return f"{m:02d}:{s:02d}"
+
+
 class QuizLeaderboard(db.Model):
     __tablename__ = 'quiz_leaderboard'
     id = db.Column(db.Integer, primary_key=True)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id', ondelete='CASCADE'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
+
+    # Score stored as percentage (0–100, rounded to 2 dp)
     score_pct = db.Column(db.Float, nullable=False)
+
     earned_marks = db.Column(db.Float, nullable=False)
     xp_earned = db.Column(db.Integer, nullable=False)
-    time_taken = db.Column(db.Integer, nullable=False)  # seconds
+
+    # Server-calculated elapsed seconds; never trusted from frontend
+    time_taken = db.Column(db.Integer, nullable=False)   # seconds
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
-    # Relationships
+    # Public flag - determines if entry is visible on leaderboard
+    is_public = db.Column(db.Boolean, default=False, nullable=False)
+    
     user = db.relationship('User', backref='leaderboard_entries')
     post = db.relationship('Post', backref=db.backref('leaderboard_entries', cascade='all, delete-orphan'))
     
     __table_args__ = (
         db.UniqueConstraint('post_id', 'user_id', name='unique_leaderboard_entry'),
-        db.Index('idx_leaderboard_post_score', 'post_id', 'score_pct', 'earned_marks', 'created_at'),
+        db.Index('idx_leaderboard_post_score', 'post_id', 'score_pct', 'time_taken'),
     )
 
+    @property
+    def formatted_time(self) -> str:
+        return format_time_taken(self.time_taken)
+
     def __repr__(self):
-        return f'<QuizLeaderboard post_id={self.post_id} user_id={self.user_id} score={self.score_pct:.1f}>'
+        return f'<QuizLeaderboard post_id={self.post_id} user_id={self.user_id} score={self.score_pct:.2f}%>'
+
 
 class QuizData(db.Model):
     __tablename__ = 'quiz_data'
-    id         = db.Column(db.Integer, primary_key=True)
-    post_id    = db.Column(db.Integer, db.ForeignKey('post.id', ondelete='CASCADE'), unique=True, nullable=False)
-    questions  = db.Column(db.Text, nullable=False)   # JSON string
+    id          = db.Column(db.Integer, primary_key=True)
+    post_id     = db.Column(db.Integer, db.ForeignKey('post.id', ondelete='CASCADE'), unique=True, nullable=False)
+    questions   = db.Column(db.Text, nullable=False)
     total_marks = db.Column(db.Integer, default=0)
-    xp_reward  = db.Column(db.Integer, default=0)
-    meta       = db.Column(db.Text)                   # JSON string
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    post       = db.relationship('Post', backref=db.backref('quiz', uselist=False, cascade='all, delete-orphan'))
+    xp_reward   = db.Column(db.Integer, default=0)
+    meta        = db.Column(db.Text)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    post        = db.relationship('Post', backref=db.backref('quiz', uselist=False, cascade='all, delete-orphan'))
+
 
 class QuizAttempt(db.Model):
     __tablename__ = 'quiz_attempts'
-    id           = db.Column(db.Integer, primary_key=True)
-    post_id      = db.Column(db.Integer, db.ForeignKey('post.id', ondelete='CASCADE'), nullable=False)
-    user_id      = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
-    answers      = db.Column(db.Text)       # JSON: {"0": "C", "1": "T", ...}
-    score_pct    = db.Column(db.Float, default=0)
+
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
+
+    answers = db.Column(db.Text)
+
+    score_pct = db.Column(db.Float, default=0)  # ONLY percentage field
+
     earned_marks = db.Column(db.Float, default=0)
-    xp_earned    = db.Column(db.Integer, default=0)
-    timed_out    = db.Column(db.Boolean, default=False)
-    time_taken   = db.Column(db.Integer, default=0)  # seconds
-    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
-    user         = db.relationship('User', backref='quiz_attempts')
-    post         = db.relationship('Post', backref=db.backref('quiz_attempts', cascade='all, delete-orphan'))
+    xp_earned = db.Column(db.Integer, default=0)
+
+    timed_out = db.Column(db.Boolean, default=False)
+
+    time_taken = db.Column(db.Integer, default=0)  # seconds, server-calculated
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='quiz_attempts')
+    post = db.relationship('Post', backref=db.backref(
+        'quiz_attempts',
+        cascade='all, delete-orphan'
+    ))
+
+
+class QuizAssessment(db.Model):
+    __tablename__ = 'quiz_assessments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_id = db.Column(db.Integer, db.ForeignKey('quiz_attempts.id', ondelete='CASCADE'), nullable=False)
+    question_index = db.Column(db.Integer, nullable=False)
+    score = db.Column(db.Float, nullable=False)
+    feedback = db.Column(db.Text, nullable=True)
+    assessed_by = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=True)
+    assessed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    attempt = db.relationship('QuizAttempt', backref=db.backref(
+        'assessments',
+        cascade='all, delete-orphan'
+    ))
+    assessor = db.relationship('User', backref='assessments')
+
+    __table_args__ = (
+        db.UniqueConstraint('attempt_id', 'question_index', name='unique_question_assessment'),
+    )
+
+    @property
+    def formatted_time(self) -> str:
+        return format_time_taken(self.time_taken)
+
+class Subscription(db.Model):
+    __tablename__ = 'subscriptions'
+
+    id             = db.Column(db.Integer, primary_key=True)
+    user_id        = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False, index=True)
+    plan_key       = db.Column(db.String(64),  nullable=False)
+    plan_name      = db.Column(db.String(128), nullable=False)
+    amount_paid    = db.Column(db.Float,  nullable=False, default=0.0)
+    currency       = db.Column(db.String(8),   nullable=False, default='GHS')
+    payment_method = db.Column(db.String(64),  nullable=True)
+    transaction_id = db.Column(db.String(128), nullable=True, unique=True, index=True)
+    status         = db.Column(db.String(32),  nullable=False, default='pending')
+    started_at     = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    expires_at     = db.Column(db.DateTime, nullable=False)
+    created_at     = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user = db.relationship('User', back_populates='subscriptions')
+
+    @property
+    def is_active(self):
+        return self.status == 'active' and self.expires_at > datetime.utcnow()
+
+    def __repr__(self):
+        return f'<Subscription {self.plan_key} user={self.user_id} expires={self.expires_at}>'

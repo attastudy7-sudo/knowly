@@ -32,8 +32,8 @@ def upgrade():
                existing_type=sa.INTEGER(),
                nullable=False)
         batch_op.create_index(batch_op.f('ix_comment_created_at'), ['created_at'], unique=False)
-        batch_op.create_foreign_key(None, 'profiles', ['user_id'], ['id'])
-        batch_op.create_foreign_key(None, 'post', ['post_id'], ['id'])
+        batch_op.create_foreign_key('fk_comment_user', 'profiles', ['user_id'], ['id'])
+        batch_op.create_foreign_key('fk_comment_post', 'post', ['post_id'], ['id'])
 
     with op.batch_alter_table('document', schema=None) as batch_op:
         batch_op.alter_column('filename',
@@ -57,8 +57,8 @@ def upgrade():
                nullable=False)
 
     with op.batch_alter_table('followers', schema=None) as batch_op:
-        batch_op.create_foreign_key(None, 'profiles', ['follower_id'], ['id'])
-        batch_op.create_foreign_key(None, 'profiles', ['followed_id'], ['id'])
+        batch_op.create_foreign_key('fk_followers_follower', 'profiles', ['follower_id'], ['id'])
+        batch_op.create_foreign_key('fk_followers_followed', 'profiles', ['followed_id'], ['id'])
 
     with op.batch_alter_table('like', schema=None) as batch_op:
         batch_op.alter_column('created_at',
@@ -71,8 +71,8 @@ def upgrade():
                existing_type=sa.INTEGER(),
                nullable=False)
         batch_op.create_unique_constraint('unique_like', ['user_id', 'post_id'])
-        batch_op.create_foreign_key(None, 'post', ['post_id'], ['id'])
-        batch_op.create_foreign_key(None, 'profiles', ['user_id'], ['id'])
+        batch_op.create_foreign_key('fk_like_post', 'post', ['post_id'], ['id'])
+        batch_op.create_foreign_key('fk_like_user', 'profiles', ['user_id'], ['id'])
 
     with op.batch_alter_table('notification', schema=None) as batch_op:
         batch_op.alter_column('user_id',
@@ -108,9 +108,9 @@ def upgrade():
                existing_type=sa.INTEGER(),
                nullable=False)
         batch_op.create_index(batch_op.f('ix_post_created_at'), ['created_at'], unique=False)
-        batch_op.create_foreign_key(None, 'subject', ['subject_id'], ['id'])
-        batch_op.create_foreign_key(None, 'document', ['document_id'], ['id'])
-        batch_op.create_foreign_key(None, 'profiles', ['user_id'], ['id'])
+        batch_op.create_foreign_key('fk_post_subject', 'subject', ['subject_id'], ['id'])
+        batch_op.create_foreign_key('fk_post_document', 'document', ['document_id'], ['id'])
+        batch_op.create_foreign_key('fk_post_user', 'profiles', ['user_id'], ['id'])
 
     with op.batch_alter_table('profiles', schema=None) as batch_op:
         batch_op.add_column(sa.Column('school', sa.String(length=200), nullable=True))
@@ -166,9 +166,9 @@ def upgrade():
         batch_op.alter_column('purchased_at',
                existing_type=postgresql.TIMESTAMP(),
                nullable=False)
-        batch_op.create_unique_constraint(None, ['transaction_id'])
-        batch_op.create_foreign_key(None, 'document', ['document_id'], ['id'])
-        batch_op.create_foreign_key(None, 'profiles', ['user_id'], ['id'])
+        batch_op.create_unique_constraint('uq_purchase_transaction', ['transaction_id'])
+        batch_op.create_foreign_key('fk_purchase_document', 'document', ['document_id'], ['id'])
+        batch_op.create_foreign_key('fk_purchase_user', 'profiles', ['user_id'], ['id'])
 
     with op.batch_alter_table('subject', schema=None) as batch_op:
         batch_op.alter_column('name',

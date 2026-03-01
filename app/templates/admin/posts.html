@@ -1,47 +1,112 @@
 {% extends "base.html" %}
-
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="admin-container">
-    <div class="admin-header">
-        <h1><i class="fas fa-file-alt"></i> Manage Posts</h1>
-        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Back to Dashboard
+<div class="ap-page">
+
+    <!-- ── Header ─────────────────────────────────────────────────────── -->
+    <div class="ap-header">
+        <div class="ap-header-left">
+            <div class="ap-header-icon">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <div>
+                <h1 class="ap-title">Manage Posts</h1>
+                <p class="ap-subtitle">
+                    {% if posts.total %}
+                        {{ posts.total }} post{{ 's' if posts.total != 1 }} total
+                    {% else %}
+                        No posts yet
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="ap-back-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span>Dashboard</span>
         </a>
     </div>
-    
-    <!-- Filters -->
-    <div class="filters-bar">
-        <form action="{{ url_for('admin.posts') }}" method="get">
-            <div class="filters-group">
-                <input type="text" name="search" value="{{ search }}" 
-                       placeholder="Search posts..." class="form-control">
-                
-                <select name="subject" class="form-control">
-                    <option value="">All Subjects</option>
+
+    <!-- ── Filter bar ─────────────────────────────────────────────────── -->
+    <div class="ap-filters">
+        <form action="{{ url_for('admin.posts') }}" method="get" id="filterForm">
+            <div class="ap-filters-row">
+                <!-- Search -->
+                <div class="ap-search-wrap">
+                    <i class="fas fa-search ap-search-icon"></i>
+                    <input
+                        type="text"
+                        name="search"
+                        value="{{ search }}"
+                        placeholder="Search posts or authors…"
+                        class="ap-search-input"
+                        autocomplete="off"
+                    />
+                    {% if search %}
+                    <button type="button" class="ap-search-clear" onclick="this.previousElementSibling.value=''; document.getElementById('filterForm').submit();" title="Clear search">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Subject select -->
+                <div class="ap-select-wrap">
+                    <i class="fas fa-tag ap-select-icon"></i>
+                    <select name="subject" class="ap-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Subjects</option>
+                        {% for subject in subjects %}
+                            <option value="{{ subject.id }}" {% if subject_filter == subject.id %}selected{% endif %}>
+                                {{ subject.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <i class="fas fa-chevron-down ap-select-chevron"></i>
+                </div>
+
+                <!-- Filter / clear buttons -->
+                <div class="ap-filter-actions">
+                    <button type="submit" class="ap-btn ap-btn--primary">
+                        <i class="fas fa-filter"></i>
+                        <span>Filter</span>
+                    </button>
+                    {% if search or subject_filter %}
+                    <a href="{{ url_for('admin.posts') }}" class="ap-btn ap-btn--ghost">
+                        <i class="fas fa-times"></i>
+                        <span>Clear</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Active filter pills -->
+            {% if search or subject_filter %}
+            <div class="ap-active-filters">
+                <span class="ap-filter-label">Active filters:</span>
+                {% if search %}
+                <span class="ap-filter-pill">
+                    <i class="fas fa-search"></i> "{{ search }}"
+                </span>
+                {% endif %}
+                {% if subject_filter %}
                     {% for subject in subjects %}
-                        <option value="{{ subject.id }}" {% if subject_filter == subject.id %}selected{% endif %}>
-                            {{ subject.name }}
-                        </option>
+                        {% if subject.id == subject_filter %}
+                        <span class="ap-filter-pill" style="--pill-color: {{ subject.color }};">
+                            <i class="fas fa-{{ subject.icon }}"></i> {{ subject.name }}
+                        </span>
+                        {% endif %}
                     {% endfor %}
-                </select>
-                
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-filter"></i> Filter
-                </button>
-                
-                {% if search or subject_filter %}
-                <a href="{{ url_for('admin.posts') }}" class="btn btn-secondary">Clear</a>
                 {% endif %}
             </div>
+            {% endif %}
         </form>
     </div>
-    
-    <!-- Posts Table -->
+
+    <!-- ── Content ────────────────────────────────────────────────────── -->
     {% if posts.items %}
-    <div class="table-container">
-        <table class="data-table">
+
+    <!-- Desktop table (≥ 768 px) -->
+    <div class="ap-table-wrap">
+        <table class="ap-table">
             <thead>
                 <tr>
                     <th>Post</th>
@@ -49,195 +114,809 @@
                     <th>Subject</th>
                     <th>Created</th>
                     <th>Engagement</th>
-                    <th>Actions</th>
+                    <th class="ap-th-actions">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for post in posts.items %}
-                <tr>
-                    <td>
-                        <div class="post-cell">
-                            {% if post.has_document %}
-                                <i class="fas fa-file-pdf doc-icon"></i>
-                            {% else %}
-                                <i class="fas fa-sticky-note doc-icon"></i>
-                            {% endif %}
-                            <div>
-                                <strong>{{ post.title[:50] }}{% if post.title|length > 50 %}...{% endif %}</strong>
+                <tr class="ap-row">
+                    <td class="ap-td-post">
+                        <div class="ap-post-cell">
+                            <div class="ap-post-icon {% if post.has_document %}ap-post-icon--doc{% else %}ap-post-icon--note{% endif %}">
+                                <i class="fas fa-{% if post.has_document %}file-pdf{% else %}sticky-note{% endif %}"></i>
+                            </div>
+                            <div class="ap-post-info">
+                                <span class="ap-post-title">{{ post.title[:55] }}{% if post.title|length > 55 %}…{% endif %}</span>
                                 {% if post.description %}
-                                    <small>{{ post.description[:80] }}{% if post.description|length > 80 %}...{% endif %}</small>
+                                <span class="ap-post-desc">{{ post.description[:90] }}{% if post.description|length > 90 %}…{% endif %}</span>
                                 {% endif %}
                             </div>
                         </div>
                     </td>
-                    <td>
-                        <a href="{{ url_for('users.profile', username=post.author.username) }}">
+                    <td class="ap-td-author">
+                        <a href="{{ url_for('users.profile', username=post.author.username) }}" class="ap-author-link">
                             {{ post.author.username }}
                         </a>
                     </td>
-                    <td>
+                    <td class="ap-td-subject">
                         {% if post.subject %}
-                           <span class="subject-badge"style="
-                                color: {{ post.subject.color }};
-                                background: {{ post.subject.color }}15;
-                                border-color: {{ post.subject.color }}40;">
-
-                                <i class="fas fa-{{ post.subject.icon }}"></i>
-                                {{ post.subject.name }}
-                            </span>
+                        <span class="ap-subject-badge"
+                              style="color:{{ post.subject.color }};background:{{ post.subject.color }}18;border-color:{{ post.subject.color }}35;">
+                            <i class="fas fa-{{ post.subject.icon }}"></i>
+                            {{ post.subject.name }}
+                        </span>
                         {% else %}
-                            <span class="text-muted">None</span>
+                        <span class="ap-no-subject">—</span>
                         {% endif %}
                     </td>
-                    <td>{{ post.created_at.strftime('%b %d, %Y') }}</td>
-                    <td>
-                        <div class="engagement-stats">
+                    <td class="ap-td-date">
+                        <span class="ap-date">{{ post.created_at.strftime('%b %d, %Y') }}</span>
+                    </td>
+                    <td class="ap-td-engagement">
+                        <div class="ap-engagement">
                             <span title="Likes"><i class="fas fa-heart"></i> {{ post.like_count() }}</span>
                             <span title="Comments"><i class="fas fa-comment"></i> {{ post.comment_count() }}</span>
                             {% if post.document %}
-                                <span title="Downloads"><i class="fas fa-download"></i> {{ post.document.download_count }}</span>
+                            <span title="Downloads"><i class="fas fa-download"></i> {{ post.document.download_count }}</span>
                             {% endif %}
                         </div>
                     </td>
-                    <td class="actions-cell">
-                        <a href="{{ url_for('posts.view', post_id=post.id) }}" 
-                           class="btn btn-sm btn-secondary" title="View Post">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        
-                        <form action="{{ url_for('admin.delete_post', post_id=post.id) }}" 
-                              method="post" style="display: inline;"
-                              onsubmit="return confirm('Delete this post? This cannot be undone!');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-danger" title="Delete Post">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
+                    <td class="ap-td-actions">
+                        <div class="ap-row-actions">
+                            <a href="{{ url_for('posts.view', post_id=post.id) }}"
+                               class="ap-action-btn ap-action-btn--view" title="View post">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <form action="{{ url_for('admin.delete_post', post_id=post.id) }}"
+                                  method="post" style="display:inline;"
+                                  onsubmit="return confirm('Delete this post? This cannot be undone.');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="ap-action-btn ap-action-btn--delete" title="Delete post">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    
-    <!-- Pagination -->
+
+    <!-- Mobile cards (< 768 px) -->
+    <div class="ap-cards">
+        {% for post in posts.items %}
+        <div class="ap-card">
+            <!-- Card top row: icon + meta + actions -->
+            <div class="ap-card-top">
+                <div class="ap-post-icon {% if post.has_document %}ap-post-icon--doc{% else %}ap-post-icon--note{% endif %} ap-post-icon--sm">
+                    <i class="fas fa-{% if post.has_document %}file-pdf{% else %}sticky-note{% endif %}"></i>
+                </div>
+                <div class="ap-card-meta">
+                    <span class="ap-card-author">
+                        <a href="{{ url_for('users.profile', username=post.author.username) }}" class="ap-author-link">
+                            {{ post.author.username }}
+                        </a>
+                    </span>
+                    <span class="ap-card-date">{{ post.created_at.strftime('%b %d, %Y') }}</span>
+                </div>
+                <div class="ap-row-actions ap-card-actions">
+                    <a href="{{ url_for('posts.view', post_id=post.id) }}"
+                       class="ap-action-btn ap-action-btn--view" title="View">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <form action="{{ url_for('admin.delete_post', post_id=post.id) }}"
+                          method="post" style="display:inline;"
+                          onsubmit="return confirm('Delete this post? This cannot be undone.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="ap-action-btn ap-action-btn--delete" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Title + description -->
+            <div class="ap-card-body">
+                <p class="ap-card-title">{{ post.title }}</p>
+                {% if post.description %}
+                <p class="ap-card-desc">{{ post.description[:120] }}{% if post.description|length > 120 %}…{% endif %}</p>
+                {% endif %}
+            </div>
+
+            <!-- Card footer: subject + engagement -->
+            <div class="ap-card-foot">
+                {% if post.subject %}
+                <span class="ap-subject-badge"
+                      style="color:{{ post.subject.color }};background:{{ post.subject.color }}18;border-color:{{ post.subject.color }}35;">
+                    <i class="fas fa-{{ post.subject.icon }}"></i>
+                    {{ post.subject.name }}
+                </span>
+                {% else %}
+                <span class="ap-no-subject">No subject</span>
+                {% endif %}
+
+                <div class="ap-engagement">
+                    <span title="Likes"><i class="fas fa-heart"></i> {{ post.like_count() }}</span>
+                    <span title="Comments"><i class="fas fa-comment"></i> {{ post.comment_count() }}</span>
+                    {% if post.document %}
+                    <span title="Downloads"><i class="fas fa-download"></i> {{ post.document.download_count }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ── Pagination ──────────────────────────────────────────────────── -->
     {% if posts.has_prev or posts.has_next %}
-    <div class="pagination">
+    <div class="ap-pagination">
         {% if posts.has_prev %}
-            <a href="{{ url_for('admin.posts', page=posts.prev_num, search=search, subject=subject_filter) }}" class="page-btn">
-                <i class="fas fa-chevron-left"></i> Previous
-            </a>
-        {% endif %}
-        
-        <span class="page-info">Page {{ posts.page }} of {{ posts.pages }}</span>
-        
-        {% if posts.has_next %}
-            <a href="{{ url_for('admin.posts', page=posts.next_num, search=search, subject=subject_filter) }}" class="page-btn">
-                Next <i class="fas fa-chevron-right"></i>
-            </a>
-        {% endif %}
-    </div>
-    {% endif %}
-    
-    {% else %}
-    <div class="empty-state">
-        <i class="fas fa-inbox"></i>
-        <h2>No posts found</h2>
-        {% if search or subject_filter %}
-            <p>No posts match your filters.</p>
-            <a href="{{ url_for('admin.posts') }}" class="btn btn-primary">Clear Filters</a>
+        <a href="{{ url_for('admin.posts', page=posts.prev_num, search=search, subject=subject_filter) }}"
+           class="ap-page-btn">
+            <i class="fas fa-chevron-left"></i>
+            <span>Previous</span>
+        </a>
         {% else %}
-            <p>No posts in the system yet.</p>
+        <span class="ap-page-btn ap-page-btn--disabled">
+            <i class="fas fa-chevron-left"></i>
+            <span>Previous</span>
+        </span>
+        {% endif %}
+
+        <div class="ap-page-info">
+            <span class="ap-page-current">{{ posts.page }}</span>
+            <span class="ap-page-sep">of</span>
+            <span class="ap-page-total">{{ posts.pages }}</span>
+        </div>
+
+        {% if posts.has_next %}
+        <a href="{{ url_for('admin.posts', page=posts.next_num, search=search, subject=subject_filter) }}"
+           class="ap-page-btn">
+            <span>Next</span>
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% else %}
+        <span class="ap-page-btn ap-page-btn--disabled">
+            <span>Next</span>
+            <i class="fas fa-chevron-right"></i>
+        </span>
         {% endif %}
     </div>
     {% endif %}
-</div>
+
+    {% else %}
+    <!-- Empty state -->
+    <div class="ap-empty">
+        <div class="ap-empty-icon">
+            <i class="fas fa-inbox"></i>
+        </div>
+        <h2 class="ap-empty-title">No posts found</h2>
+        {% if search or subject_filter %}
+        <p class="ap-empty-text">No posts match your current filters.</p>
+        <a href="{{ url_for('admin.posts') }}" class="ap-btn ap-btn--primary">
+            <i class="fas fa-times"></i> Clear Filters
+        </a>
+        {% else %}
+        <p class="ap-empty-text">No posts in the system yet.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div><!-- /ap-page -->
 
 <style>
-.filters-bar {
-    background: var(--bg-card);
-    padding: var(--spacing-lg);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    margin-bottom: var(--spacing-xl);
+/* ════════════════════════════════════════════════════════════════════
+   ADMIN POSTS PAGE — matches eDuShare design system
+   Brand: #667eea / #764ba2   Variables: --bg-card, --border,
+   --text-primary/secondary/muted, --primary, --spacing-*
+   ════════════════════════════════════════════════════════════════════ */
+
+.ap-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.75rem 1.5rem 4rem;
 }
 
-.filters-group {
+/* ── Header ─────────────────────────────────────────────────────────── */
+.ap-header {
     display: flex;
-    gap: var(--spacing-md);
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+    flex-wrap: wrap;
+}
+.ap-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+}
+.ap-header-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #fff;
+    flex-shrink: 0;
+}
+.ap-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--text-primary, #111);
+    letter-spacing: -0.03em;
+    margin: 0 0 0.15rem;
+    line-height: 1.2;
+}
+.ap-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted, #9ca3af);
+    margin: 0;
+    font-weight: 500;
+}
+.ap-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 10px;
+    background: var(--bg-card, #fff);
+    border: 1.5px solid var(--border, #e5e7eb);
+    color: var(--text-secondary, #6b7280);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.18s;
+    white-space: nowrap;
+}
+.ap-back-btn:hover {
+    background: var(--bg-hover, #f3f4f6);
+    color: var(--text-primary, #111);
+    border-color: #9ca3af;
+}
+
+/* ── Filter bar ─────────────────────────────────────────────────────── */
+.ap-filters {
+    background: var(--bg-card, #fff);
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 16px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+.ap-filters-row {
+    display: flex;
+    gap: 0.75rem;
     align-items: center;
     flex-wrap: wrap;
 }
 
-.filters-group .form-control {
+/* Search input */
+.ap-search-wrap {
+    position: relative;
     flex: 1;
     min-width: 200px;
 }
-
-.post-cell {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--spacing-sm);
-    max-width: 400px;
+.ap-search-icon {
+    position: absolute;
+    left: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    color: var(--text-muted, #9ca3af);
+    pointer-events: none;
 }
+.ap-search-input {
+    width: 100%;
+    padding: 0.7rem 2.25rem 0.7rem 2.5rem;
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    font-size: 0.875rem;
+    background: var(--bg-main, #fafafa);
+    color: var(--text-primary, #111);
+    font-family: inherit;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    box-sizing: border-box;
+}
+.ap-search-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+    background: var(--bg-card, #fff);
+}
+.ap-search-input::placeholder { color: var(--text-muted, #9ca3af); }
+.ap-search-clear {
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-secondary, #f3f4f6);
+    color: var(--text-muted, #9ca3af);
+    font-size: 0.65rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+}
+.ap-search-clear:hover { background: rgba(239,68,68,0.12); color: #ef4444; }
 
-.doc-icon {
-    font-size: 1.25rem;
-    color: var(--primary);
-    margin-top: 0.25rem;
+/* Subject select */
+.ap-select-wrap {
+    position: relative;
+    min-width: 160px;
     flex-shrink: 0;
 }
+.ap-select-icon {
+    position: absolute;
+    left: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    color: var(--text-muted, #9ca3af);
+    pointer-events: none;
+    z-index: 1;
+}
+.ap-select {
+    width: 100%;
+    padding: 0.7rem 2.25rem 0.7rem 2.25rem;
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    font-size: 0.875rem;
+    background: var(--bg-main, #fafafa);
+    color: var(--text-primary, #111);
+    font-family: inherit;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.18s, box-shadow 0.18s;
+}
+.ap-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+}
+.ap-select-chevron {
+    position: absolute;
+    right: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    color: var(--text-muted, #9ca3af);
+    pointer-events: none;
+}
 
-.post-cell div {
+/* Filter action buttons */
+.ap-filter-actions {
     display: flex;
-    flex-direction: column;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.ap-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.65rem 1.1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    text-decoration: none;
+    transition: all 0.18s;
+    white-space: nowrap;
+}
+.ap-btn--primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    box-shadow: 0 3px 12px rgba(102,126,234,0.3);
+}
+.ap-btn--primary:hover { box-shadow: 0 5px 18px rgba(102,126,234,0.45); transform: translateY(-1px); }
+.ap-btn--ghost {
+    background: var(--bg-main, #fafafa);
+    color: var(--text-secondary, #6b7280);
+    border: 1.5px solid var(--border, #e5e7eb);
+}
+.ap-btn--ghost:hover { background: var(--bg-hover, #f3f4f6); color: var(--text-primary); border-color: #9ca3af; }
+
+/* Active filter pills */
+.ap-active-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.875rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--border, #f0f0f5);
+    flex-wrap: wrap;
+}
+.ap-filter-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted, #9ca3af);
+}
+.ap-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 50px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: rgba(102,126,234,0.08);
+    border: 1px solid rgba(102,126,234,0.2);
+    color: #667eea;
 }
 
-.post-cell small {
-    color: var(--text-muted);
-    font-size: 0.8125rem;
-    line-height: 1.4;
+/* ── Shared badge / no-subject ──────────────────────────────────────── */
+.ap-subject-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 50px;
+    font-size: 0.775rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+.ap-no-subject {
+    font-size: 0.8rem;
+    color: var(--text-muted, #9ca3af);
 }
 
-.subject-badge {
+/* ── Engagement row ─────────────────────────────────────────────────── */
+.ap-engagement {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-muted, #9ca3af);
+}
+.ap-engagement span {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 500;
 }
 
-.engagement-stats {
-    display: flex;
-    gap: var(--spacing-md);
-    font-size: 0.875rem;
-    color: var(--text-muted);
-}
-
-.engagement-stats span {
+/* ── Action buttons ─────────────────────────────────────────────────── */
+.ap-row-actions {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.375rem;
+}
+.ap-action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border, #e5e7eb);
+    background: var(--bg-card, #fff);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.18s;
+    color: var(--text-secondary, #6b7280);
+    flex-shrink: 0;
+}
+.ap-action-btn--view:hover {
+    background: rgba(102,126,234,0.08);
+    border-color: rgba(102,126,234,0.35);
+    color: #667eea;
+}
+.ap-action-btn--delete:hover {
+    background: rgba(239,68,68,0.08);
+    border-color: rgba(239,68,68,0.35);
+    color: #ef4444;
 }
 
+/* ── Post icon ──────────────────────────────────────────────────────── */
+.ap-post-icon {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+.ap-post-icon--doc  { background: rgba(102,126,234,0.1); color: #667eea; }
+.ap-post-icon--note { background: rgba(16,185,129,0.1);  color: #10b981; }
+.ap-post-icon--sm   { width: 30px; height: 30px; border-radius: 7px; font-size: 0.75rem; }
+
+/* ── Author link ────────────────────────────────────────────────────── */
+.ap-author-link {
+    color: #667eea;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+}
+.ap-author-link:hover { text-decoration: underline; }
+
+/* ════════════════════════════════════════════════════════════════════
+   DESKTOP TABLE  (≥ 768 px)
+   ════════════════════════════════════════════════════════════════════ */
+.ap-table-wrap {
+    background: var(--bg-card, #fff);
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+}
+.ap-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.ap-table thead {
+    background: rgba(102,126,234,0.04);
+    border-bottom: 1.5px solid var(--border, #e5e7eb);
+}
+.ap-table th {
+    padding: 0.875rem 1rem;
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted, #9ca3af);
+    white-space: nowrap;
+}
+.ap-th-actions { text-align: right; }
+
+.ap-row {
+    border-bottom: 1px solid var(--border-light, #f5f5f8);
+    transition: background 0.15s;
+}
+.ap-row:last-child { border-bottom: none; }
+.ap-row:hover { background: rgba(102,126,234,0.025); }
+
+.ap-table td {
+    padding: 0.875rem 1rem;
+    vertical-align: middle;
+}
+
+.ap-td-post { max-width: 380px; }
+.ap-post-cell {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+.ap-post-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+.ap-post-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-primary, #111);
+    line-height: 1.35;
+    word-break: break-word;
+}
+.ap-post-desc {
+    font-size: 0.775rem;
+    color: var(--text-muted, #9ca3af);
+    line-height: 1.45;
+}
+
+.ap-date {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #6b7280);
+    white-space: nowrap;
+}
+
+.ap-td-actions { text-align: right; }
+
+/* ════════════════════════════════════════════════════════════════════
+   MOBILE CARDS  (< 768 px)
+   ════════════════════════════════════════════════════════════════════ */
+.ap-cards {
+    display: none;
+    flex-direction: column;
+    gap: 0.875rem;
+    margin-bottom: 1.25rem;
+}
+.ap-card {
+    background: var(--bg-card, #fff);
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-left: 3px solid #667eea;
+    border-radius: 14px;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    transition: box-shadow 0.18s, transform 0.18s;
+}
+.ap-card:hover {
+    box-shadow: 0 4px 16px rgba(102,126,234,0.1);
+    transform: translateY(-1px);
+}
+.ap-card-top {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+.ap-card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    flex: 1;
+    min-width: 0;
+}
+.ap-card-author {
+    font-size: 0.825rem;
+    font-weight: 600;
+    color: var(--text-primary, #111);
+}
+.ap-card-date {
+    font-size: 0.72rem;
+    color: var(--text-muted, #9ca3af);
+}
+.ap-card-actions { margin-left: auto; flex-shrink: 0; }
+
+.ap-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+.ap-card-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary, #111);
+    line-height: 1.4;
+    margin: 0;
+}
+.ap-card-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted, #9ca3af);
+    line-height: 1.5;
+    margin: 0;
+}
+.ap-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--border-light, #f5f5f8);
+}
+
+/* ── Pagination ─────────────────────────────────────────────────────── */
+.ap-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1.25rem 0;
+}
+.ap-page-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 10px;
+    background: var(--bg-card, #fff);
+    border: 1.5px solid var(--border, #e5e7eb);
+    color: var(--text-secondary, #6b7280);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.18s;
+    cursor: pointer;
+}
+.ap-page-btn:hover:not(.ap-page-btn--disabled) {
+    background: rgba(102,126,234,0.07);
+    border-color: #667eea;
+    color: #667eea;
+}
+.ap-page-btn--disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+}
+.ap-page-info {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6b7280);
+}
+.ap-page-current {
+    font-weight: 800;
+    color: var(--text-primary, #111);
+    background: rgba(102,126,234,0.09);
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+}
+.ap-page-sep { color: var(--text-muted, #9ca3af); }
+.ap-page-total { font-weight: 600; }
+
+/* ── Empty state ────────────────────────────────────────────────────── */
+.ap-empty {
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    background: rgba(102,126,234,0.03);
+    border: 1.5px dashed var(--border, #e5e7eb);
+    border-radius: 16px;
+}
+.ap-empty-icon {
+    width: 64px; height: 64px;
+    background: rgba(102,126,234,0.08);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+    font-size: 1.75rem;
+    color: #667eea;
+}
+.ap-empty-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-primary, #111);
+    margin: 0 0 0.5rem;
+}
+.ap-empty-text {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #6b7280);
+    margin: 0 0 1.25rem;
+}
+
+/* ── Dark mode ──────────────────────────────────────────────────────── */
+[data-theme="dark"] .ap-filters,
+[data-theme="dark"] .ap-table-wrap { background: var(--bg-card); border-color: var(--border); }
+[data-theme="dark"] .ap-search-input,
+[data-theme="dark"] .ap-select { background: var(--bg-secondary, #1f2937); border-color: var(--border); color: var(--text-primary); }
+[data-theme="dark"] .ap-search-input:focus,
+[data-theme="dark"] .ap-select:focus { background: var(--bg-card); }
+[data-theme="dark"] .ap-action-btn { background: var(--bg-secondary); border-color: var(--border); }
+[data-theme="dark"] .ap-card { background: var(--bg-card); border-color: var(--border); }
+[data-theme="dark"] .ap-page-btn { background: var(--bg-secondary); border-color: var(--border); }
+[data-theme="dark"] .ap-back-btn { background: var(--bg-secondary); border-color: var(--border); }
+[data-theme="dark"] .ap-btn--ghost { background: var(--bg-secondary); border-color: var(--border); }
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-    .filters-group {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .filters-group .form-control {
-        width: 100%;
-    }
-    
-    .post-cell {
-        max-width: 200px;
-    }
-    
-    .engagement-stats {
-        flex-direction: column;
-        gap: 0.25rem;
-    }
+    .ap-page { padding: 1.25rem 1rem 3rem; }
+
+    /* Switch table → cards */
+    .ap-table-wrap { display: none; }
+    .ap-cards { display: flex; }
+
+    /* Header stacks tightly */
+    .ap-header { gap: 0.75rem; }
+    .ap-title { font-size: 1.25rem; }
+    .ap-back-btn span { display: none; }
+    .ap-back-btn { padding: 0.6rem 0.75rem; }
+
+    /* Filter bar goes column */
+    .ap-filters { padding: 1rem; }
+    .ap-filters-row { flex-direction: column; align-items: stretch; gap: 0.625rem; }
+    .ap-search-wrap { min-width: unset; }
+    .ap-select-wrap { min-width: unset; }
+    .ap-filter-actions { justify-content: flex-end; }
+
+    /* Pagination shrinks */
+    .ap-pagination { gap: 0.625rem; }
+    .ap-page-btn { padding: 0.55rem 0.875rem; font-size: 0.8rem; }
+}
+
+@media (max-width: 480px) {
+    .ap-page { padding: 1rem 0.875rem 3rem; }
+    .ap-filters { padding: 0.875rem; }
+    .ap-card { padding: 0.875rem 1rem; }
 }
 </style>
 {% endblock %}

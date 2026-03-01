@@ -6,12 +6,15 @@ from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Initialize extensions (no app yet)
 db = SQLAlchemy()
 login_manager = LoginManager()
 mail = Mail()
 csrf = CSRFProtect()
+limiter = None  # Will be initialized in create_app
 
 
 def register_error_handlers(app):
@@ -53,6 +56,16 @@ def create_app(config_class=Config):
     mail.init_app(app)
     csrf.init_app(app)
     Migrate(app, db)
+    
+    # Initialize rate limiter
+    global limiter
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["200 per day", "50 per hour"]
+    )
 
     # ── Cloudinary ────────────────────────────────────────────────────────────
     import cloudinary
@@ -129,6 +142,9 @@ def create_app(config_class=Config):
     from app.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
+    from app.quiz import bp as quiz_bp
+    app.register_blueprint(quiz_bp, url_prefix='/')
+
     # 4. Main blueprint last — its /signup and /login redirects call
     #    url_for('auth.signup') / url_for('auth.login'), which must already exist
     from app import routes
@@ -141,6 +157,15 @@ def create_app(config_class=Config):
         except Exception as e:
             print(f"Database already initialized: {e}")
 
+    # Add custom JSON filter
+    @app.template_filter('from_json')
+    def from_json_filter(value):
+        import json
+        try:
+            return json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    
     register_error_handlers(app)
     register_template_context(app)
     return app

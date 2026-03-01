@@ -1,538 +1,616 @@
 {% extends "base.html" %}
-
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="edit-wrapper">
-    <div class="edit-card">
+<div class="ep-wrap">
 
-        <!-- Header -->
-        <div class="edit-header">
-            <div class="edit-header-icon">
-                <i class="fas fa-pen-nib"></i>
-            </div>
-            <div>
-                <h1>Edit Post</h1>
-                <p>Make changes to your post — it will go back to review after saving</p>
-            </div>
+  <!-- Page Header -->
+  <div class="ep-header">
+    <a href="{{ url_for('posts.view', post_id=post.id) }}" class="ep-back">
+      <i class="fas fa-arrow-left"></i>
+      <span>Back to Post</span>
+    </a>
+    <div class="ep-header-content">
+      <div class="ep-header-icon">
+        <i class="fas fa-pen"></i>
+      </div>
+      <div>
+        <h1 class="ep-title">Edit Post</h1>
+        <p class="ep-subtitle">Update your post — changes go live after a quick review</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <form method="post" enctype="multipart/form-data" id="epForm">
+    {{ form.hidden_tag() }}
+
+    <div class="ep-layout">
+
+      <!-- MAIN COLUMN -->
+      <div class="ep-main">
+
+        <!-- Title -->
+        <div class="ep-card ep-card--anim" style="--i:1">
+          <div class="ep-card-label">
+            <i class="fas fa-heading"></i>
+            Post Title <span class="ep-req">*</span>
+          </div>
+          {{ form.title(
+            class="ep-input ep-input--title",
+            placeholder="Give your post a clear, searchable title…",
+            autocomplete="off"
+          ) }}
+          {% if form.title.errors %}
+            <p class="ep-err"><i class="fas fa-exclamation-circle"></i> {{ form.title.errors[0] }}</p>
+          {% endif %}
         </div>
 
-        <form method="post" enctype="multipart/form-data" class="edit-form" novalidate>
-            {{ form.hidden_tag() }}
-
-            <!-- Title -->
-            <div class="field-group">
-                {{ form.title.label(class="field-label") }}
-                {{ form.title(class="field-input", placeholder="Give your post a descriptive title") }}
-                {% if form.title.errors %}
-                    <span class="field-error"><i class="fas fa-exclamation-circle"></i> {{ form.title.errors[0] }}</span>
-                {% endif %}
+        <!-- Description -->
+        <div class="ep-card ep-card--anim" style="--i:2">
+          <div class="ep-card-label-row">
+            <div class="ep-card-label">
+              <i class="fas fa-align-left"></i>
+              Description
+              <span class="ep-opt">Optional</span>
             </div>
+            <div class="ep-tabs" role="tablist">
+              <button type="button" class="ep-tab ep-tab--active" id="epTabWrite" onclick="epSetTab('write')">
+                <i class="fas fa-pen"></i> Write
+              </button>
+              <button type="button" class="ep-tab" id="epTabPreview" onclick="epSetTab('preview')">
+                <i class="fas fa-eye"></i> Preview
+              </button>
+            </div>
+          </div>
 
-            <!-- Description — Markdown editor -->
-            <div class="field-group">
-                {{ form.description.label(class="field-label") }}
+          <!-- Toolbar -->
+          <div class="ep-toolbar" id="epToolbar">
+            <button type="button" class="ep-tb" data-md="bold"   title="Bold"><i class="fas fa-bold"></i></button>
+            <button type="button" class="ep-tb" data-md="italic" title="Italic"><i class="fas fa-italic"></i></button>
+            <button type="button" class="ep-tb" data-md="strike" title="Strikethrough"><i class="fas fa-strikethrough"></i></button>
+            <span class="ep-tb-sep"></span>
+            <button type="button" class="ep-tb" data-md="h2"    title="Heading"><i class="fas fa-heading"></i></button>
+            <button type="button" class="ep-tb" data-md="quote" title="Quote"><i class="fas fa-quote-left"></i></button>
+            <button type="button" class="ep-tb" data-md="code"  title="Code"><i class="fas fa-code"></i></button>
+            <span class="ep-tb-sep"></span>
+            <button type="button" class="ep-tb" data-md="ul"   title="Bullet list"><i class="fas fa-list-ul"></i></button>
+            <button type="button" class="ep-tb" data-md="ol"   title="Numbered list"><i class="fas fa-list-ol"></i></button>
+            <button type="button" class="ep-tb" data-md="link" title="Link"><i class="fas fa-link"></i></button>
+            <span class="ep-char-counter" id="epCounter" aria-live="polite">
+              <span id="epCharNum">0</span><span class="ep-counter-max">/5000</span>
+            </span>
+          </div>
 
-                <div class="md-editor-wrapper">
-                    <div class="md-toolbar" role="toolbar" aria-label="Formatting options">
-                        <div class="md-toolbar-group">
-                            <button type="button" class="md-btn" data-action="bold"   title="Bold (Ctrl+B)">      <i class="fas fa-bold"></i></button>
-                            <button type="button" class="md-btn" data-action="italic" title="Italic (Ctrl+I)">    <i class="fas fa-italic"></i></button>
-                            <button type="button" class="md-btn" data-action="strike" title="Strikethrough">      <i class="fas fa-strikethrough"></i></button>
-                        </div>
-                        <div class="md-toolbar-sep"></div>
-                        <div class="md-toolbar-group">
-                            <button type="button" class="md-btn" data-action="h2"    title="Heading">             <i class="fas fa-heading"></i></button>
-                            <button type="button" class="md-btn" data-action="quote" title="Blockquote">          <i class="fas fa-quote-left"></i></button>
-                            <button type="button" class="md-btn" data-action="code"  title="Inline code">         <i class="fas fa-code"></i></button>
-                        </div>
-                        <div class="md-toolbar-sep"></div>
-                        <div class="md-toolbar-group">
-                            <button type="button" class="md-btn" data-action="ul"   title="Bullet list">          <i class="fas fa-list-ul"></i></button>
-                            <button type="button" class="md-btn" data-action="ol"   title="Numbered list">        <i class="fas fa-list-ol"></i></button>
-                            <button type="button" class="md-btn" data-action="link" title="Insert link (Ctrl+K)"> <i class="fas fa-link"></i></button>
-                        </div>
-                        <div class="md-toolbar-sep"></div>
-                        <div class="md-toolbar-group">
-                            <button type="button" class="md-btn md-btn--preview" data-action="preview" title="Toggle preview">
-                                <i class="fas fa-eye"></i> <span>Preview</span>
-                            </button>
-                        </div>
-                    </div>
+          {{ form.description(
+            id="epTextarea",
+            class="ep-textarea",
+            placeholder="Describe what you're sharing…"
+          ) }}
 
-                    <div class="md-panes">
-                        {{ form.description(
-                            id="md-textarea",
-                            class="md-textarea",
-                            placeholder="Describe what you're sharing…\n\nMarkdown supported: **bold**, *italic*, ## headings, - lists, > quotes, `code`, [links](url)"
-                        ) }}
-                        <div class="md-preview prose-content" id="md-preview" hidden>
-                            <div class="md-preview-empty">
-                                <i class="fas fa-eye-slash"></i>
-                                <span>Nothing to preview yet</span>
-                            </div>
-                        </div>
-                    </div>
+          <div class="ep-preview ep-prose" id="epPreview" hidden>
+            <div class="ep-preview-empty">
+              <i class="fas fa-feather-pointed"></i>
+              <span>Preview appears as you write…</span>
+            </div>
+          </div>
 
-                    <div class="md-footer">
-                        <span class="md-hint"><i class="fab fa-markdown"></i> Markdown supported</span>
-                        <span class="md-char-count" id="md-char-count">0 chars</span>
-                    </div>
+          <div class="ep-editor-foot">
+            <i class="fab fa-markdown"></i> Markdown supported
+          </div>
+        </div>
+
+      </div><!-- /ep-main -->
+
+      <!-- SIDEBAR -->
+      <aside class="ep-sidebar">
+
+        <!-- Subject -->
+        <div class="ep-card ep-card--anim" style="--i:3">
+          <div class="ep-card-label">
+            <i class="fas fa-tag"></i>
+            Subject
+            <span class="ep-opt">Optional</span>
+          </div>
+          {{ form.subject(class="ep-input ep-select", id=form.subject.id) }}
+          {% if form.subject.errors %}
+            <p class="ep-err"><i class="fas fa-exclamation-circle"></i> {{ form.subject.errors[0] }}</p>
+          {% endif %}
+          <p class="ep-hint">Categorize for better discovery</p>
+        </div>
+
+        <!-- Current file -->
+        {% if post.has_document and post.document %}
+        <div class="ep-card ep-card--anim" style="--i:4">
+          <div class="ep-card-label">
+            <i class="fas fa-file-alt"></i>
+            Current File
+          </div>
+          <div class="ep-doc-row">
+            <div class="ep-doc-thumb">
+              <i class="fas fa-file-{{ post.document.file_type }}"></i>
+            </div>
+            <div class="ep-doc-info">
+              <span class="ep-doc-name" title="{{ post.document.original_filename }}">{{ post.document.original_filename }}</span>
+              <div class="ep-doc-meta">
+                <span class="ep-doc-type">{{ post.document.file_type.upper() }}</span>
+                <span class="ep-doc-size">{{ (post.document.file_size / 1048576)|round(1) }} MB</span>
+                {% if post.document.is_paid %}
+                  <span class="ep-badge ep-badge--paid">GHS {{ "%.2f"|format(post.document.price) }}</span>
+                {% else %}
+                  <span class="ep-badge ep-badge--free">Free</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Replace / upload file -->
+        <div class="ep-card ep-card--anim" style="--i:{{ '5' if post.has_document and post.document else '4' }}">
+          <div class="ep-card-label">
+            <i class="fas fa-cloud-arrow-up"></i>
+            {% if post.has_document and post.document %}Replace File{% else %}Upload File{% endif %}
+            <span class="ep-opt">Optional</span>
+          </div>
+          <div class="ep-dropzone" id="epDropZone"
+            ondragover="epDrag(event, true)"
+            ondragleave="epDrag(event, false)"
+            ondrop="epDrop(event)">
+            {{ form.document(id="epFileInput", class="ep-drop-input", onchange="epHandleFile(this)") }}
+            <label for="epFileInput" class="ep-drop-label">
+              <div class="ep-drop-icon" id="epDropIcon">
+                <i class="fas fa-cloud-arrow-up"></i>
+              </div>
+              <span class="ep-drop-name" id="epDropName">
+                {% if post.has_document and post.document %}Click to replace current file{% else %}Drop file or click to browse{% endif %}
+              </span>
+              <span class="ep-drop-types" id="epDropTypes">PDF · DOCX · PPTX · TXT · max 5 MB</span>
+            </label>
+            <button type="button" class="ep-drop-rm" id="epFileRm"
+              onclick="epClearFile()" style="display:none;" aria-label="Remove file">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          {% if form.document.errors %}
+            <p class="ep-err"><i class="fas fa-exclamation-circle"></i> {{ form.document.errors[0] }}</p>
+          {% endif %}
+
+          <!-- JSON sidecar -->
+          <div id="epSidecarSection" style="display:none;">
+            <div class="ep-sidecar-label">
+              <i class="fas fa-brain"></i> Quiz Sidecar
+              <span class="ep-opt">Optional</span>
+            </div>
+            <div class="ep-dropzone ep-dropzone--sm" id="epJsonZone"
+              ondragover="epDragJson(event, true)"
+              ondragleave="epDragJson(event, false)"
+              ondrop="epDropJson(event)">
+              {% if form.json_sidecar is defined %}
+                {{ form.json_sidecar(id="epJsonInput", class="ep-drop-input", onchange="epHandleJson(this)") }}
+              {% else %}
+                <input type="file" name="json_sidecar" accept=".json" id="epJsonInput" class="ep-drop-input" onchange="epHandleJson(this)">
+              {% endif %}
+              <label for="epJsonInput" class="ep-drop-label">
+                <div class="ep-drop-icon ep-drop-icon--sm ep-drop-icon--cyan" id="epJsonIcon">
+                  <i class="fas fa-file-code"></i>
                 </div>
-
-                {% if form.description.errors %}
-                    <span class="field-error"><i class="fas fa-exclamation-circle"></i> {{ form.description.errors[0] }}</span>
-                {% endif %}
+                <span class="ep-drop-name" id="epJsonName">Attach .json quiz file</span>
+                <span class="ep-drop-types">Pre-built questions for this PDF</span>
+              </label>
+              <button type="button" class="ep-drop-rm" id="epJsonRm"
+                onclick="epClearJson()" style="display:none;" aria-label="Remove JSON">
+                <i class="fas fa-times"></i>
+              </button>
             </div>
+          </div>
+        </div>
 
-            <!-- Subject -->
-            <div class="field-group">
-                {{ form.subject.label(class="field-label") }}
-                {{ form.subject(class="field-input field-select") }}
-                {% if form.subject.errors %}
-                    <span class="field-error"><i class="fas fa-exclamation-circle"></i> {{ form.subject.errors[0] }}</span>
-                {% endif %}
-                <span class="field-hint"><i class="fas fa-tag"></i> Categorize your post for better discovery</span>
+        <!-- Pricing (admin only) -->
+        {% if show_pricing %}
+        <div class="ep-card ep-card--anim" style="--i:6">
+          <div class="ep-card-label-row">
+            <div class="ep-card-label">
+              <i class="fas fa-coins"></i>
+              Pricing
             </div>
-
-            <!-- Current document preview -->
-            {% if post.has_document and post.document %}
-            <div class="current-doc-banner">
-                <div class="current-doc-left">
-                    <div class="current-doc-icon">
-                        <i class="fas fa-file-{{ post.document.file_type }}"></i>
-                    </div>
-                    <div class="current-doc-meta">
-                        <span class="current-doc-label">Current Document</span>
-                        <span class="current-doc-name">{{ post.document.original_filename }}</span>
-                        <span class="current-doc-info">
-                            {{ post.document.file_type.upper() }}
-                            &middot; {{ (post.document.file_size / 1024 / 1024)|round(2) }} MB
-                            {% if post.document.is_paid %}
-                                &middot; <span class="paid-chip">GHS {{ "%.2f"|format(post.document.price) }}</span>
-                            {% else %}
-                                &middot; <span class="free-chip">Free</span>
-                            {% endif %}
-                        </span>
-                    </div>
-                </div>
+            <div class="ep-toggle-wrap">
+              {{ form.is_paid(id="is_paid", class="ep-toggle-inp") }}
+              <label for="is_paid" class="ep-toggle"></label>
             </div>
+          </div>
+          <div id="epPriceBody"
+            style="display:{% if post.document and post.document.is_paid %}block{% else %}none{% endif %};margin-top:.75rem;">
+            <div class="ep-price-row">
+              <span class="ep-price-ccy">GHS</span>
+              {{ form.price(class="ep-input ep-price-inp", placeholder="0.00") }}
+            </div>
+            {% if form.price.errors %}
+              <p class="ep-err"><i class="fas fa-exclamation-circle"></i> {{ form.price.errors[0] }}</p>
             {% endif %}
+          </div>
+          <p class="ep-hint" id="epPriceHint">
+            {% if post.document and post.document.is_paid %}Set document price in GHS{% else %}Free for everyone{% endif %}
+          </p>
+        </div>
+        {% endif %}
 
-            <!-- File upload -->
-            <div class="field-group">
-                <label class="field-label">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    {% if post.has_document and post.document %}Replace Document{% else %}Upload Document{% endif %}
-                    <span class="optional-tag">optional</span>
-                </label>
-                <div class="drop-zone">
-                    {{ form.document(class="drop-input", id="document", onchange="updateFileName(this)") }}
-                    <label for="document" class="drop-label">
-                        <div class="drop-icon">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                        </div>
-                        <span class="drop-text" id="file-name">
-                            {% if post.has_document and post.document %}Click to replace current file{% else %}Click to choose a file{% endif %}
-                        </span>
-                        <span class="drop-formats">PDF · DOCX · PPTX · TXT &nbsp;·&nbsp; Max 5 MB</span>
-                    </label>
-                </div>
-                {% if form.document.errors %}
-                    <span class="field-error"><i class="fas fa-exclamation-circle"></i> {{ form.document.errors[0] }}</span>
-                {% endif %}
-            </div>
+        <!-- Copyright notice -->
+        <div class="ep-notice ep-card--anim" style="--i:7">
+          <i class="fas fa-shield-halved"></i>
+          <p>Only upload <strong>your own notes</strong> or original resources. Copyrighted material will be removed.</p>
+        </div>
 
-{% if show_pricing %}
-            <!-- Pricing -->
-            <div class="pricing-section">                <div class="pricing-section-header">
-                    <div class="pricing-icon">
-                        <i class="fas fa-tag"></i>
-                    </div>
-                    <div>
-                        <h3>Pricing</h3>
-                        <p>Charge for this document or keep it free</p>
-                    </div>
-                </div>
+        <!-- Desktop actions -->
+        <div class="ep-actions ep-card--anim" style="--i:8">
+          <a href="{{ url_for('posts.view', post_id=post.id) }}" class="ep-btn-ghost">
+            <i class="fas fa-times"></i> Cancel
+          </a>
+          {{ form.submit(
+            value="Save Changes",
+            class="ep-btn-primary",
+            id="epSubmitDesk"
+          ) }}
+        </div>
 
-                <div class="toggle-row">
-                    <div class="toggle-left">
-                        <span class="toggle-title">Paid Document</span>
-                        <span class="toggle-sub">Readers must purchase to download</span>
-                    </div>
-                    <label class="toggle-switch">
-                        {{ form.is_paid(id="is_paid") }}
-                        <span class="toggle-track">
-                            <span class="toggle-thumb"></span>
-                        </span>
-                    </label>
-                </div>
-
-                <div class="price-row" id="price-group"
-                     style="display:{% if post.document and post.document.is_paid %}flex{% else %}none{% endif %};">
-                    {{ form.price.label(class="field-label") }}
-                    <div class="price-field">
-                        <span class="price-currency">GHS</span>
-                        {{ form.price(class="field-input price-input", placeholder="0.00") }}
-                    </div>
-                    <span class="field-hint">Minimum recommended: GHS 1.00</span>
-                </div>
-            </div>
-
-{% endif %}
-
-            <!-- Copyright notice -->            <div class="notice-bar">
-                <i class="fas fa-shield-alt notice-icon"></i>
-                <div>
-                    <strong>No copyrighted material.</strong>
-                    Only upload your own notes, quizzes, or AI-generated content.
-                    Copyrighted textbooks, lecture slides, or past exam papers will be
-                    <strong>removed immediately.</strong>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="edit-actions">
-                <a href="{{ url_for('posts.view', post_id=post.id) }}" class="btn-cancel">
-                    <i class="fas fa-arrow-left"></i> Cancel
-                </a>
-                {{ form.submit(value="Save Changes", class="btn-save") }}
-            </div>
-        </form>
+      </aside>
     </div>
+
+    <!-- Mobile sticky bar -->
+    <div class="ep-mobile-bar">
+      <a href="{{ url_for('posts.view', post_id=post.id) }}" class="ep-btn-ghost ep-btn-ghost--sm">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <button type="submit" class="ep-btn-primary ep-btn-primary--full">
+        <i class="fas fa-floppy-disk"></i> Save Changes
+      </button>
+    </div>
+
+  </form>
 </div>
 
 <style>
-/* ── Wrapper & Card ── */
-.edit-wrapper { max-width: 720px; margin: 0 auto; padding: 2rem 1rem 4rem; }
-.edit-card { background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 4px 24px rgba(0,0,0,0.06); overflow: hidden; }
+.ep-wrap { max-width: 840px; margin: 0 auto; padding: 1.5rem 1rem 5.5rem; }
 
-/* ── Header ── */
-.edit-header { display: flex; align-items: center; gap: 1rem; padding: 1.75rem 2rem; background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%); color: white; }
-.edit-header-icon { width: 52px; height: 52px; background: rgba(255,255,255,0.2); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.375rem; flex-shrink: 0; backdrop-filter: blur(8px); }
-.edit-header h1 { margin: 0 0 0.2rem; font-size: 1.375rem; font-weight: 800; letter-spacing: -0.02em; }
-.edit-header p { margin: 0; font-size: 0.825rem; opacity: 0.82; }
-
-/* ── Form body ── */
-.edit-form { padding: 2rem; display: flex; flex-direction: column; gap: 1.375rem; }
-
-/* ── Field groups ── */
-.field-group { display: flex; flex-direction: column; gap: 0.4rem; }
-.field-label { font-size: 0.85rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.35rem; }
-.field-label i { color: var(--primary); font-size: 0.8rem; }
-.optional-tag { margin-left: auto; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); background: var(--bg-hover); padding: 0.15rem 0.5rem; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em; }
-.field-input { padding: 0.8rem 1rem; border: 1.5px solid var(--border); border-radius: 10px; font-size: 0.9rem; background: var(--bg-main); color: var(--text-primary); transition: border-color 0.18s, box-shadow 0.18s, background 0.18s; width: 100%; font-family: inherit; }
-.field-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); background: var(--bg-card); }
-.field-textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
-.field-select { cursor: pointer; }
-.field-hint { font-size: 0.775rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem; }
-.field-hint i { color: var(--primary); }
-.field-error { font-size: 0.78rem; color: #ef4444; display: flex; align-items: center; gap: 0.3rem; }
-
-/* ── Markdown editor ── */
-.md-editor-wrapper {
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--bg-main);
-    transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+@keyframes epFadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.md-editor-wrapper:focus-within {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
-    background: var(--bg-card);
+.ep-card--anim {
+  opacity: 0;
+  animation: epFadeUp .38s cubic-bezier(.22,1,.36,1) both;
+  animation-delay: calc(var(--i, 1) * 55ms);
 }
 
-.md-toolbar { display: flex; align-items: center; gap: 0.2rem; padding: 0.5rem 0.625rem; background: var(--bg-card); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-.md-toolbar-group { display: flex; gap: 0.1rem; }
-.md-toolbar-sep { width: 1px; height: 18px; background: var(--border); margin: 0 0.2rem; flex-shrink: 0; align-self: center; }
+.ep-back { display: inline-flex; align-items: center; gap: .45rem; color: var(--text-muted); font-size: .82rem; font-weight: 600; text-decoration: none; margin-bottom: 1.25rem; transition: color .15s ease; }
+.ep-back:hover { color: #f59e0b; }
+.ep-back i { font-size: .8rem; }
 
-.md-btn { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.5rem; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-muted); font-size: 0.8rem; cursor: pointer; transition: all 0.15s; line-height: 1; -webkit-tap-highlight-color: transparent; }
-.md-btn:hover { background: var(--bg-secondary, rgba(0,0,0,0.04)); border-color: var(--border); color: var(--text-primary); }
-.md-btn.active { background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.25); color: var(--primary); }
-.md-btn--preview { font-size: 0.775rem; font-weight: 600; }
-.md-btn--preview span { font-size: 0.775rem; }
+.ep-header { margin-bottom: 1.5rem; }
+.ep-header-content { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.2); border-radius: 14px; }
+.ep-header-icon { width: 44px; height: 44px; flex-shrink: 0; background: #f59e0b; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #fff; }
+.ep-title { margin: 0 0 .2rem; font-size: 1.2rem; font-weight: 800; color: var(--text-primary); }
+.ep-subtitle { margin: 0; font-size: .82rem; color: var(--text-secondary); }
 
-.md-panes { position: relative; }
+.ep-layout { display: grid; grid-template-columns: 1fr 260px; gap: 1.25rem; align-items: start; }
+.ep-main   { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+.ep-sidebar { display: flex; flex-direction: column; gap: 1rem; position: sticky; top: 76px; }
 
-.md-textarea { display: block; width: 100%; min-height: 130px; padding: 0.875rem 1rem; border: none; background: transparent; font-size: 0.9rem; font-family: 'Fira Code','Consolas','Monaco',monospace; color: var(--text-primary); resize: vertical; outline: none; box-sizing: border-box; line-height: 1.7; tab-size: 2; }
-.md-textarea::placeholder { color: var(--text-muted); font-family: inherit; font-size: 0.875rem; white-space: pre-line; }
+.ep-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
 
-.md-preview { min-height: 130px; padding: 0.875rem 1rem; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.75; }
-.md-preview[hidden] { display: none; }
-.md-preview-empty { display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.875rem; padding: 1.5rem 0; }
+.ep-card-label { display: flex; align-items: center; gap: .45rem; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); }
+.ep-card-label i { color: #f59e0b; font-size: .75rem; }
+.ep-card-label-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.ep-req { color: #f87171; font-size: 1rem; font-weight: 400; }
+.ep-opt { margin-left: .25rem; font-size: .64rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); background: var(--bg-hover, rgba(0,0,0,.04)); padding: .1rem .4rem; border-radius: 20px; }
 
-.md-footer { display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.75rem; background: var(--bg-card); border-top: 1px solid var(--border); }
-.md-hint { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; }
-.md-hint i { margin-right: 0.25rem; }
-.md-char-count { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; font-variant-numeric: tabular-nums; }
-.md-char-count.warn { color: #f59e0b; }
-.md-char-count.over { color: #dc2626; font-weight: 700; }
+.ep-input { width: 100%; padding: .7rem .9rem; background: var(--bg-card); color: var(--text-primary); border: 1.5px solid var(--border); border-radius: 10px; font-size: .95rem; font-family: inherit; outline: none; transition: border-color .18s ease, box-shadow .18s ease; box-sizing: border-box; }
+.ep-input:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.12); }
+.ep-input--title { font-size: 1.1rem; font-weight: 600; padding: .8rem 1rem; }
+.ep-select { appearance: none; cursor: pointer; padding-right: 2.5rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .9rem center; }
 
-/* ── Prose styles (preview pane) ── */
-.prose-content { word-wrap: break-word; overflow-wrap: break-word; }
-.prose-content p { margin: 0 0 0.875rem; line-height: 1.75; }
-.prose-content p:last-child { margin-bottom: 0; }
-.prose-content h1,.prose-content h2,.prose-content h3,.prose-content h4,.prose-content h5,.prose-content h6 { font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em; margin: 1.25rem 0 0.5rem; line-height: 1.25; }
-.prose-content h1 { font-size: 1.5rem; } .prose-content h2 { font-size: 1.25rem; } .prose-content h3 { font-size: 1.1rem; }
-.prose-content strong { font-weight: 700; color: var(--text-primary); }
-.prose-content em { font-style: italic; }
-.prose-content a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
-.prose-content a:hover { color: var(--primary-dark, #4f46e5); }
-.prose-content ul, .prose-content ol { margin: 0.5rem 0 0.875rem 1.375rem; display: flex; flex-direction: column; gap: 0.3rem; padding: 0; }
-.prose-content ul { list-style: disc; } .prose-content ol { list-style: decimal; }
-.prose-content ul li, .prose-content ol li { padding-left: 0.25rem; line-height: 1.65; }
-.prose-content blockquote { border-left: 3px solid var(--primary); margin: 0.75rem 0; padding: 0.5rem 0 0.5rem 1rem; background: rgba(99,102,241,0.05); border-radius: 0 8px 8px 0; color: var(--text-secondary); font-style: italic; }
-.prose-content code { background: var(--bg-secondary, rgba(0,0,0,0.05)); border: 1px solid var(--border); border-radius: 5px; padding: 0.15em 0.4em; font-size: 0.85em; font-family: 'Fira Code','Consolas',monospace; color: var(--primary-dark, #4f46e5); }
-.prose-content pre { background: #1e1b2e; border-radius: 10px; padding: 1rem 1.25rem; overflow-x: auto; margin: 0.75rem 0; }
-.prose-content pre code { background: none; border: none; padding: 0; color: #e2e8f0; font-size: 0.85rem; }
-.prose-content hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
-.prose-content img { max-width: 100%; border-radius: 8px; margin: 0.5rem 0; }
-.prose-content table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.875rem; }
-.prose-content th { background: rgba(99,102,241,0.07); font-weight: 700; color: var(--text-primary); padding: 0.5rem 0.75rem; border: 1px solid var(--border); text-align: left; }
-.prose-content td { padding: 0.45rem 0.75rem; border: 1px solid var(--border); color: var(--text-secondary); }
-.prose-content tr:nth-child(even) td { background: rgba(99,102,241,0.03); }
+.ep-tabs { display: flex; background: var(--bg-hover, rgba(0,0,0,.04)); border-radius: 8px; padding: 3px; gap: 2px; }
+.ep-tab { padding: .28rem .7rem; border-radius: 6px; border: none; background: transparent; font-size: .76rem; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: .3rem; transition: all .15s ease; }
+.ep-tab i { font-size: .65rem; }
+.ep-tab--active { background: var(--bg-card); color: #f59e0b; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
 
-/* ── Current doc banner ── */
-.current-doc-banner { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(79,70,229,0.04)); border: 1.5px solid rgba(99,102,241,0.18); border-radius: 12px; }
-.current-doc-left { display: flex; align-items: center; gap: 0.875rem; min-width: 0; }
-.current-doc-icon { width: 42px; height: 42px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.125rem; color: #fff; flex-shrink: 0; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
-.current-doc-meta { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
-.current-doc-label { font-size: 0.68rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.07em; }
-.current-doc-name { font-size: 0.875rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 360px; }
-.current-doc-info { font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
-.paid-chip { background: rgba(99,102,241,0.12); color: var(--primary); font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 20px; font-size: 0.72rem; }
-.free-chip { background: rgba(16,185,129,0.12); color: #10b981; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 20px; font-size: 0.72rem; }
+.ep-toolbar { display: flex; align-items: center; gap: .15rem; padding: .4rem .6rem; background: var(--bg-hover, rgba(0,0,0,.035)); border: 1px solid var(--border); border-radius: 10px; flex-wrap: wrap; }
+.ep-tb { width: 28px; height: 28px; border-radius: 6px; border: none; background: transparent; color: var(--text-muted); font-size: .72rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .13s, color .13s, transform .13s; }
+.ep-tb:hover { background: var(--bg-card); color: #f59e0b; transform: scale(1.1); }
+.ep-tb:active { transform: scale(.95); }
+.ep-tb-sep { width: 1px; height: 16px; background: var(--border); margin: 0 .25rem; flex-shrink: 0; }
+.ep-char-counter { margin-left: auto; font-size: .69rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ep-char-counter.ep--warn { color: #f59e0b; }
+.ep-char-counter.ep--over { color: #ef4444; }
+.ep-counter-max { opacity: .6; }
 
-/* ── Drop zone ── */
-.drop-zone { position: relative; }
-.drop-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.drop-label { display: flex; flex-direction: column; align-items: center; gap: 0.625rem; padding: 2rem 1.5rem; border: 2px dashed var(--border); border-radius: 12px; cursor: pointer; background: var(--bg-main); transition: all 0.2s ease; text-align: center; }
-.drop-label:hover { border-color: var(--primary); background: rgba(99,102,241,0.04); transform: translateY(-2px); }
-.drop-icon { width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary), #4f46e5); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: #fff; box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
-.drop-text { font-weight: 700; font-size: 0.9rem; color: var(--text-primary); }
-.drop-formats { font-size: 0.775rem; color: var(--text-muted); }
+.ep-textarea { display: block; width: 100%; min-height: 260px; padding: .875rem 1rem; border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg-card); color: var(--text-primary); font-size: .9rem; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; resize: vertical; outline: none; line-height: 1.8; transition: border-color .18s ease, box-shadow .18s ease; box-sizing: border-box; }
+.ep-textarea:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.1); }
+.ep-textarea::placeholder { font-family: inherit; color: var(--text-muted); font-style: italic; }
 
-/* ── Pricing ── */
-.pricing-section { background: var(--bg-main); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; }
-.pricing-section-header { display: flex; align-items: center; gap: 0.875rem; padding: 1.1rem 1.25rem; border-bottom: 1px solid var(--border-light); background: rgba(99,102,241,0.03); }
-.pricing-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #fff; }
-.pricing-section-header h3 { margin: 0 0 0.1rem; font-size: 0.95rem; font-weight: 800; color: var(--text-primary); }
-.pricing-section-header p { margin: 0; font-size: 0.775rem; color: var(--text-muted); }
-.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; }
-.toggle-left { display: flex; flex-direction: column; gap: 0.15rem; }
-.toggle-title { font-size: 0.875rem; font-weight: 700; color: var(--text-primary); }
-.toggle-sub { font-size: 0.775rem; color: var(--text-muted); }
-.toggle-switch { position: relative; display: inline-block; cursor: pointer; }
-.toggle-switch input { display: none; }
-.toggle-track { display: block; width: 46px; height: 26px; background: var(--border); border-radius: 13px; transition: background 0.2s; position: relative; }
-.toggle-thumb { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
-.toggle-switch input:checked ~ .toggle-track { background: var(--primary); }
-.toggle-switch input:checked ~ .toggle-track .toggle-thumb { transform: translateX(20px); }
-.price-row { flex-direction: column; gap: 0.4rem; padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border-light); padding-top: 1rem; }
-.price-field { position: relative; }
-.price-currency { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-weight: 800; color: var(--text-secondary); font-size: 0.875rem; pointer-events: none; z-index: 1; }
-.price-input { padding-left: 3.75rem !important; font-weight: 700; }
+.ep-preview { min-height: 200px; padding: .875rem 1rem; border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg-card); }
+.ep-preview[hidden] { display: none; }
+.ep-preview-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; min-height: 180px; color: var(--text-muted); font-style: italic; font-size: .875rem; }
+.ep-preview-empty i { font-size: 2rem; opacity: .15; }
 
-/* ── Notice bar ── */
-.notice-bar { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.875rem 1.125rem; background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #ef4444; border-radius: 10px; font-size: 0.8rem; color: #b91c1c; line-height: 1.55; }
-.notice-icon { color: #ef4444; font-size: 1rem; margin-top: 0.1rem; flex-shrink: 0; }
-.notice-bar strong { color: #991b1b; }
+.ep-prose { font-size: .9rem; line-height: 1.8; color: var(--text-secondary); word-wrap: break-word; }
+.ep-prose p { margin: 0 0 .75rem; } .ep-prose p:last-child { margin: 0; }
+.ep-prose h2 { font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: .875rem 0 .35rem; }
+.ep-prose strong { font-weight: 700; color: var(--text-primary); }
+.ep-prose em { font-style: italic; }
+.ep-prose a { color: #f59e0b; }
+.ep-prose ul, .ep-prose ol { margin: .35rem 0 .75rem 1.25rem; }
+.ep-prose blockquote { border-left: 3px solid #f59e0b; margin: .6rem 0; padding: .4rem .875rem; background: rgba(245,158,11,.05); border-radius: 0 8px 8px 0; color: var(--text-secondary); font-style: italic; }
+.ep-prose code { background: var(--bg-hover, rgba(0,0,0,.06)); border: 1px solid var(--border); border-radius: 4px; padding: .1em .4em; font-size: .84em; color: #f59e0b; }
+.ep-prose pre { background: #16131f; border-radius: 8px; padding: .875rem 1rem; overflow-x: auto; margin: .6rem 0; }
+.ep-prose pre code { background: none; border: none; padding: 0; color: #e2e8f0; }
+.ep-prose hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
 
-/* ── Actions ── */
-.edit-actions { display: flex; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border-light); margin-top: 0.25rem; }
-.btn-cancel { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.8rem 1.5rem; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-secondary); font-weight: 600; font-size: 0.9rem; text-decoration: none; transition: all 0.18s; white-space: nowrap; }
-.btn-cancel:hover { border-color: var(--primary); color: var(--primary); background: rgba(99,102,241,0.05); }
-.btn-save { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0.8rem 2rem; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--primary), #4f46e5); color: #fff; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: all 0.18s; box-shadow: 0 4px 14px rgba(99,102,241,0.35); letter-spacing: -0.01em; }
-.btn-save:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,0.45); }
-.btn-save:active { transform: translateY(0); }
+.ep-editor-foot { display: flex; align-items: center; gap: .35rem; font-size: .69rem; font-weight: 600; color: var(--text-muted); padding-top: .25rem; }
+.ep-editor-foot i { color: #f59e0b; }
 
-/* ── Responsive ── */
-@media (max-width: 640px) {
-    .edit-wrapper { padding: 1rem 0.75rem 3rem; }
-    .edit-card { border-radius: 16px; }
-    .edit-header { padding: 1.375rem 1.25rem; }
-    .edit-header h1 { font-size: 1.2rem; }
-    .edit-form { padding: 1.25rem; gap: 1.1rem; }
-    .current-doc-banner { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
-    .current-doc-name { max-width: 100%; white-space: normal; }
-    .edit-actions { flex-direction: column-reverse; }
-    .btn-cancel { justify-content: center; }
-    .drop-label { padding: 1.5rem 1rem; }
-    .toggle-row { flex-wrap: wrap; gap: 0.75rem; }
-    .md-toolbar-sep:nth-child(6) { display: none; }
-    .md-btn--preview span { display: none; }
+.ep-doc-row { display: flex; align-items: center; gap: .75rem; }
+.ep-doc-thumb { width: 38px; height: 38px; border-radius: 10px; background: rgba(20,184,166,.12); color: #14b8a6; display: flex; align-items: center; justify-content: center; font-size: .95rem; flex-shrink: 0; }
+.ep-doc-info { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.ep-doc-name { font-size: .82rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ep-doc-meta { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+.ep-doc-type { font-size: .68rem; font-weight: 700; color: var(--text-muted); background: var(--bg-hover, rgba(0,0,0,.06)); padding: .1rem .4rem; border-radius: 4px; }
+.ep-doc-size { font-size: .7rem; color: var(--text-muted); }
+.ep-badge { font-size: .68rem; font-weight: 700; color: #fff; padding: .1rem .4rem; border-radius: 4px; }
+.ep-badge--paid { background: #f59e0b; }
+.ep-badge--free { background: #10b981; }
+
+.ep-dropzone { position: relative; border: 2px dashed var(--border); border-radius: 10px; cursor: pointer; transition: border-color .18s, background .18s; }
+.ep-dropzone:hover, .ep-dropzone.ep--drag { border-color: #14b8a6; background: rgba(20,184,166,.04); }
+.ep-dropzone.ep--done { border-style: solid; border-color: #10b981; background: rgba(16,185,129,.04); }
+.ep-drop-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; z-index: 2; }
+.ep-drop-label { display: flex; flex-direction: column; align-items: center; gap: .4rem; padding: 1.25rem 1rem; cursor: pointer; text-align: center; }
+.ep-drop-icon { width: 42px; height: 42px; border-radius: 10px; background: #14b8a6; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; box-shadow: 0 4px 12px rgba(20,184,166,.3); transition: transform .18s, box-shadow .18s; }
+.ep-dropzone:hover .ep-drop-icon, .ep-dropzone.ep--drag .ep-drop-icon { transform: translateY(-3px) scale(1.05); }
+.ep-dropzone.ep--done .ep-drop-icon { background: #10b981; box-shadow: 0 4px 12px rgba(16,185,129,.3); }
+.ep-drop-icon--sm { width: 34px; height: 34px; font-size: .85rem; border-radius: 8px; }
+.ep-drop-icon--cyan { background: #06b6d4; box-shadow: 0 4px 12px rgba(6,182,212,.25); }
+.ep-drop-name { font-size: .84rem; font-weight: 600; color: var(--text-primary); word-break: break-word; }
+.ep-drop-types { font-size: .69rem; color: var(--text-muted); }
+.ep-drop-rm { position: absolute; top: .5rem; right: .5rem; z-index: 3; width: 22px; height: 22px; border-radius: 50%; background: rgba(239,68,68,.1); border: none; color: #ef4444; font-size: .6rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .13s, transform .13s; }
+.ep-drop-rm:hover { background: rgba(239,68,68,.2); transform: scale(1.1); }
+
+.ep-sidecar-label { display: flex; align-items: center; gap: .4rem; padding: .55rem .75rem; font-size: .69rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #06b6d4; border-top: 1px solid var(--border-light, rgba(0,0,0,.07)); background: rgba(6,182,212,.04); }
+.ep-dropzone--sm { border-top: none; border-left: none; border-right: none; border-radius: 0 0 8px 8px; }
+
+.ep-toggle-wrap { margin-left: auto; }
+.ep-toggle-inp  { display: none; }
+.ep-toggle { display: inline-block; width: 38px; height: 22px; background: var(--border); border-radius: 50px; cursor: pointer; position: relative; transition: background .18s ease; }
+.ep-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .18s ease; }
+.ep-toggle-inp:checked + .ep-toggle { background: #10b981; }
+.ep-toggle-inp:checked + .ep-toggle::after { transform: translateX(16px); }
+.ep-price-row { position: relative; }
+.ep-price-ccy { position: absolute; left: .875rem; top: 50%; transform: translateY(-50%); font-size: .78rem; font-weight: 700; color: var(--text-secondary); pointer-events: none; z-index: 1; }
+.ep-price-inp { padding-left: 3.25rem !important; font-weight: 600; }
+
+.ep-notice { display: flex; align-items: flex-start; gap: .6rem; padding: .875rem 1rem; background: rgba(249,115,22,.05); border: 1px solid rgba(249,115,22,.2); border-left: 3px solid #fb923c; border-radius: 12px; }
+.ep-notice i { color: #f97316; font-size: .85rem; margin-top: .15rem; flex-shrink: 0; }
+.ep-notice p { margin: 0; font-size: .75rem; color: #92400e; line-height: 1.55; }
+.ep-notice strong { color: #7c2d12; }
+[data-theme="dark"] .ep-notice { background: rgba(249,115,22,.08); }
+[data-theme="dark"] .ep-notice p { color: #fdba74; }
+[data-theme="dark"] .ep-notice strong { color: #fed7aa; }
+
+.ep-hint { margin: 0; font-size: .73rem; color: var(--text-muted); line-height: 1.5; }
+.ep-err { margin: 0; display: flex; align-items: center; gap: .35rem; font-size: .78rem; color: #ef4444; font-weight: 500; animation: epFadeUp .2s ease both; }
+
+.ep-actions { display: flex; gap: .6rem; }
+.ep-mobile-bar { display: none; }
+
+.ep-btn-primary { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .75rem 1.5rem; background: #f59e0b; color: #fff; border: none; border-radius: 50px; font-family: inherit; font-weight: 700; font-size: .9rem; cursor: pointer; text-decoration: none; letter-spacing: .01em; white-space: nowrap; box-shadow: 0 4px 14px rgba(245,158,11,.35); transition: background .15s, transform .2s, box-shadow .2s; }
+.ep-btn-primary:hover { background: #d97706; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(245,158,11,.45); color: #fff; }
+.ep-btn-primary:active { transform: none; }
+.ep-btn-primary--full { flex: 1; }
+.ep-btn-primary:disabled { opacity: .65; cursor: not-allowed; transform: none; }
+
+.ep-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: .75rem 1.1rem; background: var(--bg-card); color: var(--text-secondary); border: 1.5px solid var(--border); border-radius: 50px; font-family: inherit; font-weight: 600; font-size: .9rem; cursor: pointer; text-decoration: none; white-space: nowrap; transition: all .15s ease; }
+.ep-btn-ghost:hover { border-color: #f59e0b; color: #f59e0b; }
+.ep-btn-ghost--sm { padding: .75rem; }
+
+[data-theme="dark"] .ep-header-content { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.25); }
+[data-theme="dark"] .ep-card { background: var(--bg-card); border-color: var(--border); }
+[data-theme="dark"] .ep-toolbar { background: rgba(255,255,255,.04); }
+[data-theme="dark"] .ep-textarea, [data-theme="dark"] .ep-input, [data-theme="dark"] .ep-preview { background: var(--bg-card); }
+[data-theme="dark"] .ep-btn-ghost { background: var(--bg-card); }
+[data-theme="dark"] .ep-tab--active { background: var(--bg-card); }
+[data-theme="dark"] .ep-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); }
+
+@media (max-width: 900px) {
+  .ep-wrap { padding: 1.25rem .875rem 5.5rem; }
+  .ep-layout { grid-template-columns: 1fr; }
+  .ep-sidebar { position: static; }
+  .ep-actions { display: none; }
+  .ep-mobile-bar { display: flex; gap: .75rem; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; padding: .875rem 1.25rem; background: var(--bg-card); border-top: 1px solid var(--border); box-shadow: 0 -4px 20px rgba(0,0,0,.1); }
+}
+@media (max-width: 600px) {
+  .ep-wrap { padding: 1rem .75rem 5.5rem; }
+  .ep-header-content { flex-direction: column; align-items: flex-start; gap: .75rem; }
+  .ep-card { padding: .875rem 1rem; gap: .65rem; }
+  .ep-textarea { min-height: 200px; }
+  .ep-tb-sep { display: none; }
+  .ep-card-label-row { flex-direction: column; align-items: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ep-card--anim { animation: none; opacity: 1; }
 }
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script>
-/* ── File name display ── */
-function updateFileName(input) {
-    const label = document.getElementById('file-name');
-    if (input.files && input.files[0]) {
-        label.textContent = input.files[0].name;
-        document.querySelector('.drop-formats').style.display = 'none';
-        document.querySelector('.drop-icon').style.background = 'linear-gradient(135deg, #10b981, #059669)';
-    } else {
-        label.textContent = '{% if post.has_document and post.document %}Click to replace current file{% else %}Click to choose a file{% endif %}';
-        document.querySelector('.drop-formats').style.display = 'block';
-        document.querySelector('.drop-icon').style.background = 'linear-gradient(135deg, var(--primary), #4f46e5)';
-    }
-}
+(function() {
+  'use strict';
 
-/* ── Subject validation ── */
-const subjectSelect = document.getElementById('subject');
-function validateSubject() {
-    if (!subjectSelect) return true;
-    const group = subjectSelect.closest('.field-group');
-    const existing = group.querySelector('.subject-error');
-    const invalid = !subjectSelect.value || subjectSelect.value === '0' || subjectSelect.value === '';
-    if (invalid) {
-        subjectSelect.style.borderColor = '#ef4444';
-        if (!existing) {
-            const err = document.createElement('span');
-            err.className = 'field-error subject-error';
-            err.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please select a subject.';
-            group.appendChild(err);
-        }
-        return false;
-    }
-    subjectSelect.style.borderColor = '';
-    if (existing) existing.remove();
-    return true;
-}
-if (subjectSelect) subjectSelect.addEventListener('change', () => validateSubject());
-
-const editForm = document.querySelector('.edit-form');
-if (editForm) {
-    editForm.addEventListener('submit', e => {
-        if (!validateSubject()) {
-            e.preventDefault();
-            subjectSelect.focus();
-            subjectSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    });
-}
-
-/* ── Paid toggle ── */
-const isPaidCheckbox = document.getElementById('is_paid');
-const priceGroup = document.getElementById('price-group');
-if (isPaidCheckbox) {
-    isPaidCheckbox.addEventListener('change', function () {
-        priceGroup.style.display = this.checked ? 'flex' : 'none';
-    });
-}
-
-/* ── Markdown editor ── */
-(function () {
+  if (typeof marked !== 'undefined') {
     marked.setOptions({ breaks: true, gfm: true });
-    const renderer = new marked.Renderer();
-    renderer.link = (href, title, text) => {
-        const ext = href && (href.startsWith('http://') || href.startsWith('https://'));
-        return `<a href="${href}"${title ? ` title="${title}"` : ''}${ext ? ' target="_blank" rel="noopener noreferrer"' : ''}>${text}</a>`;
-    };
-    marked.use({ renderer });
+  }
 
-    const textarea  = document.getElementById('md-textarea');
-    const preview   = document.getElementById('md-preview');
-    const charCount = document.getElementById('md-char-count');
-    const MAX       = 5000;
+  const ta   = document.getElementById('epTextarea');
+  const prev = document.getElementById('epPreview');
+  const ctr  = document.getElementById('epCounter');
+  const cnum = document.getElementById('epCharNum');
+  const MAX  = 5000;
 
-    if (!textarea) return;
+  function updateCount() {
+    if (!ta || !cnum) return;
+    const n = ta.value.length;
+    cnum.textContent = n.toLocaleString();
+    if (ctr) ctr.className = 'ep-char-counter' + (n > MAX ? ' ep--over' : n > MAX * .85 ? ' ep--warn' : '');
+  }
+  ta && ta.addEventListener('input', updateCount);
+  updateCount();
 
-    function updateCount() {
-        const n = textarea.value.length;
-        charCount.textContent = n.toLocaleString() + ' chars';
-        charCount.className = 'md-char-count' + (n > MAX ? ' over' : n > MAX * 0.85 ? ' warn' : '');
+  window.epSetTab = function(mode) {
+    const tw = document.getElementById('epTabWrite');
+    const tp = document.getElementById('epTabPreview');
+    const tb = document.getElementById('epToolbar');
+    if (mode === 'write') {
+      ta.hidden = false; prev.hidden = true;
+      tw.classList.add('ep-tab--active'); tp.classList.remove('ep-tab--active');
+      if (tb) { tb.style.opacity = ''; tb.style.pointerEvents = ''; }
+      ta.focus();
+    } else {
+      const html = (typeof marked !== 'undefined') ? marked.parse(ta.value || '') : '';
+      prev.innerHTML = html.trim()
+        ? `<div class="ep-prose">${html}</div>`
+        : `<div class="ep-preview-empty"><i class="fas fa-feather-pointed"></i><span>Preview appears as you write…</span></div>`;
+      ta.hidden = true; prev.hidden = false;
+      tp.classList.add('ep-tab--active'); tw.classList.remove('ep-tab--active');
+      if (tb) { tb.style.opacity = '.35'; tb.style.pointerEvents = 'none'; }
     }
-    textarea.addEventListener('input', updateCount);
-    updateCount();
+  };
 
-    const ACTIONS = {
-        bold:    { wrap: ['**','**'], placeholder: 'bold text'   },
-        italic:  { wrap: ['*', '*'], placeholder: 'italic text' },
-        strike:  { wrap: ['~~','~~'],placeholder: 'struck text' },
-        code:    { wrap: ['`', '`'], placeholder: 'code'        },
-        h2:      { line: '## ',      placeholder: 'Heading'     },
-        quote:   { line: '> ',       placeholder: 'Blockquote'  },
-        ul:      { line: '- ',       placeholder: 'List item'   },
-        ol:      { line: '1. ',      placeholder: 'List item'   },
-        link:    { special: 'link' },
-    };
+  const MD = {
+    bold:   { wrap: ['**','**'], ph: 'bold text' },
+    italic: { wrap: ['*','*'],   ph: 'italic text' },
+    strike: { wrap: ['~~','~~'], ph: 'struck text' },
+    code:   { wrap: ['`','`'],   ph: 'code' },
+    h2:     { line: '## ',       ph: 'Heading' },
+    quote:  { line: '> ',        ph: 'Blockquote' },
+    ul:     { line: '- ',        ph: 'List item' },
+    ol:     { line: '1. ',       ph: 'List item' },
+    link:   { special: 'link' },
+    hr:     { special: 'hr' },
+  };
 
-    function insertMarkdown(action) {
-        const cfg = ACTIONS[action]; if (!cfg) return;
-        const start = textarea.selectionStart, end = textarea.selectionEnd;
-        const sel = textarea.value.slice(start, end);
-        let before = textarea.value.slice(0, start), after = textarea.value.slice(end);
-        let insert = '', cursor = 0;
-        if (cfg.special === 'link') {
-            const url = prompt('Enter URL:', 'https://'); if (!url) return;
-            insert = `[${sel || 'link text'}](${url})`; cursor = insert.length;
-        } else if (cfg.wrap) {
-            const [o, c] = cfg.wrap;
-            insert = sel ? (sel.startsWith(o) && sel.endsWith(c) ? sel.slice(o.length, -c.length) : o+sel+c) : o+cfg.placeholder+c;
-            cursor = insert.length;
-        } else if (cfg.line) {
-            if (before.length && !before.endsWith('\n')) before += '\n';
-            if (after.length && !after.startsWith('\n')) after = '\n' + after;
-            insert = (sel || cfg.placeholder).split('\n').map(l => cfg.line + l).join('\n');
-            cursor = insert.length;
-        }
-        textarea.value = before + insert + after;
-        textarea.selectionStart = before.length;
-        textarea.selectionEnd   = before.length + cursor;
-        textarea.focus();
-        textarea.dispatchEvent(new Event('input'));
+  function insertMd(action) {
+    if (!ta || ta.hidden) return;
+    const c = MD[action]; if (!c) return;
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    const sel = ta.value.slice(s, e);
+    let before = ta.value.slice(0, s), after = ta.value.slice(e), ins = '';
+    if (c.special === 'link') {
+      const url = prompt('Enter URL:', 'https://'); if (!url) return;
+      ins = `[${sel || 'link text'}](${url})`;
+    } else if (c.special === 'hr') {
+      if (before && !before.endsWith('\n')) before += '\n'; ins = '\n---\n';
+    } else if (c.wrap) {
+      const [o, cl] = c.wrap;
+      ins = sel ? (sel.startsWith(o) && sel.endsWith(cl) ? sel.slice(o.length, -cl.length) : o + sel + cl) : o + c.ph + cl;
+    } else if (c.line) {
+      if (before && !before.endsWith('\n')) before += '\n';
+      ins = (sel || c.ph).split('\n').map(l => c.line + l).join('\n');
     }
+    ta.value = before + ins + after;
+    ta.selectionStart = before.length; ta.selectionEnd = before.length + ins.length;
+    ta.focus(); ta.dispatchEvent(new Event('input'));
+  }
 
-    document.querySelectorAll('.md-btn[data-action]').forEach(btn => {
-        if (btn.dataset.action !== 'preview') btn.addEventListener('click', () => insertMarkdown(btn.dataset.action));
-    });
+  document.querySelectorAll('.ep-tb[data-md]').forEach(btn =>
+    btn.addEventListener('click', () => insertMd(btn.dataset.md))
+  );
 
-    textarea.addEventListener('keydown', e => {
-        if (e.ctrlKey || e.metaKey) {
-            if (e.key === 'b') { e.preventDefault(); insertMarkdown('bold');   }
-            if (e.key === 'i') { e.preventDefault(); insertMarkdown('italic'); }
-            if (e.key === 'k') { e.preventDefault(); insertMarkdown('link');   }
-        }
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            const s = textarea.selectionStart;
-            textarea.value = textarea.value.slice(0, s) + '  ' + textarea.value.slice(textarea.selectionEnd);
-            textarea.selectionStart = textarea.selectionEnd = s + 2;
-        }
-    });
-
-    const previewBtn = document.querySelector('.md-btn--preview');
-    let previewOpen = false;
-
-    function renderPreview() {
-        const html = marked.parse(textarea.value || '');
-        preview.innerHTML = html.trim()
-            ? html
-            : '<div class="md-preview-empty"><i class="fas fa-eye-slash"></i><span>Nothing to preview yet</span></div>';
+  ta && ta.addEventListener('keydown', ev => {
+    if (ev.ctrlKey || ev.metaKey) {
+      if (ev.key === 'b') { ev.preventDefault(); insertMd('bold'); }
+      if (ev.key === 'i') { ev.preventDefault(); insertMd('italic'); }
+      if (ev.key === 'k') { ev.preventDefault(); insertMd('link'); }
     }
+    if (ev.key === 'Tab') {
+      ev.preventDefault();
+      const p = ta.selectionStart;
+      ta.value = ta.value.slice(0, p) + '  ' + ta.value.slice(ta.selectionEnd);
+      ta.selectionStart = ta.selectionEnd = p + 2;
+    }
+  });
 
-    previewBtn && previewBtn.addEventListener('click', () => {
-        previewOpen = !previewOpen;
-        if (previewOpen) {
-            renderPreview();
-            textarea.hidden = true;
-            preview.hidden  = false;
-            previewBtn.classList.add('active');
-            previewBtn.querySelector('span').textContent = 'Edit';
-            previewBtn.querySelector('i').className = 'fas fa-pen';
-        } else {
-            textarea.hidden = false;
-            preview.hidden  = true;
-            previewBtn.classList.remove('active');
-            previewBtn.querySelector('span').textContent = 'Preview';
-            previewBtn.querySelector('i').className = 'fas fa-eye';
-            textarea.focus();
-        }
+  window.epDrag = function(ev, on) { ev.preventDefault(); document.getElementById('epDropZone').classList.toggle('ep--drag', on); };
+  window.epDrop = function(ev) {
+    ev.preventDefault();
+    document.getElementById('epDropZone').classList.remove('ep--drag');
+    const input = document.getElementById('epFileInput');
+    if (ev.dataTransfer.files.length) { input.files = ev.dataTransfer.files; epHandleFile(input); }
+  };
+  window.epDragJson = function(ev, on) { ev.preventDefault(); document.getElementById('epJsonZone').classList.toggle('ep--drag', on); };
+  window.epDropJson = function(ev) {
+    ev.preventDefault(); document.getElementById('epJsonZone').classList.remove('ep--drag');
+    const input = document.getElementById('epJsonInput');
+    if (ev.dataTransfer.files.length) { input.files = ev.dataTransfer.files; epHandleJson(input); }
+  };
+
+  window.epHandleFile = function(input) {
+    if (!input.files || !input.files[0]) return;
+    const f = input.files[0];
+    const ext = f.name.split('.').pop().toLowerCase();
+    document.getElementById('epDropName').textContent = `${f.name}  ·  ${(f.size/1048576).toFixed(1)} MB`;
+    document.getElementById('epDropIcon').innerHTML = '<i class="fas fa-circle-check"></i>';
+    const types = document.getElementById('epDropTypes'); if (types) types.style.display = 'none';
+    document.getElementById('epDropZone').classList.add('ep--done');
+    document.getElementById('epFileRm').style.display = 'flex';
+    const sc = document.getElementById('epSidecarSection'); if (sc) sc.style.display = ext === 'pdf' ? 'block' : 'none';
+  };
+
+  window.epClearFile = function() {
+    document.getElementById('epFileInput').value = '';
+    const hasDoc = {{ 'true' if post.has_document and post.document else 'false' }};
+    document.getElementById('epDropName').textContent = hasDoc ? 'Click to replace current file' : 'Drop file or click to browse';
+    document.getElementById('epDropIcon').innerHTML = '<i class="fas fa-cloud-arrow-up"></i>';
+    const types = document.getElementById('epDropTypes'); if (types) types.style.display = '';
+    document.getElementById('epDropZone').classList.remove('ep--done');
+    document.getElementById('epFileRm').style.display = 'none';
+    const sc = document.getElementById('epSidecarSection'); if (sc) sc.style.display = 'none';
+    epClearJson();
+  };
+
+  window.epHandleJson = function(input) {
+    if (!input.files || !input.files[0]) return;
+    document.getElementById('epJsonName').textContent = input.files[0].name;
+    document.getElementById('epJsonIcon').innerHTML = '<i class="fas fa-circle-check"></i>';
+    document.getElementById('epJsonZone').classList.add('ep--done');
+    document.getElementById('epJsonRm').style.display = 'flex';
+  };
+
+  window.epClearJson = function() {
+    const i = document.getElementById('epJsonInput'); if (i) i.value = '';
+    const n = document.getElementById('epJsonName');  if (n) n.textContent = 'Attach .json quiz file';
+    const ic = document.getElementById('epJsonIcon'); if (ic) ic.innerHTML = '<i class="fas fa-file-code"></i>';
+    const z  = document.getElementById('epJsonZone'); if (z) z.classList.remove('ep--done');
+    const r  = document.getElementById('epJsonRm');   if (r) r.style.display = 'none';
+  };
+
+  const paidToggle = document.getElementById('is_paid');
+  if (paidToggle) {
+    paidToggle.addEventListener('change', function() {
+      const pb = document.getElementById('epPriceBody');
+      const ph = document.getElementById('epPriceHint');
+      if (pb) pb.style.display = this.checked ? 'block' : 'none';
+      if (ph) ph.textContent = this.checked ? 'Set document price in GHS' : 'Free for everyone';
     });
+  }
+
+  const form = document.getElementById('epForm');
+  if (form) {
+    form.addEventListener('submit', function() {
+      document.querySelectorAll('.ep-btn-primary').forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+      });
+    });
+  }
 })();
 </script>
 {% endblock %}

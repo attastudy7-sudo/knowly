@@ -180,9 +180,10 @@
             <i class="fas fa-exclamation-circle"></i> You must agree to the Terms to create an account.
           </div>
 
-          <button type="submit" class="btn-submit">
-            <span>Create Account</span>
-            <i class="fas fa-arrow-right"></i>
+          <button type="submit" class="btn-submit" id="submitBtn">
+            <span class="btn-text">Create Account</span>
+            <span class="btn-loader"><span class="loader-spinner"></span>Creating...</span>
+            <span class="btn-icon"><i class="fas fa-arrow-right"></i></span>
           </button>
         </form>
 
@@ -308,15 +309,39 @@ html,body{height:100%;overflow:hidden;}
 .terms-link{color:#667eea;text-decoration:underline;font-weight:600;}
 .terms-link:hover{color:#764ba2;}
 .terms-error-msg{display:flex;align-items:center;gap:.35rem;color:#991b1b;font-size:.68rem;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:.3rem .55rem;}
-.btn-submit{width:100%;padding:clamp(.5rem,.95vh,.8rem);background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:10px;font-weight:700;font-size:clamp(.8rem,1.4vh,.95rem);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.55rem;box-shadow:0 4px 18px rgba(102,126,234,.4);transition:transform .25s var(--ease),box-shadow .25s;position:relative;overflow:hidden;}
-.btn-submit::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transform:translateX(-100%);transition:transform .5s;}
-.btn-submit:hover::after{transform:translateX(100%);}
-.btn-submit:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(102,126,234,.55);}
+/* ═══ ENHANCED BUTTON: Submit Button ═══ */
+.btn-submit{width:100%;padding:clamp(.5rem,.95vh,.8rem);background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:10px;font-weight:700;font-size:clamp(.8rem,1.4vh,.95rem);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.55rem;box-shadow:0 4px 18px rgba(102,126,234,.4);transition:transform .5s var(--ease),box-shadow .5s;position:relative;overflow:hidden;background-size:200% 200%;background-position:0% 50%;animation:btnGradientShift 3s ease infinite;}
+@keyframes btnGradientShift{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+.btn-submit::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);transform:translateX(-100%);transition:transform .5s;}
+.btn-submit:hover::after{transform:translateX(100%); }
+.btn-submit:hover{box-shadow:0 0 20px rgba(102,126,234,.5),0 0 40px rgba(102,126,234,.25); transition-duration: 500ms;}
+.btn-submit:active{box-shadow:0 4px 14px rgba(102,126,234,.45);}
+.btn-submit::before{content:'';position:absolute;inset:0;border-radius:12px;background:linear-gradient(135deg,#667eea,#764ba2,#a78bfa,#667eea);background-size:300% 300%;animation:btnPulseGlow 2.5s ease infinite;z-index:-1;opacity:0;transition:opacity .3s;}
+.btn-submit:hover::before{opacity:1;}
+@keyframes btnPulseGlow{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+.btn-submit .btn-icon i{transition:transform .3s var(--ease),margin-left .3s var(--ease);}
+.btn-submit:hover .btn-icon i{transform:translateX(4px);margin-left:2px;}
+.btn-submit .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.4);transform:scale(0);animation:rippleEffect .6s linear;pointer-events:none;}
+@keyframes rippleEffect{to{transform:scale(4);opacity:0;}}
+/* Loading State */
+.btn-submit.loading{pointer-events:none;opacity:.85;}
+.btn-submit.loading .btn-text{display:none;}
+.btn-submit.loading .btn-icon{display:none;}
+.btn-submit .btn-loader{display:none;}
+.btn-submit.loading .btn-loader{display:inline-flex;align-items:center;gap:.45rem;}
+.btn-submit .btn-loader .loader-spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .85s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
 .divider{text-align:center;position:relative;margin:clamp(.35rem,.7vh,.75rem) 0;}
 .divider::before{content:'';position:absolute;left:0;top:50%;width:100%;height:1px;background:#e8ecf4;}
 .divider span{position:relative;background:white;padding:0 .75rem;color:#94a3b8;font-size:.7rem;}
-.social-btn{width:100%;padding:clamp(.45rem,.85vh,.7rem);border:1.5px solid #e2e8f0;border-radius:10px;background:white;color:#0f172a;display:flex;align-items:center;justify-content:center;gap:.65rem;font-weight:600;font-size:clamp(.78rem,1.3vh,.875rem);text-decoration:none;transition:border-color .25s,background .25s,transform .25s var(--ease),box-shadow .25s;box-shadow:0 1px 4px rgba(0,0,0,.06);}
-.social-btn:hover{border-color:#667eea;background:#fafcff;transform:translateY(-2px);box-shadow:0 6px 20px rgba(102,126,234,.18);}
+/* ═══ ENHANCED BUTTON: Social Login Button ═══ */
+.social-btn{width:100%;padding:clamp(.45rem,.85vh,.7rem);border:1.5px solid #e2e8f0;border-radius:10px;background:white;color:#0f172a;display:flex;align-items:center;justify-content:center;gap:.65rem;font-weight:600;font-size:clamp(.78rem,1.3vh,.875rem);text-decoration:none;transition:border-color .25s,background .25s,transform .25s var(--ease),box-shadow .25s;box-shadow:0 1px 4px rgba(0,0,0,.06);position:relative;overflow:hidden;}
+.social-btn:hover{border-color:#667eea;background:#fafcff;box-shadow:0 0 15px rgba(102,126,234,.4),0 0 30px rgba(102,126,234,.15);}
+.social-btn:active{transform:translateY(0) scale(0.98);box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.social-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(102,126,234,.05),rgba(118,75,162,.05));opacity:0;transition:opacity .3s;}
+.social-btn:hover::before{opacity:1;}
+.social-btn svg{transition:transform .3s var(--ease);}
+.social-btn:hover svg{transform:scale(1.1);}
 .form-footer{text-align:center;margin-top:clamp(.4rem,.8vh,.875rem);padding-top:clamp(.4rem,.8vh,.875rem);border-top:1px solid #f1f5f9;}
 .form-footer p{color:#64748b;font-size:clamp(.7rem,1.2vh,.8rem);}
 .link-primary{color:#667eea;font-weight:700;text-decoration:none;transition:color .25s;}
@@ -410,10 +435,35 @@ function togglePw(fieldId, iconId) {
   i.classList.toggle('fa-eye');
   i.classList.toggle('fa-eye-slash');
 }
+
+// Ripple effect for buttons
+function createRipple(event) {
+  const button = event.currentTarget;
+  const ripple = document.createElement('span');
+  ripple.classList.add('ripple');
+  const rect = button.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = event.clientX - rect.left - size / 2 + 'px';
+  ripple.style.top = event.clientY - rect.top - size / 2 + 'px';
+  button.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+}
+
+document.querySelectorAll('.btn-submit').forEach(btn => {
+  btn.addEventListener('click', createRipple);
+});
+
 document.getElementById('signupForm').addEventListener('submit', e => {
   const cb = document.getElementById('terms'), errEl = document.getElementById('terms-error');
-  if (!cb.checked) { e.preventDefault(); errEl.style.display = 'flex'; }
-  else errEl.style.display = 'none';
+  if (!cb.checked) { 
+    e.preventDefault(); 
+    errEl.style.display = 'flex'; 
+  } else {
+    errEl.style.display = 'none';
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.classList.add('loading');
+  }
 });
 document.getElementById('terms').addEventListener('change', function () {
   if (this.checked) document.getElementById('terms-error').style.display = 'none';

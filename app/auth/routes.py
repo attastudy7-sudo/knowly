@@ -94,6 +94,11 @@ def _get_or_create_google_user(google_email: str, google_name: str):
     user.password_hash = None   # Google-only account — no password
     db.session.add(user)
     db.session.commit()
+    
+    # Send welcome email
+    from app.utils.emails import send_welcome_email
+    send_welcome_email(user)
+    
     return user, True
 
 
@@ -158,6 +163,10 @@ def signup():
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
+
+        # Send welcome email
+        from app.utils import send_welcome_email
+        send_welcome_email(user)
 
         flash('Account created! Please sign in.', 'success')
         return redirect(url_for('auth.login'))

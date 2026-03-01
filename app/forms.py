@@ -70,8 +70,11 @@ class CreatePostForm(FlaskForm):
     ])
     subject = SelectField('Subject/Category', coerce=int, validators=[Optional()])
     document = FileField('Upload Document (Optional)', validators=[
-        FileAllowed(['pdf', 'docx', 'pptx', 'txt', 'doc', 'ppt'], 
+        FileAllowed(['pdf', 'docx', 'pptx', 'txt', 'doc', 'ppt'],
                    'Only PDF, DOCX, PPTX, and TXT files allowed!')
+    ])
+    json_sidecar = FileField('Upload JSON Sidecar (Optional)', validators=[
+        FileAllowed(['json'], 'Only JSON files allowed!')
     ])
     is_paid = BooleanField('Paid Document (Future Feature)')
     price = StringField('Price (Future Feature)', validators=[Optional()])

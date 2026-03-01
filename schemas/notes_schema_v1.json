@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://edushare.internal/schemas/notes/v1",
+  "title": "EduShare Study Notes Document v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "document_type", "generated_at",
+    "title", "course", "level", "metadata", "sections"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "document_type":  { "type": "string", "const": "notes" },
+    "generated_at":   { "type": "string", "minLength": 10 },
+    "document_hash":  { "type": "string" },
+    "title":  { "type": "string", "minLength": 1 },
+    "course": { "type": "string", "minLength": 1 },
+    "level": {
+      "type": "string",
+      "enum": ["Beginner","Elementary","Intermediate","Advanced","Expert"]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["estimated_read_time"],
+      "properties": {
+        "estimated_read_time": { "type": "string", "minLength": 1 },
+        "focus_areas":         { "type": "string" },
+        "prerequisites":       { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/notes_section" }
+    },
+    "summary": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "type": "string", "minLength": 10 }
+    }
+  },
+  "definitions": {
+    "notes_section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["section_number","section_title","section_type","content"],
+      "properties": {
+        "section_number": { "type": "integer", "minimum": 1 },
+        "section_title":  { "type": "string",  "minLength": 1 },
+        "section_type": {
+          "type": "string",
+          "enum": [
+            "overview","concepts","theory","examples",
+            "worked_examples","mistakes","revision","custom"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/content_block" }
+        }
+      }
+    },
+    "content_block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["block_type","text"],
+      "properties": {
+        "block_type": {
+          "type": "string",
+          "enum": [
+            "paragraph","definition","theorem","proof",
+            "example","worked_example","note","formula",
+            "list","diagram_placeholder"
+          ]
+        },
+        "text":    { "type": "string", "minLength": 1 },
+        "label":   { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "items": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "caption": { "type": "string" }
+      }
+    }
+  }
+}

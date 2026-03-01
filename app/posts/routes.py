@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import json
 import time
 import urllib.parse
 import os
@@ -43,27 +44,12 @@ def allowed_file(filename, allowed_extensions):
 
 
 def _pricing_allowed() -> bool:
-    """
-    BACKDOOR: Returns True if the current user is allowed to set a price.
-
-    By default only admins can set prices. To temporarily open pricing to
-    ALL users (e.g. during a promotion or while testing), set this env var:
-
-        ALLOW_ALL_PRICING=1
-
-    in your .env or hosting environment, then restart the app. Remove it to
-    revert to admin-only pricing.
-    """
     if current_app.config.get('ALLOW_ALL_PRICING'):
         return True
     return current_user.is_authenticated and current_user.is_admin
 
 
 def _apply_pricing(document, form):
-    """
-    Set is_paid/price on a Document from form data, but only if the current
-    user is allowed to set pricing. Regular users always get free documents.
-    """
     if _pricing_allowed() and form.is_paid.data:
         try:
             price = float(form.price.data) if form.price.data else 0.0
@@ -79,17 +65,12 @@ def _apply_pricing(document, form):
 # ── Storage: upload ───────────────────────────────────────────────────────────
 
 def upload_document(file, form, json_file=None):
-    """
-    Upload a file to Cloudinary (production) or local disk (development).
-    Returns a Document model instance or None on failure.
-    """
     if _is_local():
         return _upload_local(file, form, json_file)
     return _upload_cloudinary(file, form, json_file)
 
 
 def _upload_local(file, form, json_file=None):
-    """Save file to app/static/uploads/documents/ for local dev."""
     try:
         file_ext          = file.filename.rsplit('.', 1)[1].lower()
         original_filename = secure_filename(file.filename)
@@ -99,9 +80,7 @@ def _upload_local(file, form, json_file=None):
 
         file.save(save_path)
         file_size = os.path.getsize(save_path)
-
-        # file_path stored as the relative URL path served by Flask
-        file_url = f"/static/uploads/documents/{unique_name}"
+        file_url  = f"/static/uploads/documents/{unique_name}"
 
         document = Document(
             filename=unique_name,
@@ -112,15 +91,14 @@ def _upload_local(file, form, json_file=None):
             is_paid=False,
             price=0.0,
         )
-        
-        # Handle JSON sidecar if provided
+
         if json_file and json_file.filename:
             json_ext = 'json'
             json_unique_name = f"{uuid.uuid4().hex}.{json_ext}"
             json_save_path = os.path.join(upload_folder, json_unique_name)
             json_file.save(json_save_path)
             document.json_sidecar_path = f"/static/uploads/documents/{json_unique_name}"
-        
+
         _apply_pricing(document, form)
         return document
 
@@ -131,7 +109,6 @@ def _upload_local(file, form, json_file=None):
 
 
 def _upload_cloudinary(file, form, json_file=None):
-    """Upload to Cloudinary for production."""
     try:
         import cloudinary.uploader
         file_ext          = file.filename.rsplit('.', 1)[1].lower()
@@ -156,8 +133,7 @@ def _upload_cloudinary(file, form, json_file=None):
             is_paid=False,
             price=0.0,
         )
-        
-        # Handle JSON sidecar if provided
+
         if json_file and json_file.filename:
             json_result = cloudinary.uploader.upload(
                 json_file,
@@ -169,7 +145,7 @@ def _upload_cloudinary(file, form, json_file=None):
                 format='json',
             )
             document.json_sidecar_path = json_result['secure_url']
-        
+
         _apply_pricing(document, form)
         return document
 
@@ -182,7 +158,6 @@ def _upload_cloudinary(file, form, json_file=None):
 # ── Storage: delete ───────────────────────────────────────────────────────────
 
 def delete_document(document):
-    """Delete a document from Cloudinary (prod) or local disk (dev)."""
     if _is_local():
         _delete_local(document)
     else:
@@ -190,16 +165,12 @@ def delete_document(document):
 
 
 def _delete_local(document):
-    """Remove file from local disk."""
     try:
         upload_folder = _local_upload_folder()
         file_path     = os.path.join(upload_folder, document.filename)
         if os.path.exists(file_path):
             os.remove(file_path)
-            
-        # Delete JSON sidecar if it exists
         if document.json_sidecar_path:
-            import os
             json_filename = os.path.basename(document.json_sidecar_path)
             json_path = os.path.join(upload_folder, json_filename)
             if os.path.exists(json_path):
@@ -209,7 +180,6 @@ def _delete_local(document):
 
 
 def _delete_cloudinary(document):
-    """Remove file from Cloudinary."""
     try:
         import cloudinary.uploader
         resource_type = (
@@ -217,18 +187,13 @@ def _delete_cloudinary(document):
             else 'raw'
         )
         cloudinary.uploader.destroy(document.filename, resource_type=resource_type)
-        
-        # Delete JSON sidecar if it exists
         if document.json_sidecar_path:
-            # Extract public_id from JSON sidecar path
-            # Cloudinary URL format: https://res.cloudinary.com/<cloud_name>/image/upload/<public_id>.<format>
-            import urllib.parse
             parsed_url = urllib.parse.urlparse(document.json_sidecar_path)
             path_parts = parsed_url.path.split('/')
-            if len(path_parts) > 3:  # Skip /res.cloudinary.com/<cloud_name>/<resource_type>/<upload_type>/
-                public_id = '/'.join(path_parts[5:])  # Get everything after /<resource_type>/<upload_type>/
+            if len(path_parts) > 3:
+                public_id = '/'.join(path_parts[5:])
                 if public_id.endswith('.json'):
-                    public_id = public_id[:-5]  # Remove .json extension
+                    public_id = public_id[:-5]
                 cloudinary.uploader.destroy(public_id, resource_type='raw')
     except Exception as e:
         current_app.logger.warning(f"Failed to delete Cloudinary file '{document.filename}': {e}")
@@ -241,26 +206,18 @@ def _signed_proxy_token(document_id: int, expires: int, secret: bytes) -> str:
 
 
 def _stream_document(document, as_attachment: bool = False):
-    """
-    Return (body_iterator, response_kwargs) for serving a document.
-    Uses local file serving in dev, Cloudinary streaming in prod.
-    """
     if _is_local():
         return _stream_local(document, as_attachment)
     return _stream_cloudinary(document, as_attachment)
 
 
 def _stream_local(document, as_attachment: bool = False):
-    """Serve file directly from local disk."""
     try:
         upload_folder = _local_upload_folder()
         file_path     = os.path.join(upload_folder, document.filename)
-
         if not os.path.exists(file_path):
             current_app.logger.error(f"Local file not found: {file_path}")
             return None, None
-
-        # Determine MIME type
         ext_mime = {
             'pdf':  'application/pdf',
             'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -274,54 +231,105 @@ def _stream_local(document, as_attachment: bool = False):
             'gif':  'image/gif',
         }
         content_type = ext_mime.get(document.file_type.lower(), 'application/octet-stream')
-
         def generate():
             with open(file_path, 'rb') as f:
                 while chunk := f.read(8192):
                     yield chunk
-
         headers = {}
         if as_attachment:
             safe_name = urllib.parse.quote(document.original_filename or 'download')
             headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{safe_name}"
         headers['Content-Length'] = str(os.path.getsize(file_path))
-
         return (
             stream_with_context(generate()),
             dict(status=200, content_type=content_type, headers=headers),
         )
-
     except Exception as e:
         current_app.logger.error(f"Local file serve failed: {e}")
         return None, None
 
 
 def _stream_cloudinary(document, as_attachment: bool = False):
-    """Stream file from Cloudinary."""
     try:
         upstream = req.get(document.file_path, stream=True, timeout=20)
         upstream.raise_for_status()
     except Exception as e:
         current_app.logger.error(
-            f"Cloudinary fetch failed for document {document.id} "
-            f"({document.file_path}): {e}"
+            f"Cloudinary fetch failed for document {document.id} ({document.file_path}): {e}"
         )
         return None, None
-
     content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
     headers = {}
-
     if as_attachment:
         safe_name = urllib.parse.quote(document.original_filename or 'download')
         headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{safe_name}"
-
     if 'Content-Length' in upstream.headers:
         headers['Content-Length'] = upstream.headers['Content-Length']
-
     return (
         stream_with_context(upstream.iter_content(chunk_size=8192)),
         dict(status=200, content_type=content_type, headers=headers),
     )
+
+
+# ── Quiz helpers ──────────────────────────────────────────────────────────────
+
+def on_post_approved(post) -> None:
+    """
+    Call this from admin/routes.py after setting post.status = 'approved'.
+    Re-reads the stored JSON sidecar, re-validates, and updates QuizData.
+    Failure is logged but never blocks the approval.
+    """
+    if not post.document or not post.document.json_sidecar_path:
+        return
+    try:
+        from app.services.quiz_service import quiz_from_sidecar
+        quiz = quiz_from_sidecar(post)
+        if quiz:
+            current_app.logger.info(
+                "Quiz (re-)attached to approved post %s: %d questions, %d marks.",
+                post.id, len(json.loads(quiz.questions)), quiz.total_marks
+            )
+        else:
+            current_app.logger.info(
+                "Post %s approved — no valid quiz sidecar found.", post.id
+            )
+    except Exception as exc:
+        current_app.logger.warning(
+            "Quiz attachment failed for post %s during approval: %s", post.id, exc
+        )
+
+
+def _try_attach_quiz(post, json_bytes: bytes) -> None:
+    """
+    Validate json_bytes and attach a quiz to post.
+    Flashes a user-facing message for both success and failure.
+    Never raises.
+    """
+    try:
+        from app.services.quiz_service import validate_and_attach_quiz
+        quiz_data, error = validate_and_attach_quiz(post, json_bytes)
+        if quiz_data:
+            flash(
+                f'Quiz attached successfully! '
+                f'({quiz_data.total_marks} marks, '
+                f'{len(json.loads(quiz_data.questions))} questions)',
+                'success'
+            )
+        else:
+            flash(
+                f'Your post was submitted but the quiz JSON was rejected: {error} '
+                f'The post will be published without a quiz.',
+                'warning'
+            )
+    except Exception as exc:
+        current_app.logger.exception(
+            "Unexpected error attaching quiz to post %s.", post.id
+        )
+        flash(
+            'Your post was submitted, but the quiz could not be processed '
+            'due to an unexpected error.',
+            'warning'
+        )
 
 
 # ── Post CRUD ─────────────────────────────────────────────────────────────────
@@ -347,11 +355,21 @@ def create():
             if subject:
                 subject.post_count = subject.posts.count() + 1
 
+        json_bytes = None
+
         if form.document.data and form.document.data.filename:
             file = form.document.data
             if allowed_file(file.filename, current_app.config['ALLOWED_DOCUMENT_EXTENSIONS']):
-                # Handle JSON sidecar if provided
-                json_file = form.json_sidecar.data if hasattr(form, 'json_sidecar') and form.json_sidecar.data else None
+                json_file = (
+                    form.json_sidecar.data
+                    if hasattr(form, 'json_sidecar')
+                    and form.json_sidecar.data
+                    and form.json_sidecar.data.filename
+                    else None
+                )
+                if json_file:
+                    json_bytes = json_file.read()
+                    json_file.seek(0)   # rewind so upload_document can save it
                 document = upload_document(file, form, json_file)
                 if document:
                     db.session.add(document)
@@ -361,11 +379,13 @@ def create():
 
         db.session.add(post)
         db.session.commit()
-        
-        # Update user's activity streak and add XP
+
+        if json_bytes and post.document:
+            _try_attach_quiz(post, json_bytes)
+
         current_user.update_streak()
-        current_user.add_xp(10)  # +10 XP for creating a post
-        
+        current_user.add_xp(10)
+
         flash(
             'Your post has been submitted and is awaiting admin approval. '
             'It will appear in the feed once reviewed.',
@@ -394,14 +414,6 @@ def view(post_id):
         error_out=False
     )
 
-    # ── Quiz / leaderboard context ────────────────────────────────────────
-    # has_quiz is passed to the template so it can show/hide the Take Quiz
-    # button and the leaderboard section without making a DB call in Jinja2.
-    #
-    # PDFs uploaded without a JSON sidecar (manually created notes, externally
-    # sourced study guides, etc.) will have no QuizData record.  That is
-    # normal and valid — the template shows a "Quiz not available" notice
-    # instead of the Take Quiz button for those posts.
     from app.models import QuizData, QuizLeaderboard
 
     quiz_data = None
@@ -440,12 +452,12 @@ def view(post_id):
         post=post,
         comment_form=comment_form,
         comments=comments,
-        # quiz context
         has_quiz=has_quiz,
         leaderboard_entries=leaderboard_entries,
         user_entry=user_entry,
         total_participants=total_participants,
     )
+
 
 @bp.route('/<int:post_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -484,12 +496,10 @@ def edit(post_id):
                 submitted_price = float(form.price.data) if form.price.data else 0.0
             except (ValueError, TypeError):
                 submitted_price = 0.0
-
             if submitted_price <= 0:
                 flash('Please enter a valid price greater than 0 for paid documents.', 'danger')
                 return render_template('posts/edit.html', title='Edit Post', form=form,
                                        post=post, show_pricing=_pricing_allowed())
-
             final_is_paid = True
             final_price   = round(submitted_price, 2)
         else:
@@ -500,7 +510,9 @@ def edit(post_id):
                 final_is_paid = False
                 final_price   = 0.0
 
+        json_bytes = None
         new_file = form.document.data
+
         if new_file and new_file.filename:
             if not allowed_file(new_file.filename, current_app.config['ALLOWED_DOCUMENT_EXTENSIONS']):
                 flash('Invalid file type.', 'danger')
@@ -512,7 +524,18 @@ def edit(post_id):
                 db.session.delete(post.document)
                 db.session.flush()
 
-            document = upload_document(new_file, form)
+            json_file = (
+                form.json_sidecar.data
+                if hasattr(form, 'json_sidecar')
+                and form.json_sidecar.data
+                and form.json_sidecar.data.filename
+                else None
+            )
+            if json_file:
+                json_bytes = json_file.read()
+                json_file.seek(0)
+
+            document = upload_document(new_file, form, json_file)
             if document:
                 document.is_paid = final_is_paid
                 document.price   = final_price
@@ -527,15 +550,10 @@ def edit(post_id):
                 post.document.price   = final_price
 
         db.session.commit()
-        
-        # Regenerate quiz if document was updated (new file uploaded)
-        if new_file and new_file.filename and post.status == 'approved':
-            try:
-                from app.services.quiz_generator import regenerate_quiz
-                regenerate_quiz(post.id)
-            except Exception as e:
-                current_app.logger.warning(f"Failed to regenerate quiz for post {post.id}: {e}")
-        
+
+        if json_bytes and post.document:
+            _try_attach_quiz(post, json_bytes)
+
         flash('Your post has been updated and is awaiting re-approval.', 'info')
         return redirect(url_for('posts.view', post_id=post.id))
 
@@ -581,26 +599,22 @@ def like(post_id):
     if existing_like:
         db.session.delete(existing_like)
         db.session.commit()
-        # Update streak and XP only when liking (not unliking)
         current_user.update_streak()
         current_user.add_xp(2)
         liked = False
     else:
         db.session.add(Like(user_id=current_user.id, post_id=post.id))
         db.session.commit()
-        # Update user's activity streak when they like a post
         current_user.update_streak()
-        # Add XP for liking a post (+2 XP)
         current_user.add_xp(2)
         liked = True
 
-    # Return JSON for AJAX requests
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({
             'liked': liked,
             'like_count': post.like_count()
         })
-    
+
     flash('Post liked!' if liked else 'Post unliked.', 'success' if liked else 'info')
     return redirect(request.referrer or url_for('main.index'))
 
@@ -618,9 +632,7 @@ def comment(post_id):
             post=post,
         ))
         db.session.commit()
-        # Update user's activity streak when they comment
         current_user.update_streak()
-        # Add XP for commenting (+5 XP)
         current_user.add_xp(5)
         flash('Your comment has been posted!', 'success')
 
@@ -664,15 +676,9 @@ def preview_document(document_id):
     if ext not in previewable:
         return jsonify({'error': 'not_previewable'}), 400
 
-    # Images — serve directly
     if ext in {'png', 'jpg', 'jpeg', 'gif', 'webp'}:
-        if _is_local():
-            # Serve local static URL directly
-            return jsonify({'type': 'image', 'url': document.file_path}), 200
         return jsonify({'type': 'image', 'url': document.file_path}), 200
 
-    # In local dev: use a signed proxy URL for Google Docs viewer
-    # In prod: same approach via Cloudinary URL
     expires = int(time.time()) + 300
     secret  = current_app.config['SECRET_KEY'].encode()
     token   = _signed_proxy_token(document_id, expires, secret)
@@ -686,7 +692,6 @@ def preview_document(document_id):
     )
 
     if _is_local():
-        # Google Docs viewer can't reach localhost — open directly in browser instead
         return jsonify({'type': 'local', 'url': document.file_path}), 200
 
     viewer_url = (
@@ -723,306 +728,3 @@ def proxy_document(document_id):
     return Response(body, **kwargs)
 
 
-# ── Quiz Routes ────────────────────────────────────────────────────────────────
-
-@bp.route('/<int:post_id>/quiz/leaderboard')
-@login_required
-def quiz_leaderboard(post_id):
-    """Display quiz leaderboard for a post."""
-    from app.models import QuizLeaderboard
-    
-    post = Post.query.get_or_404(post_id)
-    
-    # Get top 10 leaderboard entries for this post
-    leaderboard_entries = (
-        QuizLeaderboard.query
-        .filter_by(post_id=post.id)
-        .order_by(QuizLeaderboard.score_pct.desc(), QuizLeaderboard.time_taken.asc(), QuizLeaderboard.created_at.asc())
-        .limit(10)
-        .all()
-    )
-    
-    # Get user's own position if they've taken the quiz
-    user_entry = QuizLeaderboard.query.filter_by(
-        post_id=post.id,
-        user_id=current_user.id
-    ).first()
-    
-    # Get total participants
-    total_participants = QuizLeaderboard.query.filter_by(post_id=post.id).count()
-    
-    return render_template(
-        'posts/quiz_leaderboard.html',
-        title=f'Leaderboard: {post.title}',
-        post=post,
-        leaderboard_entries=leaderboard_entries,
-        user_entry=user_entry,
-        total_participants=total_participants
-    )
-
-
-@bp.route('/<int:post_id>/quiz')
-@login_required
-def quiz(post_id):
-    """Display and take a quiz for a post."""
-    import json
-    from app.models import QuizData
-    
-    post = Post.query.get_or_404(post_id)
-    
-    # Check if quiz exists
-    quiz_data = QuizData.query.filter_by(post_id=post.id).first()
-    if not quiz_data:
-        flash('No quiz available for this post yet.', 'info')
-        return redirect(url_for('posts.view', post_id=post.id))
-    
-    # Check access (subscription, purchase, premium access, or free trial)
-    has_access = False
-    
-    # Admins and users with premium access can access everything
-    if current_user.is_admin or getattr(current_user, 'can_access_all_content', False):
-        has_access = True
-    elif post.document and post.document.is_paid:
-        # Check if user purchased
-        from app.models import Purchase
-        purchase = Purchase.query.filter_by(user_id=current_user.id, document_id=post.document.id).first()
-        has_access = purchase is not None
-        
-        # Check subscription
-        if not has_access and hasattr(current_user, 'subscription_tier'):
-            if current_user.subscription_tier in ['pro', 'enterprise']:
-                has_access = True
-        
-        # Check free quiz attempts
-        if not has_access and current_user.has_free_quiz_attempts():
-            has_access = True
-    else:
-        # Free document - everyone has access
-        has_access = True
-    
-    if not has_access:
-        flash('You need to purchase, subscribe, or use a free trial to access this quiz.', 'warning')
-        return redirect(url_for('posts.view', post_id=post.id))
-    
-    # Load quiz data
-    questions = json.loads(quiz_data.questions)
-    meta = json.loads(quiz_data.meta) if quiz_data.meta else {}
-    
-    return render_template(
-        'posts/quiz.html',
-        title=f'Quiz: {post.title}',
-        post=post,
-        quiz_data=quiz_data,
-        questions=questions,
-        meta=meta,
-        quiz_json=json.dumps({
-            'questions': questions,
-            'total_marks': quiz_data.total_marks,
-            'xp_reward': quiz_data.xp_reward,
-            'meta': meta
-        })
-    )
-
-
-@bp.route('/<int:post_id>/quiz/submit', methods=['POST'])
-@login_required
-def quiz_submit(post_id):
-    """Submit quiz answers and award XP."""
-    # Simple rate limiting: track submissions per user in memory
-    # This prevents spam/abuse of quiz submission
-    import time
-    from flask import session
-    
-    # Get or initialize rate limit tracking
-    if not hasattr(quiz_submit, '_rate_limit_store'):
-        quiz_submit._rate_limit_store = {}  # {user_id: [(timestamp, post_id), ...]}
-    
-    current_time = time.time()
-    user_id = current_user.id
-    
-    # Clean old entries (older than 60 seconds)
-    if user_id in quiz_submit._rate_limit_store:
-        quiz_submit._rate_limit_store[user_id] = [
-            (t, p) for t, p in quiz_submit._rate_limit_store[user_id]
-            if current_time - t < 60
-        ]
-        # Check if too many submissions (more than 10 in 60 seconds)
-        if len(quiz_submit._rate_limit_store[user_id]) >= 10:
-            flash('Too many quiz submissions. Please wait a moment.', 'warning')
-            return redirect(url_for('posts.view_post', post_id=post_id))
-    else:
-        quiz_submit._rate_limit_store[user_id] = []
-    
-    # Record this submission
-    quiz_submit._rate_limit_store[user_id].append((current_time, post_id))
-    
-    post = Post.query.get_or_404(post_id)
-    
-    from app.models import QuizData, QuizAttempt, QuizLeaderboard, Purchase
-    import json
-    
-    # Check if user is using a free quiz attempt
-    is_free_attempt = False
-    if post.document and post.document.is_paid:
-        # Check if user purchased
-        purchase = Purchase.query.filter_by(user_id=current_user.id, document_id=post.document.id).first()
-        # Check subscription
-        has_subscription = False
-        if hasattr(current_user, 'subscription_tier'):
-            has_subscription = current_user.subscription_tier in ['pro', 'enterprise']
-        # Check if it's a free attempt
-        if not purchase and not has_subscription and current_user.has_free_quiz_attempts():
-            is_free_attempt = True
-            current_user.use_free_quiz_attempt()
-    
-    quiz_data = QuizData.query.filter_by(post_id=post.id).first()
-    if not quiz_data:
-        return jsonify({'error': 'No quiz found'}), 404
-    
-    data = request.get_json()
-    answers = data.get('answers', {})
-    timed_out = data.get('timed_out', False)
-    time_taken = data.get('time_taken', 0)
-    
-    # Calculate score
-    questions = json.loads(quiz_data.questions)
-    total_marks = quiz_data.total_marks
-    earned_marks = 0
-    
-    for i, q in enumerate(questions):
-        user_answer = answers.get(str(i), '')
-        correct_answer = q.get('answer', '')
-        marks = q.get('marks', 1)
-        
-        # Check answer (case-insensitive for MCQ/TF)
-        q_type = q.get('type', 'mcq')
-        if q_type in ['mcq', 'tf']:
-            if user_answer.upper() == correct_answer.upper():
-                earned_marks += marks
-        else:
-            # For open/short_answer questions - require correct answer to get marks
-            # No partial credit to prevent gaming (typing random text for 50%)
-            if user_answer.strip() and user_answer.strip().lower() == correct_answer.strip().lower():
-                earned_marks += marks
-    
-    score_pct = (earned_marks / total_marks * 100) if total_marks > 0 else 0
-    
-    # Calculate XP earned (proportional to score)
-    xp_earned = int(quiz_data.xp_reward * (score_pct / 100))
-    
-    # Save attempt
-    attempt = QuizAttempt(
-        post_id=post.id,
-        user_id=current_user.id,
-        answers=json.dumps(answers),
-        score_pct=score_pct,
-        earned_marks=earned_marks,
-        xp_earned=xp_earned,
-        timed_out=timed_out,
-        time_taken=time_taken
-    )
-    db.session.add(attempt)
-    
-    # Update leaderboard - upsert entry
-    leaderboard_entry = QuizLeaderboard.query.filter_by(
-        post_id=post.id,
-        user_id=current_user.id
-    ).first()
-    
-    if leaderboard_entry:
-        # Update existing entry if this score is better
-        if score_pct > leaderboard_entry.score_pct or (
-            score_pct == leaderboard_entry.score_pct and 
-            time_taken < leaderboard_entry.time_taken
-        ):
-            leaderboard_entry.score_pct = score_pct
-            leaderboard_entry.earned_marks = earned_marks
-            leaderboard_entry.xp_earned = xp_earned
-            leaderboard_entry.time_taken = time_taken
-            leaderboard_entry.created_at = datetime.utcnow()
-    else:
-        # Create new entry
-        leaderboard_entry = QuizLeaderboard(
-            post_id=post.id,
-            user_id=current_user.id,
-            score_pct=score_pct,
-            earned_marks=earned_marks,
-            xp_earned=xp_earned,
-            time_taken=time_taken
-        )
-        db.session.add(leaderboard_entry)
-    
-    # Award XP to user
-    if xp_earned > 0:
-        current_user.add_xp(xp_earned)
-    
-    db.session.commit()
-    
-    return jsonify({
-        'score_pct': score_pct,
-        'earned_marks': earned_marks,
-        'total_marks': total_marks,
-        'xp_earned': xp_earned
-    })
-
-
-def _generate_quiz_for_post(post):
-    """Generate quiz questions from a post's document using AI."""
-    import json
-    from app.models import QuizData
-    
-    if not post.has_document or not post.document:
-        return None
-    
-    document = post.document
-    
-    # Only generate quizzes for PDF files - other formats not supported for AI extraction
-    if document.file_type != 'pdf':
-        return None
-    
-    # Check if quiz already exists
-    existing = QuizData.query.filter_by(post_id=post.id).first()
-    if existing:
-        return existing
-    
-    # For now, create a simple placeholder quiz
-    # In production, this would call OpenAI/Gemini API to generate questions from PDF content
-    
-    questions = [
-        {
-            'type': 'mcq',
-            'question': f'What is the main topic of "{post.title}"?',
-            'options': ['Topic A', 'Topic B', 'Topic C', 'Topic D'],
-            'answer': 'A',
-            'marks': 2,
-            'explanation': 'This is a sample question. Configure OPENAI_API_KEY or GEMINI_API_KEY for AI-generated quizzes.'
-        },
-        {
-            'type': 'tf',
-            'question': f'This document is related to {post.subject.name if post.subject else "education"}.',
-            'answer': 'T',
-            'marks': 1,
-            'explanation': 'Sample true/false question.'
-        }
-    ]
-    
-    total_marks = sum(q.get('marks', 1) for q in questions)
-    xp_reward = current_app.config.get('QUIZ_DEFAULT_XP_REWARD', 50)
-    
-    meta = json.dumps({
-        'title': f'{post.title} Quiz',
-        'time_minutes': current_app.config.get('QUIZ_DEFAULT_TIME_MINUTES', 30)
-    })
-    
-    quiz = QuizData(
-        post_id=post.id,
-        questions=json.dumps(questions),
-        total_marks=total_marks,
-        xp_reward=xp_reward,
-        meta=meta
-    )
-    
-    db.session.add(quiz)
-    db.session.commit()
-    
-    return quiz
