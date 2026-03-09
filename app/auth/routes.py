@@ -92,13 +92,13 @@ def _get_or_create_google_user(google_email: str, google_name: str):
         full_name = google_name or username,
     )
     user.password_hash = None   # Google-only account — no password
+
     db.session.add(user)
     db.session.commit()
-    
-    # Send welcome email
-    from app.utils.emails import send_welcome_email
+
+    from app.utils import send_welcome_email
     send_welcome_email(user)
-    
+
     return user, True
 
 
@@ -200,3 +200,86 @@ def logout():
     logout_user()
     flash('You have been logged out.', 'info')
     return redirect(url_for('main.index'))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PASSWORD RESET — request
+# ─────────────────────────────────────────────────────────────────────────────
+
+@bp.route('/reset-password', methods=['GET', 'POST'])
+def reset_password_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+
+    from app.forms import PasswordResetRequestForm
+    form = PasswordResetRequestForm()
+
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data.strip().lower()).first()
+        # Always show the same message to prevent email enumeration
+        flash('If that email is registered, a reset link has been sent.', 'info')
+        if user and user.password_hash is not None:
+            import time, hmac as _hmac, hashlib as _hl
+            from flask import current_app
+            secret = current_app.config['SECRET_KEY'].encode()
+            expires = int(time.time()) + 1800  # 30 minutes
+            payload = f'{user.id}:{user.password_hash[:10]}:{expires}'
+            token = _hmac.new(secret, payload.encode(), _hl.sha256).hexdigest()
+            signed = f'{user.id}.{expires}.{token}'
+            reset_url = url_for('auth.reset_password', token=signed, _external=True)
+            from app.utils.emails import send_password_reset_email
+            send_password_reset_email(user, reset_url)
+        return redirect(url_for('auth.login'))
+
+    return render_template('auth/reset_password_request.html',
+                           title='Reset Password', form=form)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PASSWORD RESET — confirm token and set new password
+# ─────────────────────────────────────────────────────────────────────────────
+
+@bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+
+    import time, hmac as _hmac, hashlib as _hl
+    from flask import current_app
+    from app.forms import PasswordResetForm
+
+    # ── Validate token ────────────────────────────────────────────────────────
+    try:
+        user_id_str, expires_str, provided_token = token.split('.')
+        user_id = int(user_id_str)
+        expires = int(expires_str)
+    except (ValueError, AttributeError):
+        flash('This reset link is invalid.', 'danger')
+        return redirect(url_for('auth.reset_password_request'))
+
+    if int(time.time()) > expires:
+        flash('This reset link has expired. Please request a new one.', 'warning')
+        return redirect(url_for('auth.reset_password_request'))
+
+    user = db.session.get(User, user_id)
+    if not user or user.password_hash is None:
+        flash('This reset link is invalid.', 'danger')
+        return redirect(url_for('auth.reset_password_request'))
+
+    secret = current_app.config['SECRET_KEY'].encode()
+    payload = f'{user.id}:{user.password_hash[:10]}:{expires}'
+    expected = _hmac.new(secret, payload.encode(), _hl.sha256).hexdigest()
+    if not _hmac.compare_digest(expected, provided_token):
+        flash('This reset link is invalid or has already been used.', 'danger')
+        return redirect(url_for('auth.reset_password_request'))
+
+    # ── Set new password ──────────────────────────────────────────────────────
+    form = PasswordResetForm()
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        db.session.commit()
+        flash('Your password has been reset. Please sign in.', 'success')
+        return redirect(url_for('auth.login'))
+
+    return render_template('auth/reset_password.html',
+                           title='Set New Password', form=form, token=token)

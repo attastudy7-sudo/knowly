@@ -1,0 +1,554 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+{# ── MathJax for LaTeX formulas ─────────────────────────────────────────── #}
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+
+<div class="cs-root">
+
+  {# ══ TOP BAR ══════════════════════════════════════════════════════════════ #}
+  <header class="cs-topbar">
+    <a href="{{ url_for('main.library_subject', slug=post.subject.slug) if post.subject else url_for('main.index') }}" class="cs-back">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+
+    <div class="cs-topbar-meta">
+      <span class="cs-type-pill">
+        <i class="fas fa-clone"></i> Cheatsheet
+      </span>
+      {% if post.subject %}
+      <span class="cs-subject-pill" style="--sc:{{ post.subject.color }}">
+        <i class="fas fa-{{ post.subject.icon }}"></i> {{ post.subject.name }}
+      </span>
+      {% endif %}
+      {% if quiz_meta.get('level') %}
+      <span class="cs-level-pill">{{ quiz_meta.get('level') }}</span>
+      {% endif %}
+    </div>
+
+    <div class="cs-topbar-actions">
+      {% if current_user.is_authenticated %}
+      <button class="cs-icon-btn {% if post.is_liked_by(current_user) %}is-liked{% endif %}"
+              id="likeBtn"
+              data-post-id="{{ post.id }}"
+              data-liked="{{ 'true' if post.is_liked_by(current_user) else 'false' }}"
+              data-base="{{ ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}"
+              onclick="toggleLike(this)" title="Like">
+        <i class="fas fa-heart"></i>
+        <span id="likeCount">{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
+      </button>
+      {% endif %}
+      <a href="#comments" class="cs-icon-btn" title="Comments">
+        <i class="fas fa-comment"></i>
+        <span>{{ post.comment_count() }}</span>
+      </a>
+      {% if current_user.is_authenticated and current_user.id == post.user_id %}
+      <a href="{{ url_for('posts.edit', post_id=post.id) }}" class="cs-icon-btn" title="Edit">
+        <i class="fas fa-pen"></i>
+      </a>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="cs-wrap">
+
+    {# ══ DOCUMENT HEADER ══════════════════════════════════════════════════ #}
+    <div class="cs-doc-header">
+      <div class="cs-doc-header-left">
+        <h1 class="cs-doc-title">{{ post.title }}</h1>
+
+        <div class="cs-doc-byline">
+          <a href="{{ url_for('users.profile', username=post.author.username) }}" class="cs-author-link">
+            <img src="{{ post.author.profile_picture_url }}" class="cs-author-avatar" alt="{{ post.author.username }}">
+            {{ post.author.full_name or post.author.username }}
+          </a>
+          <span class="cs-dot">·</span>
+          <span>{{ post.created_at.strftime('%b %d, %Y') }}</span>
+          {% if quiz_meta.get('course') %}
+          <span class="cs-dot">·</span>
+          <span class="cs-course-tag"><i class="fas fa-graduation-cap"></i> {{ quiz_meta.get('course') }}</span>
+          {% endif %}
+        </div>
+
+        {# Description with show-more #}
+        {% if post.description %}
+        <div class="cs-desc-wrap" id="descWrap">
+          <div class="cs-desc-text" id="descText">{{ post.description | markdown | safe }}</div>
+          <button class="cs-show-more" id="descToggle" onclick="toggleDesc()">
+            <i class="fas fa-chevron-down"></i> Show more
+          </button>
+        </div>
+        {% endif %}
+
+        {# Metadata bar: purpose + exam context + topics #}
+        {% if quiz_meta %}
+        <div class="cs-meta-bar">
+          {% set cs_meta = quiz_meta %}
+          {# purpose is stored in quiz_meta only if we add it — check post description fallback too #}
+          {% if cs_meta.get('purpose') or cs_meta.get('exam_context') %}
+          <div class="cs-meta-row">
+            {% if cs_meta.get('purpose') %}
+            <span class="cs-meta-chip cs-meta-chip--purpose">
+              <i class="fas fa-bullseye"></i> {{ cs_meta.get('purpose') }}
+            </span>
+            {% endif %}
+            {% if cs_meta.get('exam_context') %}
+            <span class="cs-meta-chip cs-meta-chip--exam">
+              <i class="fas fa-calendar-check"></i> {{ cs_meta.get('exam_context') }}
+            </span>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if cs_meta.get('topics') %}
+          <div class="cs-topics-row">
+            {% for topic in cs_meta.topics %}
+            <span class="cs-topic-tag">{{ topic }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+      </div>
+
+      <div class="cs-doc-header-right">
+        {% if structured_content %}
+        <span class="cs-section-count">
+          <i class="fas fa-layer-group"></i>
+          {{ structured_content | length }} section{{ 's' if structured_content | length != 1 }}
+        </span>
+        {% endif %}
+        {% if post.has_document and post.document %}
+        <a href="{{ url_for('posts.download_document', document_id=post.document.id) }}" class="cs-dl-btn">
+          <i class="fas fa-download"></i> Download
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── SECTION JUMP PILLS ── #}
+    {% if structured_content %}
+    <nav class="cs-section-nav" aria-label="Jump to section">
+      {% for section in structured_content %}
+      <a href="#cs-section-{{ loop.index }}" class="cs-section-pill cs-pill--{{ section.section_type or 'other' }}">
+        {%- if section.section_type == 'formulas' %}<i class="fas fa-square-root-alt"></i>
+        {%- elif section.section_type == 'definitions' %}<i class="fas fa-book"></i>
+        {%- elif section.section_type == 'rules' %}<i class="fas fa-gavel"></i>
+        {%- elif section.section_type == 'steps' %}<i class="fas fa-list-ol"></i>
+        {%- elif section.section_type == 'examples' %}<i class="fas fa-flask"></i>
+        {%- elif section.section_type == 'summary_table' %}<i class="fas fa-table"></i>
+        {%- else %}<i class="fas fa-bookmark"></i>
+        {%- endif %}
+        {{ section.section_title }}
+      </a>
+      {% endfor %}
+    </nav>
+    {% endif %}
+
+    {# ══ SECTIONS ═════════════════════════════════════════════════════════ #}
+    {% if structured_content %}
+      {% for section in structured_content %}
+      <section class="cs-section" id="cs-section-{{ loop.index }}">
+
+        <div class="cs-section-header cs-sh--{{ section.section_type or 'other' }}">
+          <div class="cs-section-icon">
+            {%- if section.section_type == 'formulas' %}<i class="fas fa-square-root-alt"></i>
+            {%- elif section.section_type == 'definitions' %}<i class="fas fa-book"></i>
+            {%- elif section.section_type == 'rules' %}<i class="fas fa-gavel"></i>
+            {%- elif section.section_type == 'steps' %}<i class="fas fa-list-ol"></i>
+            {%- elif section.section_type == 'examples' %}<i class="fas fa-flask"></i>
+            {%- elif section.section_type == 'summary_table' %}<i class="fas fa-table"></i>
+            {%- else %}<i class="fas fa-bookmark"></i>
+            {%- endif %}
+          </div>
+          <h2 class="cs-section-title">{{ section.section_title }}</h2>
+          <span class="cs-entry-count">
+            {{ (section.entries or []) | length }} entr{{ 'y' if (section.entries or []) | length == 1 else 'ies' }}
+          </span>
+        </div>
+
+        {# Steps sections render as numbered list, not table #}
+        {% if section.section_type == 'steps' %}
+        <div class="cs-steps-list">
+          {% for entry in section.entries %}
+          {% if entry is mapping %}
+          <div class="cs-step-item">
+            <div class="cs-step-num">{{ loop.index }}</div>
+            <div class="cs-step-body">
+              <div class="cs-step-label">{{ entry.label }}</div>
+              {% if entry.content %}<div class="cs-step-content">{{ entry.content }}</div>{% endif %}
+              {% if entry.notes %}
+              <div class="cs-entry-note"><i class="fas fa-info-circle"></i> {{ entry.notes }}</div>
+              {% endif %}
+              {% if entry.example %}
+              <div class="cs-entry-example"><span class="cs-eg-label">e.g.</span> {{ entry.example }}</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+
+        {# Summary table renders as a proper table when label/content pairs form columns #}
+        {% elif section.section_type == 'summary_table' %}
+        <div class="cs-entries cs-entries--summary_table">
+          <div class="cs-summary-table-header">
+            <div>Term / Concept</div>
+            <div>Description</div>
+          </div>
+          {% for entry in section.entries %}
+          {% if entry is mapping %}
+          <div class="cs-entry cs-entry--table-row">
+            <div class="cs-entry-label">{{ entry.label }}</div>
+            <div class="cs-entry-content">
+              {{ entry.content }}
+              {% if entry.notes %}
+              <div class="cs-entry-note"><i class="fas fa-info-circle"></i> {{ entry.notes }}</div>
+              {% endif %}
+              {% if entry.example %}
+              <div class="cs-entry-example"><span class="cs-eg-label">e.g.</span> {{ entry.example }}</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+
+        {# All other section types: standard label | content grid #}
+        {% else %}
+        <div class="cs-entries cs-entries--{{ section.section_type or 'other' }}">
+          {% for entry in section.entries %}
+          {% if entry is mapping %}
+          <div class="cs-entry">
+            <div class="cs-entry-label">{{ entry.label }}</div>
+            <div class="cs-entry-content {% if section.section_type == 'formulas' %}cs-formula{% endif %}">
+              {{ entry.content }}
+            </div>
+            {% if entry.notes %}
+            <div class="cs-entry-note">
+              <i class="fas fa-info-circle"></i> {{ entry.notes }}
+            </div>
+            {% endif %}
+            {% if entry.example %}
+            <div class="cs-entry-example">
+              <span class="cs-eg-label">e.g.</span> {{ entry.example }}
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+
+      </section>
+      {% endfor %}
+
+    {% else %}
+    <div class="cs-empty">
+      <i class="fas fa-clone"></i>
+      <p>No cheatsheet content available.</p>
+    </div>
+    {% endif %}
+
+    {# ══ COMMENTS ═════════════════════════════════════════════════════════ #}
+    <div class="cs-comments" id="comments">
+      <div class="cs-comments-header">
+        <h3 class="cs-comments-title">
+          <i class="fas fa-comments"></i> Discussion
+        </h3>
+        <span class="cs-count-pill">{{ post.comment_count() }}</span>
+      </div>
+
+      {% if current_user.is_authenticated %}
+      <form method="post" action="{{ url_for('posts.comment', post_id=post.id) }}" class="cs-comment-form">
+        {{ comment_form.hidden_tag() }}
+        <img src="{{ current_user.profile_picture_url }}" class="cs-commenter-avatar" alt="">
+        <div class="cs-comment-input-wrap">
+          {{ comment_form.content(class="cs-comment-input", placeholder="Share your thoughts on this cheatsheet…") }}
+          {{ comment_form.submit(class="cs-comment-submit") }}
+        </div>
+      </form>
+      {% else %}
+      <div class="cs-login-nudge">
+        <a href="{{ url_for('auth.login') }}">Log in</a> to join the discussion
+      </div>
+      {% endif %}
+
+      <div class="cs-comment-list">
+        {% for comment in comments.items %}
+        <div class="cs-comment">
+          <a href="{{ url_for('users.profile', username=comment.author.username) }}">
+            <img src="{{ comment.author.profile_picture_url }}" class="cs-comment-avatar" alt="{{ comment.author.username }}">
+          </a>
+          <div class="cs-comment-body">
+            <div class="cs-comment-head">
+              <a href="{{ url_for('users.profile', username=comment.author.username) }}" class="cs-comment-author">
+                {{ comment.author.full_name or comment.author.username }}
+              </a>
+              <span class="cs-comment-time">{{ comment.created_at.strftime('%b %d') }}</span>
+            </div>
+            <p class="cs-comment-text">{{ comment.content }}</p>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% if not comments.items %}
+        <div class="cs-no-comments">
+          <i class="fas fa-comment-medical"></i>
+          <p>No comments yet — start the conversation.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if comments.has_prev or comments.has_next %}
+      <div class="cs-pagination">
+        {% if comments.has_prev %}
+        <a href="{{ url_for('posts.view', post_id=post.id, page=comments.prev_num) }}" class="cs-page-btn">
+          <i class="fas fa-chevron-left"></i> Prev
+        </a>
+        {% endif %}
+        <span class="cs-page-info">{{ comments.page }} / {{ comments.pages }}</span>
+        {% if comments.has_next %}
+        <a href="{{ url_for('posts.view', post_id=post.id, page=comments.next_num) }}" class="cs-page-btn">
+          Next <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+<style>
+.cs-root { min-height: 100vh; background: var(--bg-main); }
+.cs-wrap { max-width: 900px; margin: 0 auto; padding: 1.5rem 1.25rem 5rem; }
+
+/* ── Top Bar ─────────────────────────────────────────────────────────────── */
+.cs-topbar {
+  position: sticky; top: var(--nav-h, 62px); z-index: 100;
+  display: flex; align-items: center; gap: .75rem; padding: .6rem 1.25rem;
+  background: var(--bg-card); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px);
+}
+.cs-back { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--border); color: var(--text-muted); text-decoration: none; flex-shrink: 0; transition: all .15s; }
+.cs-back:hover { border-color: var(--primary); color: var(--primary); }
+.cs-topbar-meta { display: flex; align-items: center; gap: .5rem; flex: 1; overflow: hidden; }
+.cs-type-pill { display: inline-flex; align-items: center; gap: .3rem; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; padding: .2rem .55rem; border-radius: 6px; background: rgba(245,158,11,.1); color: #f59e0b; flex-shrink: 0; }
+.cs-subject-pill { display: inline-flex; align-items: center; gap: .3rem; font-size: .72rem; font-weight: 700; padding: .2rem .55rem; border-radius: 6px; color: var(--sc, var(--primary)); background: color-mix(in srgb, var(--sc, var(--primary)) 10%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cs-level-pill { display: inline-flex; align-items: center; font-size: .66rem; font-weight: 700; padding: .2rem .5rem; border-radius: 6px; background: var(--bg-hover); border: 1px solid var(--border); color: var(--text-muted); white-space: nowrap; }
+.cs-topbar-actions { display: flex; align-items: center; gap: .4rem; flex-shrink: 0; }
+.cs-icon-btn { display: inline-flex; align-items: center; gap: .3rem; padding: .35rem .65rem; border-radius: 8px; border: 1.5px solid var(--border); background: none; color: var(--text-muted); font-size: .78rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: all .15s; }
+.cs-icon-btn:hover { border-color: var(--primary); color: var(--primary); }
+.cs-icon-btn.is-liked { border-color: #f87171; color: #ef4444; background: rgba(239,68,68,.06); }
+
+/* ── Document Header ─────────────────────────────────────────────────────── */
+.cs-doc-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1.5rem 0 1.25rem; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; flex-wrap: wrap; }
+.cs-doc-header-left { flex: 1; min-width: 0; }
+.cs-doc-title { font-family: var(--font-display, 'Syne', sans-serif); font-size: clamp(1.2rem, 3vw, 1.65rem); font-weight: 900; color: var(--text-primary); letter-spacing: -.03em; margin: 0 0 .5rem; line-height: 1.2; }
+.cs-doc-byline { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; font-size: .75rem; color: var(--text-muted); margin-bottom: .6rem; }
+.cs-author-link { display: inline-flex; align-items: center; gap: .3rem; text-decoration: none; color: var(--text-muted); transition: color .15s; }
+.cs-author-link:hover { color: var(--primary); }
+.cs-author-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); }
+.cs-dot { color: var(--border); }
+.cs-course-tag { display: inline-flex; align-items: center; gap: .25rem; font-size: .72rem; color: var(--text-muted); }
+.cs-course-tag i { font-size: .6rem; }
+
+/* Description show-more */
+.cs-desc-wrap { position: relative; margin-bottom: .75rem; }
+.cs-desc-text { font-size: .82rem; color: var(--text-muted); line-height: 1.6; margin: 0; overflow: hidden; max-height: 3.5em; transition: max-height .35s ease; }
+.cs-desc-wrap.is-open .cs-desc-text { max-height: 40em; }
+/* Markdown prose inside description */
+.cs-desc-text h2, .cs-desc-text h3 { font-size: .8rem; font-weight: 800; color: var(--text-primary); margin: .5rem 0 .2rem; letter-spacing: -.01em; }
+.cs-desc-text p  { margin: 0 0 .3rem; }
+.cs-desc-text ul, .cs-desc-text ol { margin: .2rem 0 .3rem 1rem; display: flex; flex-direction: column; gap: .15rem; }
+.cs-desc-text li { list-style: disc; }
+.cs-desc-text strong { font-weight: 700; color: var(--text-primary); }
+.cs-desc-text hr  { border: none; border-top: 1px solid var(--border); margin: .5rem 0; }
+/* MathJax inside formula entries */
+.cs-formula .MathJax { color: var(--text-primary) !important; font-size: 1rem !important; }
+.cs-show-more { background: none; border: none; cursor: pointer; font-size: .72rem; font-weight: 700; color: var(--primary); padding: .25rem 0 0; display: inline-flex; align-items: center; gap: .25rem; transition: opacity .15s; }
+.cs-show-more:hover { opacity: .75; }
+.cs-show-more i { font-size: .6rem; transition: transform .25s; }
+.cs-desc-wrap.is-open .cs-show-more i { transform: rotate(180deg); }
+
+/* Metadata bar */
+.cs-meta-bar { display: flex; flex-direction: column; gap: .4rem; margin-top: .25rem; }
+.cs-meta-row { display: flex; flex-wrap: wrap; gap: .4rem; }
+.cs-meta-chip { display: inline-flex; align-items: center; gap: .35rem; font-size: .72rem; font-weight: 600; padding: .25rem .6rem; border-radius: 6px; color: var(--text-secondary); border: 1px solid var(--border); }
+.cs-meta-chip i { font-size: .6rem; opacity: .7; }
+.cs-meta-chip--purpose { background: rgba(245,158,11,.06); border-color: rgba(245,158,11,.2); color: #d97706; }
+.cs-meta-chip--exam    { background: rgba(16,185,129,.06); border-color: rgba(16,185,129,.2); color: #059669; }
+.cs-topics-row { display: flex; flex-wrap: wrap; gap: .3rem; }
+.cs-topic-tag { display: inline-flex; align-items: center; font-size: .68rem; font-weight: 600; padding: .15rem .45rem; border-radius: 4px; background: var(--bg-hover); border: 1px solid var(--border); color: var(--text-muted); }
+
+.cs-doc-header-right { display: flex; align-items: center; gap: .65rem; flex-shrink: 0; padding-top: .25rem; }
+.cs-section-count { font-size: .75rem; color: var(--text-muted); display: flex; align-items: center; gap: .3rem; }
+.cs-dl-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .875rem; border-radius: 9px; background: var(--bg-hover); border: 1.5px solid var(--border); color: var(--text-muted); font-size: .78rem; font-weight: 700; text-decoration: none; transition: all .15s; white-space: nowrap; }
+.cs-dl-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ── Section nav pills ───────────────────────────────────────────────────── */
+.cs-section-nav { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.75rem; }
+.cs-section-pill { display: inline-flex; align-items: center; gap: .35rem; padding: .35rem .75rem; border-radius: 50px; font-size: .75rem; font-weight: 700; text-decoration: none; border: 1.5px solid transparent; transition: all .15s; }
+.cs-section-pill i { font-size: .65rem; }
+.cs-pill--formulas     { background: rgba(245,158,11,.1);  color: #f59e0b; border-color: rgba(245,158,11,.25); }
+.cs-pill--definitions  { background: rgba(99,102,241,.1);  color: #6366f1; border-color: rgba(99,102,241,.25); }
+.cs-pill--rules        { background: rgba(239,68,68,.1);   color: #ef4444; border-color: rgba(239,68,68,.25); }
+.cs-pill--steps        { background: rgba(16,185,129,.1);  color: #10b981; border-color: rgba(16,185,129,.25); }
+.cs-pill--examples     { background: rgba(6,182,212,.1);   color: #06b6d4; border-color: rgba(6,182,212,.25); }
+.cs-pill--summary_table { background: rgba(139,92,246,.1); color: #8b5cf6; border-color: rgba(139,92,246,.25); }
+.cs-pill--other        { background: var(--bg-hover); color: var(--text-muted); border-color: var(--border); }
+.cs-section-pill:hover { filter: brightness(1.15); transform: translateY(-1px); }
+
+/* ── Section ─────────────────────────────────────────────────────────────── */
+.cs-section { margin-bottom: 2rem; scroll-margin-top: 120px; }
+.cs-section-header { display: flex; align-items: center; gap: .65rem; padding: .65rem .875rem; border-radius: 12px 12px 0 0; }
+.cs-sh--formulas      { background: rgba(245,158,11,.08);  border: 1px solid rgba(245,158,11,.2); }
+.cs-sh--definitions   { background: rgba(99,102,241,.08);  border: 1px solid rgba(99,102,241,.2); }
+.cs-sh--rules         { background: rgba(239,68,68,.08);   border: 1px solid rgba(239,68,68,.2); }
+.cs-sh--steps         { background: rgba(16,185,129,.08);  border: 1px solid rgba(16,185,129,.2); }
+.cs-sh--examples      { background: rgba(6,182,212,.08);   border: 1px solid rgba(6,182,212,.2); }
+.cs-sh--summary_table { background: rgba(139,92,246,.08);  border: 1px solid rgba(139,92,246,.2); }
+.cs-sh--other         { background: var(--bg-hover); border: 1px solid var(--border); }
+
+.cs-section-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .8rem; flex-shrink: 0; }
+.cs-sh--formulas      .cs-section-icon { background: rgba(245,158,11,.2);  color: #f59e0b; }
+.cs-sh--definitions   .cs-section-icon { background: rgba(99,102,241,.2);  color: #6366f1; }
+.cs-sh--rules         .cs-section-icon { background: rgba(239,68,68,.2);   color: #ef4444; }
+.cs-sh--steps         .cs-section-icon { background: rgba(16,185,129,.2);  color: #10b981; }
+.cs-sh--examples      .cs-section-icon { background: rgba(6,182,212,.2);   color: #06b6d4; }
+.cs-sh--summary_table .cs-section-icon { background: rgba(139,92,246,.2);  color: #8b5cf6; }
+.cs-sh--other         .cs-section-icon { background: var(--bg-hover); color: var(--text-muted); }
+
+.cs-section-title { font-family: var(--font-display, 'Syne', sans-serif); font-size: .95rem; font-weight: 800; color: var(--text-primary); letter-spacing: -.02em; margin: 0; flex: 1; }
+.cs-entry-count { font-size: .68rem; font-weight: 700; color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
+
+/* ── Standard entries grid ───────────────────────────────────────────────── */
+.cs-entries { border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; }
+.cs-entry { display: grid; grid-template-columns: minmax(140px, 28%) 1fr; gap: 0; border-bottom: 1px solid var(--border); transition: background .12s; }
+.cs-entry:last-child { border-bottom: none; }
+.cs-entry:hover { background: var(--bg-hover); }
+.cs-entry-label { padding: .75rem .875rem; font-size: .8rem; font-weight: 700; color: var(--text-primary); border-right: 1px solid var(--border); background: var(--bg-secondary); display: flex; align-items: flex-start; line-height: 1.5; }
+.cs-entry-content { padding: .75rem .875rem; font-size: .85rem; color: var(--text-secondary); line-height: 1.6; grid-column: 2; }
+.cs-formula { font-family: 'Courier New', monospace; font-size: .88rem; color: #f59e0b; letter-spacing: .02em; overflow-x: scroll}
+.cs-entry-note { grid-column: 1 / -1; padding: .4rem .875rem .5rem; font-size: .74rem; color: var(--text-muted); background: var(--bg-hover); border-top: 1px dashed var(--border); display: flex; align-items: flex-start; gap: .35rem; line-height: 1.5; font-style: italic; }
+.cs-entry-note i { color: var(--primary); font-size: .65rem; margin-top: .15rem; flex-shrink: 0; }
+.cs-entry-example { grid-column: 1 / -1; padding: .4rem .875rem .5rem; font-size: .76rem; color: var(--text-muted); border-top: 1px dashed var(--border); line-height: 1.5; }
+.cs-eg-label { font-weight: 800; font-size: .68rem; color: #06b6d4; text-transform: uppercase; letter-spacing: .06em; margin-right: .3rem; }
+
+/* Section-type accent on label column */
+.cs-entries--formulas    .cs-entry-label { border-right-color: rgba(245,158,11,.3); }
+.cs-entries--definitions .cs-entry-label { border-right-color: rgba(99,102,241,.3); }
+.cs-entries--rules       .cs-entry-label { border-right-color: rgba(239,68,68,.3); }
+.cs-entries--examples    .cs-entry-label { border-right-color: rgba(6,182,212,.3); }
+
+/* Summary table header row */
+.cs-summary-table-header { display: grid; grid-template-columns: minmax(140px, 28%) 1fr; background: var(--bg-hover); border-bottom: 2px solid var(--border); font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); }
+.cs-summary-table-header > div { padding: .5rem .875rem; }
+.cs-summary-table-header > div:first-child { border-right: 1px solid var(--border); }
+.cs-entry--table-row .cs-entry-content { display: flex; flex-direction: column; gap: .3rem; }
+
+/* ── Steps list ──────────────────────────────────────────────────────────── */
+.cs-steps-list { border: 1px solid rgba(16,185,129,.2); border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; }
+.cs-step-item { display: flex; gap: 0; border-bottom: 1px solid var(--border); transition: background .12s; }
+.cs-step-item:last-child { border-bottom: none; }
+.cs-step-item:hover { background: var(--bg-hover); }
+.cs-step-num { display: flex; align-items: flex-start; justify-content: center; min-width: 42px; padding: .75rem; font-size: .78rem; font-weight: 800; color: #10b981; background: rgba(16,185,129,.06); border-right: 1px solid rgba(16,185,129,.15); padding-top: .9rem; }
+.cs-step-body { flex: 1; padding: .75rem .875rem; }
+.cs-step-label { font-size: .85rem; font-weight: 700; color: var(--text-primary); margin-bottom: .3rem; line-height: 1.4; }
+.cs-step-content { font-size: .82rem; color: var(--text-secondary); line-height: 1.6; }
+.cs-step-body .cs-entry-note { margin-top: .4rem; padding: 0; border: none; background: none; }
+.cs-step-body .cs-entry-example { margin-top: .3rem; padding: 0; border: none; }
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.cs-empty { text-align: center; padding: 4rem 1rem; color: var(--text-muted); }
+.cs-empty i { font-size: 2rem; opacity: .2; display: block; margin-bottom: .75rem; }
+
+/* ── Comments ────────────────────────────────────────────────────────────── */
+.cs-comments { margin-top: 3rem; padding-top: 2rem; border-top: 2px solid var(--border); }
+.cs-comments-header { display: flex; align-items: center; gap: .6rem; margin-bottom: 1.25rem; }
+.cs-comments-title { font-family: var(--font-display, 'Syne', sans-serif); font-size: 1rem; font-weight: 800; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: .4rem; }
+.cs-comments-title i { color: var(--primary); font-size: .85rem; }
+.cs-count-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 .4rem; border-radius: 50px; background: var(--bg-hover); border: 1px solid var(--border); font-size: .68rem; font-weight: 800; color: var(--text-muted); }
+.cs-comment-form { display: flex; gap: .75rem; align-items: flex-start; margin-bottom: 1.5rem; }
+.cs-commenter-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; margin-top: .2rem; }
+.cs-comment-input-wrap { flex: 1; display: flex; flex-direction: column; gap: .5rem; }
+.cs-comment-input { width: 100%; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 10px; padding: .6rem .875rem; font-size: .85rem; color: var(--text-primary); font-family: var(--font-body, sans-serif); resize: vertical; min-height: 72px; transition: border-color .15s; box-sizing: border-box; }
+.cs-comment-input:focus { outline: none; border-color: var(--primary); }
+.cs-comment-submit { align-self: flex-end; padding: .5rem 1rem; border-radius: 8px; background: var(--primary); color: #fff; font-size: .8rem; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s; }
+.cs-comment-submit:hover { opacity: .85; }
+.cs-login-nudge { font-size: .85rem; color: var(--text-muted); padding: .875rem 1rem; background: var(--bg-hover); border-radius: 10px; margin-bottom: 1.25rem; }
+.cs-login-nudge a { color: var(--primary); text-decoration: none; font-weight: 700; }
+.cs-comment-list { display: flex; flex-direction: column; gap: 1rem; }
+.cs-comment { display: flex; gap: .65rem; align-items: flex-start; }
+.cs-comment-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; }
+.cs-comment-body { flex: 1; min-width: 0; }
+.cs-comment-head { display: flex; align-items: center; gap: .5rem; margin-bottom: .2rem; }
+.cs-comment-author { font-size: .8rem; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+.cs-comment-author:hover { color: var(--primary); }
+.cs-comment-time { font-size: .7rem; color: var(--text-muted); }
+.cs-comment-text { font-size: .84rem; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+.cs-no-comments { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: .85rem; }
+.cs-no-comments i { font-size: 1.5rem; opacity: .2; display: block; margin-bottom: .5rem; }
+.cs-pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.cs-page-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .4rem .875rem; font-size: .8rem; font-weight: 600; color: var(--primary); background: rgba(37,99,235,.08); border-radius: 8px; text-decoration: none; transition: background .15s; }
+.cs-page-btn:hover { background: rgba(37,99,235,.16); color: var(--primary); }
+.cs-page-info { font-size: .75rem; color: var(--text-muted); }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .cs-wrap { padding: 1rem .875rem 5rem; }
+  .cs-doc-header { flex-direction: column; gap: .75rem; }
+  .cs-doc-header-right { width: 100%; justify-content: space-between; }
+  .cs-entry { grid-template-columns: 1fr; }
+  .cs-entry-label { border-right: none; border-bottom: 1px solid var(--border); padding: .5rem .875rem; }
+  .cs-entry-content { grid-column: 1; }
+  .cs-summary-table-header { grid-template-columns: 1fr; }
+  .cs-summary-table-header > div:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+  .cs-topbar { padding: .5rem .875rem; gap: .4rem; }
+  .cs-icon-btn span { display: none; }
+  .cs-subject-pill { display: none; }
+}
+</style>
+
+<script>
+async function toggleLike(btn) {
+  if (btn.disabled) return;
+  btn.disabled = true;
+  const postId   = btn.dataset.postId;
+  const isLiked  = btn.dataset.liked === 'true';
+  const countEl  = document.getElementById('likeCount');
+  const base     = parseInt(btn.dataset.base || '0', 10);
+  const newLiked = !isLiked;
+  btn.dataset.liked = newLiked;
+  btn.classList.toggle('is-liked', newLiked);
+  if (countEl) { const d = parseInt(countEl.textContent, 10); countEl.textContent = newLiked ? d + 1 : Math.max(base, d - 1); }
+  try {
+    const res = await fetch(`/posts/${postId}/like`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '' } });
+    if (!res.ok) throw new Error('failed');
+    const data = await res.json().catch(() => null);
+    if (data && data.like_count !== undefined && countEl) countEl.textContent = data.like_count + base;
+  } catch(e) {
+    btn.dataset.liked = isLiked;
+    btn.classList.toggle('is-liked', isLiked);
+    if (countEl) { const d = parseInt(countEl.textContent, 10); countEl.textContent = isLiked ? d + 1 : Math.max(base, d - 1); }
+  } finally { btn.disabled = false; }
+}
+
+function toggleDesc() {
+  const wrap = document.getElementById('descWrap');
+  const btn  = document.getElementById('descToggle');
+  const open = wrap.classList.toggle('is-open');
+  btn.innerHTML = open
+    ? '<i class="fas fa-chevron-up"></i> Show less'
+    : '<i class="fas fa-chevron-down"></i> Show more';
+}
+</script>
+
+{% endblock %}

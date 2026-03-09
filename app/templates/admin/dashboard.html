@@ -1,324 +1,103 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
+{% block admin_title %}Dashboard{% endblock %}
+{% block admin_content %}
 
-{% block title %}{{ title }}{% endblock %}
-
-{% block content %}
-<div class="admin-container">
-
-    <!-- Header -->
-    <div class="admin-header">
-        <div class="admin-header-inner">
-            <div class="admin-header-icon">
-                <i class="fas fa-gauge-high"></i>
-            </div>
-            <div class="admin-header-text">
-                <h1>Admin Dashboard</h1>
-                <p>Manage your educational platform</p>
-            </div>
+<div class="adm-header">
+    <div class="adm-header-left">
+        <div class="adm-header-icon"><i class="fas fa-gauge-high"></i></div>
+        <div>
+            <p class="adm-header-title">Admin Dashboard</p>
+            <p class="adm-header-sub">Manage your educational platform</p>
         </div>
     </div>
+</div>
 
-    <!-- Quick Stats -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon" style="background: #3b82f6;">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ total_users }}</h3>
-                <p>Total Users</p>
-            </div>
-            <a href="{{ url_for('admin.users') }}" class="stat-link">Manage →</a>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon" style="background: #10b981;">
-                <i class="fas fa-file-lines"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ total_posts }}</h3>
-                <p>Total Posts</p>
-            </div>
-            <a href="{{ url_for('admin.posts') }}" class="stat-link">Manage →</a>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon" style="background: #f59e0b;">
-                <i class="fas fa-layer-group"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ total_subjects }}</h3>
-                <p>Subjects</p>
-            </div>
-            <a href="{{ url_for('admin.subjects') }}" class="stat-link">Manage →</a>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon" style="background: #8b5cf6;">
-                <i class="fas fa-comments"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ total_comments }}</h3>
-                <p>Comments</p>
-            </div>
-            <a href="{{ url_for('admin.statistics') }}" class="stat-link">View Stats →</a>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon" style="background: #f59e0b;">
-                <i class="fas fa-shield-alt"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ pending_count }}</h3>
-                <p>Awaiting Approval</p>
-            </div>
-            <a href="{{ url_for('admin.moderation') }}" class="stat-link">Review →</a>
+<div class="adm-stats">
+    <div class="adm-stat">
+        <div class="adm-stat-icon adm-stat-icon--blue"><i class="fas fa-users"></i></div>
+        <div>
+            <p class="adm-stat-num">{{ total_users }}</p>
+            <p class="adm-stat-label">Total Users</p>
         </div>
     </div>
-
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-        <div class="section-label">
-            <i class="fas fa-bolt"></i>
-            <span>Quick Actions</span>
-        </div>
-        <div class="actions-grid">
-            <a href="{{ url_for('admin.subjects') }}" class="action-card">
-                <i class="fas fa-folder-open"></i>
-                <span>Manage Subjects</span>
-            </a>
-            <a href="{{ url_for('admin.users') }}" class="action-card">
-                <i class="fas fa-users-gear"></i>
-                <span>Manage Users</span>
-            </a>
-            <a href="{{ url_for('admin.posts') }}" class="action-card">
-                <i class="fas fa-pen-to-square"></i>
-                <span>Manage Posts</span>
-            </a>
-            <a href="{{ url_for('admin.statistics') }}" class="action-card">
-                <i class="fas fa-chart-column"></i>
-                <span>View Statistics</span>
-            </a>
-            <a href="{{ url_for('admin.moderation') }}" class="action-card">
-                <i class="fas fa-shield-alt"></i>
-                <span>Moderation Queue</span>
-            </a>
-            <a href="{{ url_for('admin.send_email') }}" class="action-card">
-                <i class="fas fa-paper-plane"></i>
-                <span>Email Users</span>
-            </a>
+    <div class="adm-stat">
+        <div class="adm-stat-icon adm-stat-icon--green"><i class="fas fa-file-lines"></i></div>
+        <div>
+            <p class="adm-stat-num">{{ total_posts }}</p>
+            <p class="adm-stat-label">Total Posts</p>
         </div>
     </div>
+    <div class="adm-stat">
+        <div class="adm-stat-icon adm-stat-icon--amber"><i class="fas fa-layer-group"></i></div>
+        <div>
+            <p class="adm-stat-num">{{ total_subjects }}</p>
+            <p class="adm-stat-label">Subjects</p>
+        </div>
+    </div>
+    <div class="adm-stat">
+        <div class="adm-stat-icon adm-stat-icon--purple"><i class="fas fa-comments"></i></div>
+        <div>
+            <p class="adm-stat-num">{{ total_comments }}</p>
+            <p class="adm-stat-label">Comments</p>
+        </div>
+    </div>
+    <div class="adm-stat">
+        <div class="adm-stat-icon adm-stat-icon--rose"><i class="fas fa-shield-alt"></i></div>
+        <div>
+            <p class="adm-stat-num">{{ pending_count }}</p>
+            <p class="adm-stat-label">Awaiting Approval</p>
+        </div>
+    </div>
+</div>
 
-    <!-- Recent Activity -->
-    <div class="recent-activity">
-        <div class="activity-section">
-            <div class="section-label">
-                <i class="fas fa-user-plus"></i>
-                <span>Recent Users</span>
-            </div>
-            <div class="activity-list">
-                {% for user in recent_users %}
-                <div class="activity-item">
-                    <img src="{{ user.profile_picture_url }}"
-                         alt="{{ user.username }}"
-                         class="activity-avatar">
-                    <div class="activity-info">
-                        <strong>{{ user.username }}</strong>
-                        <span>{{ user.created_at.strftime('%b %d, %Y') }}</span>
-                    </div>
-                    <a href="{{ url_for('users.profile', username=user.username) }}" class="btn-view">View</a>
+<div class="adm-card">
+    <p class="adm-card-title"><i class="fas fa-bolt"></i> Quick Actions</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.6rem">
+        <a href="{{ url_for('admin.programmes') }}" class="adm-btn adm-btn--secondary"><i class="fas fa-layer-group"></i> Programmes</a>
+        <a href="{{ url_for('admin.subjects') }}" class="adm-btn adm-btn--secondary"><i class="fas fa-folder-open"></i> Subjects</a>
+        <a href="{{ url_for('admin.users') }}" class="adm-btn adm-btn--secondary"><i class="fas fa-users-gear"></i> Users</a>
+        <a href="{{ url_for('admin.posts') }}" class="adm-btn adm-btn--secondary"><i class="fas fa-pen-to-square"></i> Posts</a>
+        <a href="{{ url_for('admin.statistics') }}" class="adm-btn adm-btn--secondary"><i class="fas fa-chart-column"></i> Statistics</a>
+        <a href="{{ url_for('admin.moderation') }}" class="adm-btn adm-btn--secondary"><i class="fas fa-shield-alt"></i> Moderation</a>
+        <a href="{{ url_for('admin.send_email') }}" class="adm-btn adm-btn--secondary"><i class="fas fa-paper-plane"></i> Email Users</a>
+    </div>
+</div>
+
+<div class="adm-two-col">
+    <div class="adm-card">
+        <p class="adm-card-title"><i class="fas fa-user-plus"></i> Recent Users</p>
+        <div style="display:flex;flex-direction:column;gap:.25rem">
+            {% for user in recent_users %}
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.5rem .6rem;border-radius:9px;transition:background .12s" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+                <img src="{{ user.profile_picture_url }}" alt="{{ user.username }}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0">
+                <div style="flex:1;min-width:0">
+                    <div style="font-weight:700;font-size:.84rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ user.username }}</div>
+                    <div style="font-size:.72rem;color:var(--text-muted)">{{ user.created_at.strftime('%b %d, %Y') }}</div>
                 </div>
-                {% endfor %}
+                <a href="{{ url_for('users.profile', username=user.username) }}" class="adm-btn adm-btn--secondary adm-btn--sm">View</a>
             </div>
+            {% endfor %}
         </div>
+    </div>
 
-        <div class="activity-section">
-            <div class="section-label">
-                <i class="fas fa-file-lines"></i>
-                <span>Recent Posts</span>
-            </div>
-            <div class="activity-list">
-                {% for post in recent_posts %}
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <i class="fas fa-{% if post.has_document %}file-pdf{% else %}note-sticky{% endif %}"></i>
-                    </div>
-                    <div class="activity-info">
-                        <strong>{{ post.title[:40] }}{% if post.title|length > 40 %}...{% endif %}</strong>
-                        <span>by {{ post.author.username }}</span>
-                    </div>
-                    <a href="{{ url_for('posts.view', post_id=post.id) }}" class="btn-view">View</a>
+    <div class="adm-card">
+        <p class="adm-card-title"><i class="fas fa-file-lines"></i> Recent Posts</p>
+        <div style="display:flex;flex-direction:column;gap:.25rem">
+            {% for post in recent_posts %}
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.5rem .6rem;border-radius:9px;transition:background .12s" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+                <div style="width:30px;height:30px;border-radius:8px;background:rgba(37,99,235,.08);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:.75rem;flex-shrink:0">
+                    <i class="fas fa-{% if post.has_document %}file-pdf{% else %}note-sticky{% endif %}"></i>
                 </div>
-                {% endfor %}
+                <div style="flex:1;min-width:0">
+                    <div style="font-weight:700;font-size:.84rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ post.title[:40] }}{% if post.title|length > 40 %}…{% endif %}</div>
+                    <div style="font-size:.72rem;color:var(--text-muted)">by {{ post.author.username }}</div>
+                </div>
+                <a href="{{ url_for('posts.view', post_id=post.id) }}" class="adm-btn adm-btn--secondary adm-btn--sm">View</a>
             </div>
+            {% endfor %}
         </div>
     </div>
 
 </div>
 
-<style>
-.admin-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-}
-
-.admin-header {
-    background: rgba(99, 102, 241, 0.06);
-    border: 1px solid rgba(99, 102, 241, 0.15);
-    border-radius: 14px;
-    padding: 1.25rem 1.5rem;
-}
-
-.admin-header-inner { display: flex; align-items: center; gap: 1rem; }
-
-.admin-header-icon {
-    width: 44px; height: 44px;
-    background: var(--primary);
-    border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    color: white; font-size: 1.25rem; flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.30);
-}
-
-.admin-header-text h1 {
-    font-size: 1.25rem; font-weight: 800;
-    color: var(--text-primary); margin: 0 0 0.175rem 0; letter-spacing: -0.3px;
-}
-
-.admin-header-text p {
-    color: var(--text-secondary); font-size: 0.825rem; margin: 0;
-    display: flex; align-items: center; gap: 0.35rem;
-}
-
-.section-label {
-    display: flex; align-items: center; gap: 0.5rem;
-    margin-bottom: 1.25rem; font-size: 0.7rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
-}
-.section-label i { font-size: 0.75rem; color: var(--primary); }
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.75rem;
-}
-
-.stat-card {
-    background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border);
-    padding: 1.25rem; display: flex; align-items: center; gap: 0.875rem;
-    position: relative;
-    transition: box-shadow var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
-}
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-    border-color: var(--primary-light);
-}
-
-.stat-icon {
-    width: 44px; height: 44px; border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    color: white; font-size: 1.1rem; flex-shrink: 0;
-}
-
-.stat-content h3 {
-    font-size: 1.625rem; font-weight: 800; margin: 0;
-    color: var(--text-primary); letter-spacing: -0.5px; line-height: 1;
-}
-.stat-content p { margin: 0.2rem 0 0; color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
-
-.stat-link {
-    position: absolute; bottom: 0.875rem; right: 1rem;
-    color: var(--primary); font-size: 0.775rem; font-weight: 600;
-    text-decoration: none; opacity: 0; transition: opacity var(--transition-fast);
-}
-.stat-card:hover .stat-link { opacity: 1; }
-
-.quick-actions {
-    background: var(--bg-card); border-radius: 14px;
-    border: 1px solid var(--border); padding: 1.25rem;
-}
-
-.actions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 0.625rem;
-}
-
-.action-card {
-    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
-    padding: 1.25rem 1rem; background: var(--bg-secondary);
-    border: 1.5px solid var(--border); border-radius: 10px;
-    text-align: center; text-decoration: none; color: var(--text-secondary);
-    font-size: 0.85rem; font-weight: 600; transition: all var(--transition-fast);
-}
-.action-card i { font-size: 1.375rem; color: var(--primary); transition: color var(--transition-fast); }
-.action-card:hover {
-    background: var(--primary); border-color: var(--primary); color: white;
-    transform: translateY(-2px); box-shadow: 0 4px 14px rgba(99,102,241,0.28);
-}
-.action-card:hover i { color: white; }
-
-.recent-activity {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 0.75rem;
-}
-
-.activity-section {
-    background: var(--bg-card); border-radius: 14px;
-    border: 1px solid var(--border); padding: 1.25rem;
-}
-
-.activity-list { display: flex; flex-direction: column; gap: 0.25rem; }
-
-.activity-item {
-    display: flex; align-items: center; gap: 0.75rem;
-    padding: 0.55rem 0.75rem; border-radius: 9px;
-    transition: background var(--transition-fast);
-}
-.activity-item:hover { background: var(--bg-hover); }
-
-.activity-avatar {
-    width: 34px; height: 34px; border-radius: 50%;
-    object-fit: cover; border: 2px solid var(--border); flex-shrink: 0;
-}
-
-.activity-icon {
-    width: 34px; height: 34px; border-radius: 50%;
-    background: rgba(99,102,241,0.08); color: var(--primary);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.875rem; flex-shrink: 0;
-}
-
-.activity-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.activity-info strong {
-    font-size: 0.85rem; font-weight: 600; color: var(--text-primary);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.activity-info span { font-size: 0.75rem; color: var(--text-muted); margin-top: 1px; }
-
-.btn-view {
-    font-size: 0.775rem; font-weight: 600; color: var(--primary);
-    text-decoration: none; padding: 0.275rem 0.7rem;
-    border: 1.5px solid rgba(99,102,241,0.25); border-radius: 7px;
-    transition: all var(--transition-fast); flex-shrink: 0; white-space: nowrap;
-}
-.btn-view:hover { background: var(--primary); color: white; border-color: var(--primary); }
-
-@media (max-width: 768px) {
-    .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    .admin-header { padding: 1rem 1.25rem; }
-    .admin-header-text h1 { font-size: 1.1rem; }
-}
-
-@media (max-width: 480px) {
-    .stats-grid { grid-template-columns: 1fr; }
-    .stat-link { opacity: 1; }
-}
-</style>
 {% endblock %}

@@ -31,7 +31,7 @@
     --qz-wrong-bg:    rgba(201, 48, 48, 0.06);
     --qz-warn-bg:     rgba(196, 122, 0, 0.07);
 
-    --qz-radius:    16px;
+    --qz-radius:    18px;
     --qz-radius-sm: 10px;
 
     --qz-shadow-sm: 0 1px 4px rgba(0,0,0,.06);
@@ -63,6 +63,9 @@ body {
     background: var(--qz-paper);
     color: var(--qz-ink);
 }
+
+.top-nav { display: none !important; }
+.bottom-nav { display: none !important; }
 
 /* ════════════════════════════════════════════════════════════
    ONBOARDING OVERLAY MODAL
@@ -121,7 +124,7 @@ body {
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 1.75rem;
+    margin-bottom: 1.25rem;
 }
 
 .qz-onboard-icon {
@@ -243,81 +246,106 @@ body {
 }
 
 /* ════════════════════════════════════════════════════════════
-   HERO
+   HERO — minimal
    ════════════════════════════════════════════════════════════ */
 .qz-hero {
-    display: flex;
+    display: none !important; /* JS sets display:flex */
     align-items: center;
-    gap: 1rem;
-    padding: 1.1rem 1.25rem;
-    background: rgba(99, 102, 241, 0.06);
-    border-radius: 14px;
-    border: 1px solid rgba(99, 102, 241, 0.15);
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: .875rem 0;
+    border-bottom: 1px solid var(--qz-border);
     margin-bottom: 1.25rem;
-    margin-top: 1.25rem;
-    position: relative;
+    margin-top: 1rem;
 }
 
 .qz-hero-back {
-    display: inline-flex;
-    align-items: center;
-    gap: .4rem;
-    font-size: .78rem;
-    font-weight: 600;
-    color: var(--qz-muted);
-    text-decoration: none;
-    letter-spacing: .04em;
-    margin: 1.25rem 0 .625rem;
-    transition: color .18s;
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .78rem; font-weight: 700; color: var(--qz-muted);
+    text-decoration: none; margin-bottom: 1rem;
+    padding: .35rem .6rem; border-radius: 8px;
+    transition: background .15s, color .15s;
 }
-.qz-hero-back:hover { color: var(--qz-accent); }
+.qz-hero-back:hover { background: var(--qz-accent-bg); color: var(--qz-accent); }
 .qz-hero-back i { font-size: .7rem; }
 
-.qz-hero-icon {
-    width: 44px; height: 44px;
-    background: var(--qz-accent);
-    border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.25rem; color: #fff; flex-shrink: 0;
-}
-
-.qz-hero-body { flex: 1; min-width: 0; }
+.qz-hero-main { flex: 1; min-width: 0; margin: 0 0.75rem; }
 
 .qz-hero-title {
-    margin: 0 0 .25rem;
-    font-size: 1.2rem;
-    font-weight: 800;
-    color: var(--text-primary, var(--qz-ink));
+    margin: 0 0 .3rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--qz-ink);
     line-height: 1.3;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: -.02em;
 }
 
-.qz-hero-by {
-    display: flex; align-items: center; gap: .35rem;
-    margin: 0 0 .625rem; color: var(--qz-muted); font-size: .825rem;
-}
-.qz-hero-by i { color: var(--qz-accent); font-size: .75rem; }
-.qz-hero-by strong { color: var(--qz-secondary); font-weight: 600; }
-
-.qz-pills { display: flex; gap: .4rem; flex-wrap: wrap; }
-
-.qz-pill {
-    display: inline-flex; align-items: center; gap: .3rem;
-    padding: .25rem .7rem; border-radius: 50px; font-size: .71rem;
-    font-weight: 700; letter-spacing: .03em; border: 1px solid transparent;
+.qz-hero-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .3rem;
+    font-size: .78rem;
+    color: var(--qz-muted);
 }
 
-.qz-pill.marks { background: rgba(99,102,241,.1);  color: #6366f1; border-color: rgba(99,102,241,.25); }
-.qz-pill.xp    { background: rgba(196,122,0,.1);   color: #c47a00; border-color: rgba(196,122,0,.3); }
-.qz-pill.qs    { background: rgba(15,125,86,.1);   color: #0f7d56; border-color: rgba(15,125,86,.25); }
-.qz-pill.timep { background: rgba(201,48,48,.08);  color: #c93030; border-color: rgba(201,48,48,.2); }
+.qz-hero-meta strong { color: var(--qz-secondary); font-weight: 600; }
+.qz-hero-dot { opacity: .35; }
 
-[data-theme="dark"] .qz-pill.marks { color: #a5b4fc; border-color: rgba(99,102,241,.35); }
-[data-theme="dark"] .qz-pill.xp    { color: #fcd34d; border-color: rgba(196,122,0,.4); }
-[data-theme="dark"] .qz-pill.qs    { color: #6ee7b7; border-color: rgba(15,125,86,.35); }
-[data-theme="dark"] .qz-pill.timep { color: #fca5a5; border-color: rgba(201,48,48,.3); }
+/* ── Timer inside hero ── */
+.qz-hero .qz-timer {
+    display: none;                  /* JS sets display:flex */
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .2rem;
+    flex-shrink: 0;
+    min-width: 90px;
+    background:    transparent;
+    border:        none;
+    box-shadow:    none;
+    margin: 0 0.75rem;
+}
+
+.qz-hero .qz-timer-icon  { display: none; }
+
+.qz-hero .qz-timer-label {
+    font-size: .58rem;
+    text-align: right;
+}
+
+.qz-hero .qz-timer-clock {
+    font-size: 1.2rem;
+    text-align: right;
+    min-width: unset;
+}
+
+.qz-hero .qz-timer-track {
+    width: 100%;
+    min-width: unset;
+}
+
+/* ── Dark mode ── */
+[data-theme="dark"] .qz-hero { border-color: var(--qz-border); background: transparent; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+    .qz-hero           { flex-wrap: wrap; gap: .75rem; padding: .75rem 0; }
+    .qz-hero-title     { font-size: .95rem; white-space: normal; }
+    .qz-hero .qz-timer {
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+        min-width: unset;
+        gap: .75rem;
+        margin-left: 0;
+    }
+    .qz-hero .qz-timer-clock,
+    .qz-hero .qz-timer-label { text-align: left; }
+    .qz-hero .qz-timer-track  { flex: 1; }
+}
 
 /* ════════════════════════════════════════════════════════════
    TIMER BAR
@@ -379,11 +407,11 @@ body {
 /* ════════════════════════════════════════════════════════════
    PROGRESS BAR
    ════════════════════════════════════════════════════════════ */
-.qz-progress { display: none; margin-bottom: 1.5rem; }
+.qz-progress { display: none; margin-bottom: 1.5rem; scroll-margin-top: 30px}
 
 .qz-progress-head {
     display: flex; justify-content: space-between;
-    margin-bottom: .5rem; font-size: .78rem; font-weight: 600; color: var(--qz-muted);
+    margin-bottom: .5rem; margin-top: 0.75rem; font-size: .78rem; font-weight: 600; color: var(--qz-muted);
 }
 
 .qz-progress-track {
@@ -395,6 +423,23 @@ body {
     background: linear-gradient(90deg, var(--qz-accent), var(--qz-violet));
     border-radius: 99px;
     transition: width .4s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Timer mirrored into progress bar (mobile only) ── */
+.qz-progress-timer {
+    display: block;                        /* hidden by default */
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--qz-accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .04em;
+}
+
+.qz-progress-timer.strict { color: var(--qz-wrong); }
+.qz-progress-timer.warning { animation: timerPulse .7s infinite; }
+
+@media (max-width: 600px) {
+    .qz-progress-timer { display: inline; }  /* show on mobile */
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -415,7 +460,7 @@ body {
     to   { opacity: 1; transform: translateY(0); }
 }
 
-.qz-stripe { height: 3px; width: 100%; }
+.qz-stripe { height: 4px; width: 100%; }
 .qz-stripe.mcq  { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
 .qz-stripe.tf   { background: linear-gradient(90deg, #0f7d56, #34d399); }
 .qz-stripe.open { background: linear-gradient(90deg, #c47a00, #fbbf24); }
@@ -462,7 +507,7 @@ body {
 }
 
 .qz-opt:hover:not(:disabled) {
-    border-color: rgba(99,102,241,.45);
+    border-color: rgba(99,102,241,.3);
     background: var(--qz-accent-bg);
     box-shadow: 0 2px 10px rgba(99,102,241,.07);
 }
@@ -541,10 +586,15 @@ body {
 
 .qz-res-hero {
     position: relative;
-    background: linear-gradient(145deg, #1e1b4b 0%, #2d1b69 45%, #1a1035 100%);
+    background: linear-gradient(145deg,
+        color-mix(in srgb, var(--qz-accent) 22%, var(--qz-card)) 0%,
+        color-mix(in srgb, var(--qz-violet) 28%, var(--qz-card)) 50%,
+        color-mix(in srgb, var(--qz-accent) 15%, var(--qz-card)) 100%);
+    border: 1px solid color-mix(in srgb, var(--qz-accent) 25%, transparent);
+    border-left: 4px solid var(--qz-accent);
     border-radius: var(--qz-radius); padding: 3rem 2rem 2.75rem;
     text-align: center; margin-bottom: 1.25rem; overflow: hidden;
-    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.25);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
 }
 
 .qz-res-hero::before {
@@ -642,7 +692,7 @@ body {
     .qz-hero       { flex-direction: column; align-items: flex-start; gap: .75rem; padding: 1rem; }
     .qz-hero-title { font-size: 1rem; white-space: normal; }
     .qz-card-body  { padding: 1.25rem; }
-    .qz-onboard-body  { padding: 1.5rem 1.25rem 1.25rem; }
+    .qz-onboard-body  { padding: 1.5rem 1.25rem 1.25rem; line-height: 1;}
     .qz-mode-grid     { grid-template-columns: 1fr; }
     .qz-onboard       { border-radius: 18px; }
     .qz-onboard-footer { flex-direction: column; align-items: stretch; }
@@ -654,12 +704,18 @@ body {
     .qz-rstat:last-child { border-bottom: none; }
     .qz-res-actions .qz-btn { min-width: unset; }
     .qz-btn        { padding: .7rem 1.1rem; font-size: .85rem; }
+    .qz-attempt-pips {padding-bottom: 0.2px    }
+    .qz-attempt-badge {padding: .22rem .65rem; font-size: .65rem;}
+    .qz-premium-inner {padding: 0rem !important; border: none !important; border-radius: 0; box-shadow: none !important;}
 }
 
 @media (max-width: 400px) {
     .qz-actions { flex-direction: column; align-items: stretch; }
     .qz-actions .qz-btn { justify-content: center; }
+    .qz-premium-inner {padding: 0rem !important; border: none; border-radius: 0; box-shadow: none;}
+
 }
+
 
 /* ════════════════════════════════════════════════════════════
    ATTEMPT BADGE
@@ -669,6 +725,8 @@ body {
     padding: .28rem .75rem; border-radius: 50px; font-size: .7rem;
     font-weight: 700; letter-spacing: .04em; margin-top: .4rem;
     border: 1.5px solid transparent; transition: all .2s;
+    margin-bottom: .65rem;
+
 }
 .qz-attempt-badge.has-attempts { background: rgba(15, 125, 86, .1); color: var(--qz-correct); border-color: rgba(15, 125, 86, .25); }
 .qz-attempt-badge.no-attempts  { background: rgba(201, 48, 48, .09); color: var(--qz-wrong); border-color: rgba(201, 48, 48, .22); }
@@ -837,7 +895,7 @@ body {
      ═══════════════════════════════════════════════════════════ -->
 <div class="qz-overlay" id="quizOverlay">
 
-{% if not (user.is_premium or user.has_active_subscription) and user.free_attempts_left <= 0 %}
+{% if not (user.is_admin or user.is_premium or user.has_active_subscription) and user.free_attempts_left <= 0 %}
 
     <!-- ══ UPGRADE MODAL (attempts exhausted) ══════════════════ -->
     <div class="qz-onboard" role="dialog" aria-modal="true" aria-labelledby="onboardHeading">
@@ -851,7 +909,9 @@ body {
                 <div>
                     <h2 class="qz-onboard-heading" id="onboardHeading">Upgrade to Continue</h2>
                     <p class="qz-onboard-sub">You've used all your free attempts this week.</p>
-                    <div class="qz-attempt-badge no-attempts">
+                </div>
+            </div>
+                <div class="qz-attempt-badge no-attempts">
                         <div class="qz-attempt-pips">
                             {% for i in range(5) %}
                                 <div class="qz-attempt-pip"></div>
@@ -859,9 +919,8 @@ body {
                         </div>
                         <i class="fas fa-lock" style="font-size:.6rem;"></i>
                         No free attempts left this week
-                    </div>
                 </div>
-            </div>
+
 
             <div class="qz-premium-inner" style="border-radius:14px; border:1px solid rgba(196,122,0,.25); margin-bottom:.5rem;">
 
@@ -876,20 +935,35 @@ body {
                     </div>
                 </div>
 
-                <div class="qz-price-block">
+                <!-- Semester plan — best value -->
+                <div class="qz-price-block" style="position:relative;margin-bottom:.6rem;">
+                    <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#c47a00;color:#fff;font-size:.65rem;font-weight:800;padding:.2rem .7rem;border-radius:20px;white-space:nowrap;letter-spacing:.04em;">⭐ BEST VALUE</div>
                     <div>
-                        <div class="qz-price-old">GHS 80</div>
-                        <span class="qz-discount-pill">75% OFF</span>
+                        <div class="qz-price-period" style="font-weight:700;color:var(--qz-ink);">Semester Pass</div>
                     </div>
                     <div class="qz-price-main">
-                        <div class="qz-price-amount">GHS 20</div>
-                        <div class="qz-price-period">Unlimited quizzes for 30 days</div>
-                        <div class="qz-price-perday">
-                            <i class="fas fa-check-circle" style="font-size:.6rem;"></i>
-                            Less than GHS 0.70 per day
-                        </div>
+                        <div class="qz-price-amount">GHS 45</div>
+                        <div class="qz-price-period">4 months · only GHS 11/month</div>
                     </div>
                 </div>
+                <button class="qz-btn qz-btn-upgrade" onclick="goToCheckout('semester')" type="button" style="margin-bottom:.5rem;">
+                    <i class="fas fa-crown" style="margin-right:.4rem;font-size:.85rem;"></i>
+                    Get Semester Pass — GHS 45
+                </button>
+
+                <!-- Monthly plan -->
+                <div class="qz-price-block" style="background:transparent;border-color:var(--qz-border);">
+                    <div>
+                        <div class="qz-price-period" style="font-weight:700;color:var(--qz-ink);">Monthly Pass</div>
+                    </div>
+                    <div class="qz-price-main">
+                        <div class="qz-price-amount" style="font-size:1.2rem;">GHS 18</div>
+                        <div class="qz-price-period">30 days</div>
+                    </div>
+                </div>
+                <button class="qz-btn" onclick="goToCheckout('monthly')" type="button" style="width:100%;padding:.6rem;border:1.5px solid var(--qz-border);background:transparent;color:var(--qz-ink);border-radius:10px;font-weight:700;cursor:pointer;margin-bottom:.25rem;">
+                    Monthly Pass — GHS 18
+                </button>
 
                 <ul class="qz-benefits">
                     <li class="qz-benefit-item"><div class="qz-benefit-check"><i class="fas fa-check"></i></div> Unlimited quiz attempts</li>
@@ -898,14 +972,56 @@ body {
                     <li class="qz-benefit-item"><div class="qz-benefit-check"><i class="fas fa-check"></i></div> Priority grading</li>
                 </ul>
 
-                <button class="qz-btn qz-btn-upgrade" onclick="goToCheckout()" type="button">
-                    <i class="fas fa-crown" style="margin-right:.4rem;font-size:.85rem;"></i>
-                    Upgrade Now — GHS 20
-                </button>
+                <div style="background:rgba(196,122,0,.07);border-left:3px solid #c47a00;border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;font-size:.78rem;line-height:1.6;color:var(--qz-ink);">
+                    💪 <strong>E hard oo,</strong> but every time you subscribe, you help us make Knowly free for every student who can't afford it. One day, no Ghanaian student will ever fail because they couldn't afford the right tools.<br>
+                    <span style="display:block;margin-top:.4rem;font-weight:700;color:#c47a00;">Subscribe, ace your exams, and carry someone along.</span>
+                </div>
+
+                <div style="background:rgba(196,122,0,.07);border-left:3px solid #c47a00;border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;font-size:.78rem;line-height:1.6;color:var(--qz-ink);">
+                    💪 <strong>E hard oo,</strong> but every time you subscribe, you help us make Knowly free for every student who can't afford it. One day, no Ghanaian student will ever fail because they couldn't afford the right tools.<br>
+                    <span style="display:block;margin-top:.4rem;font-weight:700;color:#c47a00;">Subscribe, ace your exams, and carry someone along.</span>
+                </div>
+
+                <div style="background:rgba(196,122,0,.07);border-left:3px solid #c47a00;border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;font-size:.78rem;line-height:1.6;color:var(--qz-ink);">
+                    💪 <strong>E hard oo,</strong> but every time you subscribe, you help us make Knowly free for every student who can't afford it. One day, no Ghanaian student will ever fail because they couldn't afford the right tools.<br>
+                    <span style="display:block;margin-top:.4rem;font-weight:700;color:#c47a00;">Subscribe, ace your exams, and carry someone along.</span>
+                </div>
+
+                <div style="background:rgba(196,122,0,.07);border-left:3px solid #c47a00;border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;font-size:.78rem;line-height:1.6;color:var(--qz-ink);">
+                    💪 <strong>E hard oo,</strong> but every time you subscribe, you help us make Knowly free for every student who can't afford it. One day, no Ghanaian student will ever fail because they couldn't afford the right tools.<br>
+                    <span style="display:block;margin-top:.4rem;font-weight:700;color:#c47a00;">Subscribe, ace your exams, and carry someone along.</span>
+                </div>
+
+                <div style="background:rgba(196,122,0,.07);border-left:3px solid #c47a00;border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;font-size:.78rem;line-height:1.6;color:var(--qz-ink);">
+                    💪 <strong>E hard oo,</strong> but every time you subscribe, you help us make Knowly free for every student who can't afford it. One day, no Ghanaian student will ever fail because they couldn't afford the right tools.<br>
+                    <span style="display:block;margin-top:.4rem;font-weight:700;color:#c47a00;">Subscribe, ace your exams, and carry someone along.</span>
+                </div>
+
+                <div style="background:rgba(196,122,0,.07);border-left:3px solid #c47a00;border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;font-size:.78rem;line-height:1.6;color:var(--qz-ink);">
+                    💪 <strong>E hard oo,</strong> but every time you subscribe, you help us make Knowly free for every student who can't afford it. One day, no Ghanaian student will ever fail because they couldn't afford the right tools.<br>
+                    <span style="display:block;margin-top:.4rem;font-weight:700;color:#c47a00;">Subscribe, ace your exams, and carry someone along.</span>
+                </div>
+
+                <div style="background:rgba(196,122,0,.07);border-left:3px solid #c47a00;border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;font-size:.78rem;line-height:1.6;color:var(--qz-ink);">
+                    💪 <strong>E hard oo,</strong> but every time you subscribe, you help us make Knowly free for every student who can't afford it. One day, no Ghanaian student will ever fail because they couldn't afford the right tools.<br>
+                    <span style="display:block;margin-top:.4rem;font-weight:700;color:#c47a00;">Subscribe, ace your exams, and carry someone along.</span>
+                </div>
+
+                <div style="background:rgba(196,122,0,.07);border-left:3px solid #c47a00;border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;font-size:.78rem;line-height:1.6;color:var(--qz-ink);">
+                    💪 <strong>E hard oo,</strong> but every time you subscribe, you help us make Knowly free for every student who can't afford it. One day, no Ghanaian student will ever fail because they couldn't afford the right tools.<br>
+                    <span style="display:block;margin-top:.4rem;font-weight:700;color:#c47a00;">Subscribe, ace your exams, and carry someone along.</span>
+                </div>
+
+                <div style="background:rgba(196,122,0,.07);border-left:3px solid #c47a00;border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;font-size:.78rem;line-height:1.6;color:var(--qz-ink);">
+                    💪 <strong>E hard oo,</strong> but every time you subscribe, you help us make Knowly free for every student who can't afford it. One day, no Ghanaian student will ever fail because they couldn't afford the right tools.<br>
+                    <span style="display:block;margin-top:.4rem;font-weight:700;color:#c47a00;">Subscribe, ace your exams, and carry someone along.</span>
+                </div>
+
+                
 
             </div>
 
-            <a href="{{ url_for('posts.view', post_id=post.id) }}"
+            <a href="{{ url_for('posts.view', post_id=post.id) }}">
                style="display:block;text-align:center;font-size:.78rem;color:var(--qz-muted);margin-top:.75rem;text-decoration:none;">
                 <i class="fas fa-arrow-left" style="font-size:.65rem;"></i> Back to post
             </a>
@@ -927,13 +1043,13 @@ body {
                 <div>
                     <h2 class="qz-onboard-heading" id="onboardHeading">Ready to begin?</h2>
                     <p class="qz-onboard-sub">
-                        {% if user.is_premium or user.has_active_subscription %}
+                        {% if user.is_admin or user.is_premium or user.has_active_subscription %}
                             Unlimited access — choose your mode.
                         {% else %}
                             Choose how you want to take this quiz.
                         {% endif %}
                     </p>
-                    {% if not (user.is_premium or user.has_active_subscription) %}
+                    {% if not (user.is_admin or user.is_premium or user.has_active_subscription) %}
                         <div class="qz-attempt-badge has-attempts">
                             <div class="qz-attempt-pips">
                                 {% for i in range(5) %}
@@ -968,9 +1084,11 @@ body {
             </div>
 
             <div class="qz-onboard-footer">
-                <span class="qz-onboard-note">Answers are graded instantly after each question.</span>
-                <button class="qz-btn qz-btn-p" onclick="startQuiz()" type="button">
-                    {% if user.is_premium or user.has_active_subscription %}
+            <span class="qz-onboard-note">
+                Answers are graded instantly. Score <strong>≥ 60%</strong> to appear on the leaderboard.
+            </span>
+               <button class="qz-btn qz-btn-p" onclick="startQuiz()" type="button">
+                    {% if user.is_admin or user.is_premium or user.has_active_subscription %}
                         <i class="fas fa-play"></i> Start Quiz
                     {% else %}
                         <i class="fas fa-play"></i> Start Free Quiz
@@ -996,32 +1114,26 @@ body {
         <i class="fas fa-arrow-left"></i> Back to post
     </a>
 
-    <!-- ── HERO ── -->
-    <div class="qz-hero">
-        <div class="qz-hero-icon">
-            <i class="fas fa-graduation-cap"></i>
-        </div>
-        <div class="qz-hero-body">
-            <h1 class="qz-hero-title">{{ meta.title or post.title }}</h1>
-            <p class="qz-hero-by">
-                <i class="fas fa-user"></i>
-                by <strong>{{ post.author.username }}</strong>
-            </p>
-            <div class="qz-pills">
-                <span class="qz-pill marks"><i class="fas fa-star"></i> {{ quiz_data.total_marks }} marks</span>
-                <span class="qz-pill xp"><i class="fas fa-bolt"></i> Up to {{ quiz_data.xp_reward }} XP</span>
-                <span class="qz-pill qs"><i class="fas fa-list-ol"></i> {{ questions|length }} questions</span>
-                {% if meta.time_minutes %}
-                <span class="qz-pill timep"><i class="fas fa-clock"></i> {{ meta.time_minutes }} min suggested</span>
-                {% endif %}
-            </div>
+<!-- ── HERO ── -->
+<div class="qz-hero">
+    <div class="qz-hero-main">
+        <h1 class="qz-hero-title">{{ meta.title or post.title }}</h1>
+        <div class="qz-hero-meta">
+            <span>by <strong>{{ post.author.username }}</strong></span>
+            <span class="qz-hero-dot">·</span>
+            <span id="questionCountPill">…</span> questions
+            <span class="qz-hero-dot">·</span>
+            <span>{{ quiz_data.total_marks }} marks</span>
+            {% if meta.time_minutes %}
+            <span class="qz-hero-dot">·</span>
+            <span>{{ meta.time_minutes }} min</span>
+            {% endif %}
         </div>
     </div>
 
-    <!-- ── TIMER BAR ── -->
-    <div class="qz-timer" id="timerBar">
+    <!-- Timer anchored to the right, hidden until quiz starts -->
+    <div class="qz-timer Desktop" id="timerBar">
         <div class="qz-timer-left">
-            <div class="qz-timer-icon"><i class="fas fa-stopwatch"></i></div>
             <div>
                 <div class="qz-timer-label" id="timerLabel">Elapsed</div>
                 <div class="qz-timer-clock" id="timerDisplay">00:00</div>
@@ -1031,9 +1143,9 @@ body {
             <div class="qz-timer-fill" id="timerFill" style="width:100%;"></div>
         </div>
     </div>
-
-    <!-- ── INLINE UPGRADE CARD ── -->
-    {% if not (user.is_premium or user.has_active_subscription) and user.free_attempts_left <= 0 %}
+</div>
+  <!-- ── INLINE UPGRADE CARD ── -->
+    {% if not (user.is_admin or user.is_premium or user.has_active_subscription) and user.free_attempts_left <= 0 %}
     <div class="qz-inline-upgrade" id="inlineUpgradeCard">
         <div class="qz-inline-upgrade-stripe"></div>
         <div class="qz-inline-upgrade-inner">
@@ -1041,16 +1153,14 @@ body {
                 <div class="qz-inline-upgrade-icon">🔒</div>
                 <div>
                     <div class="qz-inline-upgrade-heading">Weekly attempts used up</div>
-                    <div class="qz-inline-upgrade-sub">Upgrade once for unlimited quizzes — resets every 30 days.</div>
+                    <div class="qz-inline-upgrade-sub">Semester Pass GHS 45 · Monthly Pass GHS 18 — unlimited quizzes.</div>
                 </div>
             </div>
             <div class="qz-inline-upgrade-right">
                 <div class="qz-inline-price-row">
-                    <span class="qz-inline-price-old">GHS 80</span>
-                    <span class="qz-inline-discount">75% OFF</span>
-                    <span class="qz-inline-price-main">GHS 20</span>
+                    <span class="qz-inline-price-main">from GHS 18</span>
                 </div>
-                <button class="qz-btn qz-btn-upgrade qz-inline-cta" onclick="goToCheckout()" type="button">
+                <button class="qz-btn qz-btn-upgrade qz-inline-cta" onclick="goToCheckout('semester')" type="button">
                     <i class="fas fa-crown"></i> Unlock Unlimited Access
                 </button>
                 <div class="qz-inline-secure">
@@ -1061,17 +1171,17 @@ body {
     </div>
     {% endif %}
 
-    <!-- ── PROGRESS BAR ── -->
-    <div class="qz-progress" id="quizProgress">
-        <div class="qz-progress-head">
-            <span id="progressLabel">Question 1 of {{ quiz_data.questions|length }}</span>
-            <span id="progressScore">Score: 0 / {{ quiz_data.total_marks }}</span>
-        </div>
-        <div class="qz-progress-track">
-            <div class="qz-progress-fill" id="progressFill" style="width:0%;"></div>
-        </div>
+<!-- ── PROGRESS BAR ── -->
+<div class="qz-progress" id="quizProgress">
+    <div class="qz-progress-head">
+        <span id="progressLabel">Question 1 of {{ quiz_data.questions|length }}</span>
+        <span id="progressScore">Score: 0 / {{ quiz_data.total_marks }}</span>
+        <span class="qz-progress-timer" id="progressTimer">00:00</span>
     </div>
-
+    <div class="qz-progress-track">
+        <div class="qz-progress-fill" id="progressFill" style="width:0%;"></div>
+    </div>
+</div>
     <!-- ── QUESTION CONTAINER ── -->
     <div id="questionContainer" style="display:none;"></div>
 
@@ -1102,10 +1212,14 @@ body {
             </div>
         </div>
 
-        <div class="qz-res-stats">
+<div class="qz-res-stats">
             <div class="qz-rstat">
                 <div class="qz-rstat-v" id="statCorrect">—</div>
                 <div class="qz-rstat-l">Correct</div>
+            </div>
+            <div class="qz-rstat">
+                <div class="qz-rstat-v" id="statQuestions">—</div>
+                <div class="qz-rstat-l">Questions</div>
             </div>
             <div class="qz-rstat">
                 <div class="qz-rstat-v" id="statScore">—</div>
@@ -1148,20 +1262,21 @@ body {
 // ─────────────────────────────────────────────────────────────────────────────
 // URL / token constants  —  all routes use the 'quiz' blueprint
 // ─────────────────────────────────────────────────────────────────────────────
-const CHECKOUT_URL = "{{ url_for('payments.plan_checkout', plan='monthly_unlimited', amount=20, currency='GHS', source='quiz', post_id=post.id) }}&next={{ url_for('quiz.quiz_start', post_id=post.id) | urlencode }}";
+const CHECKOUT_URL_SEMESTER = "{{ url_for('payments.plan_checkout', plan='semester_unlimited', amount=45, currency='GHS', source='quiz', post_id=post.id) }}&next={{ url_for('quiz.quiz_start', post_id=post.id) | urlencode }}";
+const CHECKOUT_URL_MONTHLY  = "{{ url_for('payments.plan_checkout', plan='monthly_unlimited', amount=18, currency='GHS', source='quiz', post_id=post.id) }}&next={{ url_for('quiz.quiz_start', post_id=post.id) | urlencode }}";
 const SUBMIT_URL   = "{{ url_for('quiz.quiz_submit',      post_id=post.id) }}";
 const START_URL    = "{{ url_for('quiz.quiz_start',       post_id=post.id) }}";
 const PUBLISH_URL  = "{{ url_for('quiz.quiz_publish',     post_id=post.id) }}";
 const CSRF_TOKEN   = "{{ csrf_token() }}";
 
-const USER_IS_PREMIUM = {{ 'true' if (current_user.is_authenticated and current_user.is_premium) else 'false' }};
+const USER_IS_PREMIUM = {{ 'true' if (current_user.is_authenticated and (current_user.is_premium or current_user.is_admin or current_user.has_active_subscription)) else 'false' }};
 const FREE_ATTEMPTS_LEFT = {{ current_user.free_attempts_left if (current_user.is_authenticated and not current_user.is_anonymous) else 3 }};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Monetisation guard
 // ─────────────────────────────────────────────────────────────────────────────
 function initMonetization() {
-    if (USER_IS_PREMIUM) return;
+    if (USER_IS_PREMIUM) return;           // admin/premium/subscribed → never block
     if (FREE_ATTEMPTS_LEFT <= 0) _blockQuizStart();
 }
 
@@ -1181,7 +1296,9 @@ function _blockQuizStart() {
     };
 }
 
-function goToCheckout() { window.location.href = CHECKOUT_URL; }
+function goToCheckout(plan) {
+    window.location.href = plan === 'monthly' ? CHECKOUT_URL_MONTHLY : CHECKOUT_URL_SEMESTER;
+}
 
 document.addEventListener('DOMContentLoaded', initMonetization);
 
@@ -1217,94 +1334,64 @@ function renderKatexInElement(el) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Data normalisation
-// ─────────────────────────────────────────────────────────────────────────────
-function flattenQuestions(rawSections) {
+function flattenQuestions(rawQuestions) {
     const flat = [];
-    rawSections.forEach(section => {
-        // Check if section is a question (direct format)
-        if (section.hasOwnProperty('question') && section.hasOwnProperty('type')) {
-            // Handle direct question format
-            let type = section.type;
-            if (type === 'multiple_choice') type = 'mcq';
-            else if (type === 'true_false') type = 'tf';
-            else if (type === 'problem_solving') type = 'open';
-            
-            let answer = (section.correct_answer || section.answer || '').toString();
-            if (type === 'tf') answer = answer.charAt(0).toUpperCase() + answer.slice(1).toLowerCase();
-            
-            let options = section.options || [];
-            if (type === 'tf' && (!options || options.length === 0)) {
-                options = [{ letter: 'True', text: 'True' }, { letter: 'False', text: 'False' }];
-            }
-            
+    rawQuestions.forEach(q => {
+        // New grouped PS format: type === 'ps' with subparts array
+        // Flat PS subpart (already exploded by quiz_service)
+        if (q.type === 'ps' && q.subpart_label) {
             flat.push({
-                type,
-                question:    renderMath(section.question || ''),
-                rawQuestion: section.question || '',
-                answer,
-                explanation: section.explanation || '',
-                marks:       section.marks || 0,
-                section:     section.section || '',
-                options,
+                type:        'mcq',
+                question:    `<em style="font-size:.82rem;font-weight:500;color:var(--qz-muted);">${renderMath(q.question)}</em><br><strong>${q.subpart_label}</strong> ${renderMath(q.subpart_text || '')}`,
+                rawQuestion: q.question + ' ' + (q.subpart_text || ''),
+                answer:      (q.answer || '').toString(),
+                explanation: q.explanation || '',
+                marks:       q.marks || 0,
+                section:     q.section || '',
+                options:     q.options || [],
             });
-        } else {
-            // Handle section with questions format (original behavior)
-            const qtype     = section.question_type || '';
-            const secLetter = section.section_letter || '';
-            const secTitle  = section.section_title  || '';
-            (section.questions || []).forEach(q => {
-                if (qtype === 'problem_solving' && Array.isArray(q.subparts) && q.subparts.length) {
-                    q.subparts.forEach(sp => {
-                        // Determine if this subpart should be auto-graded (has options and correct_answer)
-                        const spOptions = sp.options || [];
-                        const spCorrectAnswer = (sp.correct_answer || sp.answer || '').toString();
-                        const hasOptionsAndAnswer = spOptions.length > 0 && spCorrectAnswer;
-                        
-                        // Use 'open' type only if no options/answer, otherwise use options for display
-                        const qType = hasOptionsAndAnswer ? 'mcq' : 'open';
-                        
-                        flat.push({
-                            type:        qType,
-                            question:    `<em style="font-size:.82rem;font-weight:500;color:var(--qz-muted);">[${secTitle} — Q${q.question_number}]</em><br>${renderMath(q.question_text)}<br><strong>${sp.label}</strong> ${renderMath(sp.question_text)}`,
-                            rawQuestion: q.question_text + ' ' + sp.question_text,
-                            answer:      spCorrectAnswer,
-                            explanation: sp.explanation || '',
-                            marks:       sp.marks || 0,
-                            section:     secLetter,
-                            options:     spOptions,
-                        });
-                    });
-                } else {
-                    let type;
-                    if (qtype === 'multiple_choice') type = 'mcq';
-                    else if (qtype === 'true_false')  type = 'tf';
-                    else                               type = 'open';
-                    let answer = (q.correct_answer || q.answer || '').toString();
-                    if (type === 'tf') answer = answer.charAt(0).toUpperCase() + answer.slice(1).toLowerCase();
-                    let options = q.options || [];
-                    if (type === 'tf' && (!options || options.length === 0)) {
-                        options = [{ letter: 'True', text: 'True' }, { letter: 'False', text: 'False' }];
-                    }
-                    flat.push({
-                        type,
-                        question:    renderMath(q.question_text || q.question || ''),
-                        rawQuestion: q.question_text || q.question || '',
-                        answer,
-                        explanation: q.explanation || '',
-                        marks:       q.marks || 0,
-                        section:     secLetter,
-                        options,
-                    });
-                }
-            });
+            return;
         }
+
+        // Flat question formats (from quiz_service normalisation)
+        let type = q.type || 'mcq';
+        if (type === 'multiple_choice') type = 'mcq';
+        else if (type === 'true_false') type = 'tf';
+        else if (type === 'problem_solving') type = 'open';
+        else if (type === 'sa') type = 'mcq';  // short_answer has A/B options
+
+        let answer  = (q.answer || q.correct_answer || '').toString();
+        let options = q.options || [];
+
+        if (type === 'tf') {
+            // Normalise T/F answers
+            const upper = answer.toUpperCase();
+            if (upper === 'T') answer = 'True';
+            else if (upper === 'F') answer = 'False';
+            if (!options || options.length === 0) {
+                options = [
+                    { letter: 'True',  text: 'True'  },
+                    { letter: 'False', text: 'False' },
+                ];
+            }
+        }
+
+        flat.push({
+            type,
+            question:    renderMath(q.question || q.question_text || ''),
+            rawQuestion: q.question || q.question_text || '',
+            answer,
+            explanation: q.explanation || '',
+            marks:       q.marks || 0,
+            section:     q.section || '',
+            options,
+        });
     });
     return flat;
 }
 
 const QUESTIONS = flattenQuestions(QUIZ_DATA.questions);
+document.getElementById('questionCountPill').textContent = QUESTIONS.length;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Engine state
@@ -1367,18 +1454,32 @@ async function startQuiz() {
 function startTimer() {
     timerInterval = setInterval(() => {
         elapsed++;
+
+        const heroDisplay    = document.getElementById('timerDisplay');
+        const progressTimer  = document.getElementById('progressTimer');
+
         if (timerMode === 'relaxed') {
-            document.getElementById('timerDisplay').textContent = formatTime(elapsed);
-            document.getElementById('timerLabel')  .textContent = 'Elapsed';
+            const t = formatTime(elapsed);
+            if (heroDisplay)   heroDisplay.textContent   = t;
+            if (progressTimer) progressTimer.textContent = t;
+            document.getElementById('timerLabel').textContent = 'Elapsed';
         } else {
             remaining--;
-            const pct   = (remaining / strictLimit) * 100;
-            const fill  = document.getElementById('timerFill');
-            const clock = document.getElementById('timerDisplay');
-            clock.textContent = formatTime(remaining);
+            const pct  = (remaining / strictLimit) * 100;
+            const fill = document.getElementById('timerFill');
+            const t    = formatTime(remaining);
+
+            if (heroDisplay) {
+                heroDisplay.textContent = t;
+                heroDisplay.className   = 'qz-timer-clock strict' + (pct < 25 ? ' warning' : '');
+            }
+            if (progressTimer) {
+                progressTimer.textContent = t;
+                progressTimer.className   = 'qz-progress-timer strict' + (pct < 25 ? ' warning' : '');
+            }
+
             document.getElementById('timerLabel').textContent = 'Remaining';
-            fill.style.width  = pct + '%';
-            clock.className   = 'qz-timer-clock strict' + (pct < 25 ? ' warning' : '');
+            fill.style.width = pct + '%';
             if (pct < 25) fill.classList.add('low');
             if (remaining <= 0) { clearInterval(timerInterval); submitQuiz(true); }
         }
@@ -1462,6 +1563,14 @@ function renderQuestion(idx) {
         </div>`;
 
     renderKatexInElement(container);
+
+    // ← NEW: smooth-scroll to the question card on every question load
+    let sect = document.getElementById('quizProgress');
+    if (sect) sect.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // ← NEW: auto-focus the textarea for open-answer questions
+    const openAnswerEl = document.getElementById('openAnswer');
+    if (openAnswerEl) openAnswerEl.focus();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1496,7 +1605,7 @@ function confirmAnswer(idx) {
 
     const userAns    = (userAnswers[idx] || '').toString().trim().toUpperCase();
     const correctAns = (q.answer         || '').toString().trim().toUpperCase();
-    const isAuto     = (q.options && q.answer);  // Any question with options and answer is auto-graded
+    const isAuto = q.options && q.options.length > 0 && q.answer && q.answer !== 'See subparts';
     const isCorrect  = isAuto ? (userAns === correctAns && correctAns !== '') : null;
 
     if (isAuto) {
@@ -1624,8 +1733,10 @@ function showResults(result, timedOut) {
         document.getElementById('xpBadgeText').textContent = `+${xpEarned} XP Earned!`;
     }
 
-    const autoQs = QUESTIONS.filter(q => q.type === 'mcq' || q.type === 'tf').length;
-    document.getElementById('statCorrect').textContent = `${correctCount}/${autoQs}`;
+const totalQuestions = QUESTIONS.length;
+    const correctAnswers = (result.scored || []).filter(s => s && s.is_correct).length;
+    document.getElementById('statCorrect').textContent = `${correctAnswers}/${totalQuestions}`;
+    document.getElementById('statQuestions').textContent = QUESTIONS.length;
     document.getElementById('statScore')  .textContent = `${earnedMk.toFixed(0)}/${totalMk}`;
     document.getElementById('statTime')   .textContent = timeDisplay;
 
@@ -1634,7 +1745,7 @@ function showResults(result, timedOut) {
     QUESTIONS.forEach((q, i) => {
         const sc   = scored[i];
         const uAns = (userAnswers[i] || '—').toString();
-        const isA  = (q.options && q.answer);  // Any question with options and answer is auto-graded
+         const isA = q.options && q.options.length > 0 && q.answer && q.answer !== 'See subparts';
         let cls = 'r-op', icon = '📝';
         if (isA && sc) { cls = sc.is_correct ? 'r-ok' : 'r-err'; icon = sc.is_correct ? '✅' : '❌'; }
         const qText = (q.rawQuestion || '').replace(/<[^>]+>/g, '');

@@ -1,67 +1,47 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
+{% block admin_title %}Email Users{% endblock %}
+{% block admin_content %}
 
-{% block title %}Bulk Email{{ title }}{% endblock %}
 
-{% block content %}
-<div class="admin-container">
-
-    <!-- Header -->
-    <div class="admin-header">
-        <div class="admin-header-inner">
-            <div class="admin-header-icon">
-                <i class="fas fa-paper-plane"></i>
-            </div>
-            <div class="admin-header-text">
-                <h1>Send Bulk Email</h1>
-                <p>Compose and send an email to your eDuShare users</p>
-            </div>
+<div class="adm-header">
+    <div class="adm-header-left">
+        <div class="adm-header-icon"><i class="fas fa-paper-plane"></i></div>
+        <div>
+            <p class="adm-header-title">Send Bulk Email</p>
+            <p class="adm-header-sub">Compose and send an email to your users</p>
         </div>
     </div>
+</div>
 
-    <!-- Flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">
-                    <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% for category, message in messages %}
+<div class="adm-flash adm-flash--{{ category }}">
+    <i class="fas fa-{% if category=='success' %}check-circle{% elif category=='danger' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+    {{ message }}
+</div>
+{% endfor %}
+{% endwith %}
 
-    <!-- Stats -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon" style="background: #3b82f6;">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ total_users }}</h3>
-                <p>Total Users</p>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: #10b981;">
-                <i class="fas fa-envelope"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ users | length }}</h3>
-                <p>Have Email</p>
-            </div>
-        </div>
+
+<div class="adm-stats">
+    <div class="adm-stat">
+        <div class="adm-stat-icon adm-stat-icon--blue"><i class="fas fa-users"></i></div>
+        <div><p class="adm-stat-num">{{ total_users }}</p><p class="adm-stat-label">Total Users</p></div>
     </div>
+    <div class="adm-stat">
+        <div class="adm-stat-icon adm-stat-icon--green"><i class="fas fa-envelope"></i></div>
+        <div><p class="adm-stat-num">{{ users | length }}</p><p class="adm-stat-label">Have Email</p></div>
+    </div>
+</div>
 
     <!-- Form -->
     <form method="POST" action="{{ url_for('admin.send_email') }}" id="emailForm">
         {{form.csrf_token}}
 
         <!-- Recipients -->
-        <div class="email-card">
-            <div class="section-label">
-                <i class="fas fa-users"></i>
-                <span>Recipients</span>
-            </div>
+        <!-- Recipients -->
+        <div class="adm-card">
+            <p class="adm-card-title"><i class="fas fa-users"></i> Recipients</p>
 
             <div class="toggle-group">
                 <button type="button" class="toggle-btn active" id="btnAll" onclick="setMode('all')">
@@ -99,238 +79,35 @@
             </div>
         </div>
 
-        <!-- Compose -->
-        <div class="email-card" style="margin-top: 0.75rem;">
-            <div class="section-label">
-                <i class="fas fa-pen"></i>
-                <span>Compose Email</span>
+       <!-- Compose -->
+        <div class="adm-card">
+            <p class="adm-card-title"><i class="fas fa-pen"></i> Compose Email</p>
+
+            <div class="adm-form-group">
+                <label class="adm-form-label">Subject</label>
+                <input type="text" name="subject" class="adm-form-input" placeholder="e.g. Important update from Knowly" required>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Subject</label>
-                <input type="text" name="subject" class="form-input" placeholder="e.g. Important update from eDuShare" required>
+            <div class="adm-form-group">
+                <label class="adm-form-label">Message Body</label>
+                <textarea name="body" class="adm-form-input" placeholder="Write your message here. HTML is supported." required></textarea>
+                <p class="adm-form-hint"><i class="fas fa-info-circle"></i> HTML is supported — e.g. &lt;b&gt;bold&lt;/b&gt;, &lt;a href=''&gt;links&lt;/a&gt;</p>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Message Body</label>
-                <textarea name="body" class="form-textarea" placeholder="Write your message here. HTML is supported." required></textarea>
-                <p class="hint"><i class="fas fa-info-circle"></i> HTML is supported — e.g. &lt;b&gt;bold&lt;/b&gt;, &lt;a href=''&gt;links&lt;/a&gt;</p>
+            <div class="adm-form-actions">
+                <button type="submit" class="adm-btn adm-btn--primary" id="sendBtn" onclick="return confirmSend()">
+                    <i class="fas fa-paper-plane"></i>
+                    <span id="sendBtnText">Send to All {{ users | length }} Users</span>
+                </button>
             </div>
-
-            <button type="submit" class="btn-send" id="sendBtn" onclick="return confirmSend()">
-                <i class="fas fa-paper-plane"></i>
-                <span id="sendBtnText">Send to All {{ users | length }} Users</span>
-            </button>
         </div>
 
     </form>
 
-    <!-- Back link -->
-    <div>
-        <a href="{{ url_for('admin.dashboard') }}" class="btn-back">
-            <i class="fas fa-arrow-left"></i> Back to Dashboard
-        </a>
-    </div>
-
-</div>
-
-<style>
-.admin-container {
-    max-width: 900px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-/* Header — matches dashboard */
-.admin-header {
-    background: rgba(99, 102, 241, 0.06);
-    border: 1px solid rgba(99, 102, 241, 0.15);
-    border-radius: 14px;
-    padding: 1.25rem 1.5rem;
-}
-.admin-header-inner { display: flex; align-items: center; gap: 1rem; }
-.admin-header-icon {
-    width: 44px; height: 44px;
-    background: var(--primary);
-    border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    color: white; font-size: 1.25rem; flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(99,102,241,0.30);
-}
-.admin-header-text h1 {
-    font-size: 1.25rem; font-weight: 800;
-    color: var(--text-primary); margin: 0 0 0.175rem 0; letter-spacing: -0.3px;
-}
-.admin-header-text p { color: var(--text-secondary); font-size: 0.825rem; margin: 0; }
-
-/* Alerts */
-.alert {
-    display: flex; align-items: center; gap: 0.5rem;
-    padding: 0.75rem 1rem; border-radius: 10px;
-    font-size: 0.875rem; font-weight: 500;
-}
-.alert-success { background: rgba(16,185,129,0.08); color: #10b981; border: 1px solid rgba(16,185,129,0.2); }
-.alert-danger  { background: rgba(239,68,68,0.08);  color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
-.alert-info    { background: rgba(99,102,241,0.08); color: var(--primary); border: 1px solid rgba(99,102,241,0.2); }
-
-/* Stats — reuse dashboard pattern */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.75rem;
-}
-.stat-card {
-    background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border);
-    padding: 1.25rem; display: flex; align-items: center; gap: 0.875rem;
-}
-.stat-icon {
-    width: 44px; height: 44px; border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    color: white; font-size: 1.1rem; flex-shrink: 0;
-}
-.stat-content h3 {
-    font-size: 1.625rem; font-weight: 800; margin: 0;
-    color: var(--text-primary); letter-spacing: -0.5px; line-height: 1;
-}
-.stat-content p { margin: 0.2rem 0 0; color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
-
-/* Section label — matches dashboard */
-.section-label {
-    display: flex; align-items: center; gap: 0.5rem;
-    margin-bottom: 1rem; font-size: 0.7rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
-}
-.section-label i { font-size: 0.75rem; color: var(--primary); }
-
-/* Email card — same as dashboard cards */
-.email-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 1.25rem;
-}
-
-/* Toggle buttons */
-.toggle-group { display: flex; gap: 0.625rem; margin-bottom: 1rem; }
-.toggle-btn {
-    flex: 1; padding: 0.6rem 1rem;
-    border: 1.5px solid var(--border);
-    border-radius: 9px;
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-    font-size: 0.825rem; font-weight: 600;
-    cursor: pointer; transition: all var(--transition-fast);
-    display: flex; align-items: center; justify-content: center; gap: 0.4rem;
-}
-.toggle-btn.active {
-    border-color: var(--primary);
-    background: rgba(99,102,241,0.08);
-    color: var(--primary);
-}
-.toggle-btn:hover:not(.active) { border-color: var(--primary-light); color: var(--text-primary); }
-
-/* User select table */
-.user-select-wrapper {
-    display: none;
-    max-height: 260px; overflow-y: auto;
-    border: 1.5px solid var(--border);
-    border-radius: 9px;
-    margin-top: 0.75rem;
-}
-.user-select-wrapper.visible { display: block; }
-
-.select-all-row {
-    padding: 0.5rem 1rem;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border);
-    font-size: 0.78rem; color: var(--text-secondary);
-    display: flex; align-items: center; gap: 0.5rem;
-    cursor: pointer; font-weight: 600;
-}
-
-.user-table { width: 100%; border-collapse: collapse; }
-.user-table th {
-    padding: 0.5rem 1rem; text-align: left;
-    font-size: 0.7rem; color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: 0.05em;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border);
-    position: sticky; top: 0;
-}
-.user-table td {
-    padding: 0.55rem 1rem; font-size: 0.85rem;
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--border);
-}
-.user-table tr:last-child td { border-bottom: none; }
-.user-table tr:hover td { background: var(--bg-hover); }
-.user-check { width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer; }
-
-/* Form fields */
-.form-group { margin-bottom: 1rem; }
-.form-label {
-    display: block; font-size: 0.78rem; font-weight: 700;
-    color: var(--text-muted); margin-bottom: 0.4rem;
-    text-transform: uppercase; letter-spacing: 0.04em;
-}
-.form-input, .form-textarea {
-    width: 100%;
-    background: var(--bg-secondary);
-    border: 1.5px solid var(--border);
-    border-radius: 9px;
-    color: var(--text-primary);
-    font-size: 0.9rem;
-    padding: 0.65rem 0.875rem;
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-    font-family: inherit;
-}
-.form-input:focus, .form-textarea:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
-}
-.form-textarea { min-height: 160px; resize: vertical; line-height: 1.6; }
-.hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem; }
-
-/* Send button — matches action-card hover style */
-.btn-send {
-    width: 100%; padding: 0.8rem;
-    background: var(--primary);
-    color: white; border: none; border-radius: 10px;
-    font-size: 0.95rem; font-weight: 700; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    gap: 0.625rem; transition: all var(--transition-fast);
-    box-shadow: 0 4px 14px rgba(99,102,241,0.28);
-    margin-top: 0.25rem;
-}
-.btn-send:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
-.btn-send:active { transform: translateY(0); }
-
-/* Back link */
-.btn-back {
-    display: inline-flex; align-items: center; gap: 0.4rem;
-    font-size: 0.825rem; font-weight: 600;
-    color: var(--text-secondary); text-decoration: none;
-    padding: 0.4rem 0.75rem;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    transition: all var(--transition-fast);
-}
-.btn-back:hover { color: var(--primary); border-color: var(--primary); background: rgba(99,102,241,0.06); }
-
-/* Scrollbar */
-.user-select-wrapper::-webkit-scrollbar { width: 5px; }
-.user-select-wrapper::-webkit-scrollbar-track { background: var(--bg-secondary); }
-.user-select-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-@media (max-width: 768px) {
-    .toggle-group { flex-direction: column; }
-    .admin-header { padding: 1rem 1.25rem; }
-    .admin-header-text h1 { font-size: 1.1rem; }
-}
-</style>
+     <!-- Back link -->
+    <a href="{{ url_for('admin.dashboard') }}" class="adm-btn adm-btn--secondary adm-btn--sm">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
 
 <script>
 // Assign Jinja values to JS variables to avoid syntax errors
@@ -383,4 +160,89 @@ function confirmSend() {
 }
 </script>
 
-{% endblock %}
+
+<style>
+/* ── Toggle group ── */
+.toggle-group {
+    display: flex; gap: .4rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: .25rem;
+    margin-bottom: 1rem;
+}
+.toggle-btn {
+    flex: 1; padding: .5rem .75rem;
+    border: none; border-radius: 7px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: .8rem; font-weight: 700;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+    transition: all .15s;
+}
+.toggle-btn i { font-size: .72rem; }
+.toggle-btn:hover { background: var(--bg-hover); color: var(--text-secondary); }
+.toggle-btn.active { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.3); }
+
+/* ── User select panel ── */
+.user-select-wrapper {
+    display: none;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: .5rem;
+}
+.user-select-wrapper.visible { display: block; }
+
+.select-all-row {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .6rem .875rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    font-size: .8rem; font-weight: 700;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s;
+}
+.select-all-row:hover { background: var(--bg-hover); }
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .8rem;
+}
+.user-table thead tr {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+}
+.user-table th {
+    padding: .5rem .875rem;
+    font-size: .65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-muted);
+    text-align: left;
+}
+.user-table td {
+    padding: .55rem .875rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+}
+.user-table tbody tr:last-child td { border-bottom: none; }
+.user-table tbody tr:hover { background: var(--bg-hover); }
+.user-table td:first-child { width: 40px; }
+
+/* ── Checkbox style ── */
+.user-check {
+    width: 15px; height: 15px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+/* ── Textarea height ── */
+textarea.adm-form-input { min-height: 180px; }
+</style>
+
+{% endblock %}{# admin_content #}

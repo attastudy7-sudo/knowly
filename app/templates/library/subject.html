@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+{% block title %}{{ subject.name }} — Library{% endblock %}
+
+{% block content %}
+<div class="lib-wrap">
+
+  {# ── BREADCRUMB ── #}
+  <nav class="lib-breadcrumb">
+    <a href="{{ url_for('main.library') }}"><i class="fas fa-layer-group"></i> Library</a>
+    {% if programme %}
+    <i class="fas fa-chevron-right lib-bc-sep"></i>
+    <a href="{{ url_for('main.library_programme', slug=programme.slug) }}">{{ programme.name }}</a>
+    {% endif %}
+    <i class="fas fa-chevron-right lib-bc-sep"></i>
+    <span>{{ subject.name }}</span>
+  </nav>
+
+  {# ── SUBJECT HEADER ── #}
+  <div class="lib-header" style="--sh:{{ subject.color }}">
+    <div class="lib-header-left">
+      <div class="lib-header-icon" style="background:{{ subject.color }}25;border-color:{{ subject.color }}40;color:{{ subject.color }}">
+        <i class="fas fa-{{ subject.icon }}"></i>
+      </div>
+      <div>
+        <h1 class="lib-title">{{ subject.name }}</h1>
+        <p class="lib-subtitle">
+          {% if programme %}{{ programme.name }} &middot; {% endif %}{{ posts.total }} resource{{ 's' if posts.total != 1 }}
+        </p>
+      </div>
+    </div>
+    <div class="lib-header-stats">
+      <div class="lib-stat">
+        <span class="lib-stat-val">{{ posts.total }}</span>
+        <span class="lib-stat-lbl">Resources</span>
+      </div>
+    </div>
+  </div>
+
+  {# ── Past paper upload shortcut ── #}
+<div style="background:linear-gradient(135deg,rgba(37,99,235,.08),rgba(124,58,237,.08));
+            border:1px solid rgba(37,99,235,.2);border-radius:14px;
+            padding:1rem 1.25rem;margin-bottom:1.25rem;
+            display:flex;align-items:center;justify-content:space-between;
+            flex-wrap:wrap;gap:.75rem">
+  <div>
+    <div style="font-size:.82rem;font-weight:700;margin-bottom:.2rem">
+      📄 Help your classmates
+    </div>
+    <div style="font-size:.72rem;color:var(--text-muted)">
+      Upload a past exam paper for <strong>{{ subject.name }}</strong>
+      and earn <strong style="color:#fbbf24">50 XP</strong>
+    </div>
+  </div>
+  <button onclick="openPaperUpload('{{ subject.slug }}', '{{ subject.name }}')"
+          class="btn btn-primary btn-sm">
+    <i class="fas fa-upload"></i> Upload Paper
+  </button>
+</div>
+
+{# ── Quick upload modal ── #}
+<div id="paper-upload-modal" style="display:none;position:fixed;inset:0;
+     background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border:1px solid var(--border);
+              border-radius:18px;padding:1.5rem;width:90%;max-width:420px;
+              position:relative">
+    <button onclick="closePaperUpload()"
+            style="position:absolute;top:.75rem;right:.75rem;background:none;
+                   border:none;color:var(--text-muted);font-size:1.1rem;cursor:pointer">
+      <i class="fas fa-times"></i>
+    </button>
+    <h3 style="font-size:.95rem;font-weight:800;margin-bottom:1rem">
+      📄 Upload Past Paper
+    </h3>
+    <form method="POST" action="{{ url_for('past_papers.upload') }}"
+          enctype="multipart/form-data">
+      <input type="hidden" name="subject_slug" id="modal-subject-slug">
+      <input type="hidden" name="redirect_to"  value="library.subject">
+
+      <div style="margin-bottom:.85rem">
+        <label style="font-size:.75rem;font-weight:700;color:var(--text-muted);display:block;margin-bottom:.3rem">
+          Subject
+        </label>
+        <div id="modal-subject-name" style="font-size:.82rem;font-weight:600;
+             padding:.45rem .75rem;background:var(--bg);border-radius:8px;
+             border:1px solid var(--border)"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.85rem">
+        <div>
+          <label style="font-size:.75rem;font-weight:700;color:var(--text-muted);display:block;margin-bottom:.3rem">Year</label>
+          <input type="text" name="year" placeholder="e.g. 2023"
+                 style="width:100%;background:var(--bg);border:1px solid var(--border);
+                        border-radius:8px;padding:.45rem .65rem;color:var(--text);
+                        font-size:.8rem" maxlength="4">
+        </div>
+        <div>
+          <label style="font-size:.75rem;font-weight:700;color:var(--text-muted);display:block;margin-bottom:.3rem">Semester</label>
+          <select name="semester"
+                  style="width:100%;background:var(--bg);border:1px solid var(--border);
+                         border-radius:8px;padding:.45rem .65rem;color:var(--text);font-size:.8rem">
+            <option value="">—</option>
+            <option value="1">Semester 1</option>
+            <option value="2">Semester 2</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:.85rem">
+        <label style="font-size:.75rem;font-weight:700;color:var(--text-muted);display:block;margin-bottom:.3rem">
+          Description <span style="font-weight:400">(optional)</span>
+        </label>
+        <input type="text" name="description" placeholder="e.g. 2023 June Final Exam"
+               style="width:100%;background:var(--bg);border:1px solid var(--border);
+                      border-radius:8px;padding:.45rem .65rem;color:var(--text);font-size:.8rem">
+      </div>
+
+      <div id="modal-drop-zone"
+           onclick="document.getElementById('modal-file-input').click()"
+           style="border:2px dashed var(--border);border-radius:12px;padding:1.25rem;
+                  text-align:center;cursor:pointer;color:var(--text-muted);
+                  font-size:.78rem;margin-bottom:1rem;transition:all .2s">
+        <input type="file" id="modal-file-input" name="file"
+               accept=".pdf,.jpg,.jpeg,.png" style="display:none" required>
+        <i class="fas fa-cloud-upload-alt" style="font-size:1.25rem;display:block;margin-bottom:.4rem"></i>
+        <span id="modal-drop-label">Drop PDF or image here, or click to browse</span>
+      </div>
+
+      <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);
+                  border-radius:10px;padding:.5rem .75rem;font-size:.72rem;
+                  color:#fbbf24;margin-bottom:1rem;text-align:center">
+        🎉 You'll earn <strong>50 XP</strong> for this upload
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%">
+        <i class="fas fa-upload"></i> Upload & Earn 50 XP
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openPaperUpload(slug, name) {
+    document.getElementById('modal-subject-slug').value = slug;
+    document.getElementById('modal-subject-name').textContent = name;
+    const modal = document.getElementById('paper-upload-modal');
+    modal.style.display = 'flex';
+  }
+  function closePaperUpload() {
+    document.getElementById('paper-upload-modal').style.display = 'none';
+  }
+  document.getElementById('modal-file-input').addEventListener('change', function() {
+    if (this.files.length) {
+      const lbl = document.getElementById('modal-drop-label');
+      lbl.textContent = '✓ ' + this.files[0].name;
+      document.getElementById('modal-drop-zone').style.borderColor = 'var(--success)';
+      document.getElementById('modal-drop-zone').style.color = 'var(--success)';
+    }
+  });
+  // Close on backdrop click
+  document.getElementById('paper-upload-modal').addEventListener('click', function(e) {
+    if (e.target === this) closePaperUpload();
+  });
+</script>
+
+  {# ── TABS + POSTS ── #}
+  <div class="subj-layout">
+
+    <div class="subj-tabs-wrap">
+      <a href="{{ url_for('main.library_subject', slug=subject.slug, tab='all') }}"
+         class="st-tab{% if tab == 'all' %} active{% endif %}">
+        <i class="fas fa-layer-group"></i> All
+      </a>
+      <a href="{{ url_for('main.library_subject', slug=subject.slug, tab='notes') }}"
+         class="st-tab{% if tab == 'notes' %} active{% endif %}">
+        <i class="fas fa-sticky-note"></i> Notes
+      </a>
+      <a href="{{ url_for('main.library_subject', slug=subject.slug, tab='cheatsheet') }}"
+         class="st-tab{% if tab == 'cheatsheet' %} active{% endif %}">
+        <i class="fas fa-clone"></i> Cheatsheets
+      </a>
+      <a href="{{ url_for('main.library_subject', slug=subject.slug, tab='quiz') }}"
+         class="st-tab{% if tab == 'quiz' %} active{% endif %}">
+        <i class="fas fa-brain"></i> Quizzes
+      </a>
+    </div>
+
+    <div class="subj-panel">
+      {% if posts.items %}
+      <div class="post-list">
+        {% for post in posts.items %}
+        <article class="post-row clickable-card"
+                 data-post-id="{{ post.id }}"
+                 data-content-type="{{ post.content_type or 'notes' }}"
+                 data-title="{{ post.title }}"
+                 data-description="{{ post.description or '' }}"
+                 {% if post.document %}data-document-id="{{ post.document.id }}"{% endif %}>
+
+          <div class="post-row-icon ct-icon-{{ post.content_type or 'notes' }}">
+            {% if post.content_type == 'quiz' %}<i class="fas fa-brain"></i>
+            {% elif post.content_type == 'cheatsheet' %}<i class="fas fa-clone"></i>
+            {% elif post.content_type == 'mixed' %}<i class="fas fa-layer-group"></i>
+            {% else %}<i class="fas fa-sticky-note"></i>{% endif %}
+          </div>
+
+          <div class="post-row-body">
+            <p class="post-row-title">{{ post.title }}</p>
+            <div class="post-row-meta">
+              <span class="type-badge type-{{ post.content_type or 'notes' }}">
+                {% if post.content_type == 'quiz' %}Quiz
+                {% elif post.content_type == 'cheatsheet' %}Cheatsheet
+                {% elif post.content_type == 'mixed' %}Mixed
+                {% else %}Notes{% endif %}
+              </span>
+              {% if post.has_quiz() %}<span class="type-badge type-quiz">Quiz</span>{% endif %}
+
+              {# ── Quiz chips ── #}
+              {% if post.content_type == 'quiz' %}
+                {% set qm = post.quiz_card_meta %}
+                {% if qm %}
+                  {% if qm.questions %}
+                  <span class="meta-chip meta-chip-quiz">
+                    <i class="fas fa-list-ol"></i> {{ qm.questions }}q
+                  </span>
+                  {% endif %}
+                  {% if qm.marks %}
+                  <span class="meta-chip meta-chip-quiz">
+                    <i class="fas fa-star"></i> {{ qm.marks }}pts
+                  </span>
+                  {% endif %}
+                  {% if qm.duration %}
+                  <span class="meta-chip meta-chip-quiz">
+                    <i class="fas fa-clock"></i> {{ qm.duration }}
+                  </span>
+                  {% endif %}
+                {% endif %}
+
+              {# ── Notes chips ── #}
+              {% elif post.content_type == 'notes' %}
+                {% set nm = post.notes_card_meta %}
+                {% if nm and nm.read_time %}
+                <span class="meta-chip meta-chip-notes">
+                  <i class="fas fa-book-open"></i> {{ nm.read_time }}
+                </span>
+                {% endif %}
+
+              {# ── Cheatsheet chips ── #}
+              {% elif post.content_type == 'cheatsheet' %}
+                {% set cm = post.cheatsheet_card_meta %}
+                {% if cm %}
+                  {% if cm.formula_count %}
+                  <span class="meta-chip meta-chip-sheet">
+                    <i class="fas fa-square-root-alt"></i> {{ cm.formula_count }} formula{{ 's' if cm.formula_count != 1 }}
+                  </span>
+                  {% endif %}
+                  {% if cm.definition_count %}
+                  <span class="meta-chip meta-chip-sheet">
+                    <i class="fas fa-book"></i> {{ cm.definition_count }} def{{ 's' if cm.definition_count != 1 }}
+                  </span>
+                  {% endif %}
+                {% endif %}
+              {% endif %}
+
+              <span class="meta-sep">·</span>
+              <span class="meta-stat"><i class="fas fa-heart"></i> {{ post.likes.count() }}</span>
+              <span class="meta-sep">·</span>
+              <span class="meta-stat"><i class="fas fa-comment"></i> {{ post.comments.count() }}</span>
+              <span class="meta-sep">·</span>
+              <span class="meta-stat">{{ post.created_at.strftime('%b %d') }}</span>
+            </div>
+          </div>
+
+          <div class="post-row-right">
+            <a href="{{ url_for('users.profile', username=post.author.username) }}"
+               class="post-row-author" onclick="event.stopPropagation()">
+              <img src="{{ post.author.profile_picture_url }}"
+                   alt="{{ post.author.username }}"
+                   class="post-row-avatar"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div class="post-row-avatar-fallback" style="background:#667eea;display:none">
+                {{ post.author.username[:2]|upper }}
+              </div>
+              <span class="post-row-author-name">{{ post.author.username }}</span>
+            </a>
+            {% if post.has_document and post.document %}
+              {% if post.document.is_paid %}
+              <span class="badge-paid">GHS {{ "%.0f"|format(post.document.price) }}</span>
+              {% else %}
+              <span class="badge-free">Free</span>
+              {% endif %}
+            {% endif %}
+            <i class="fas fa-chevron-right post-chevron"></i>
+          </div>
+
+        </article>
+        {% endfor %}
+      </div>
+
+      {% if posts.pages > 1 %}
+      <nav class="subj-pagination">
+        {% if posts.has_prev %}
+        <a href="{{ url_for('main.library_subject', slug=subject.slug, tab=tab, page=posts.prev_num) }}" class="pag-btn">
+          <i class="fas fa-chevron-left"></i> Prev
+        </a>
+        {% endif %}
+        <span class="pag-info">Page {{ posts.page }} of {{ posts.pages }}</span>
+        {% if posts.has_next %}
+        <a href="{{ url_for('main.library_subject', slug=subject.slug, tab=tab, page=posts.next_num) }}" class="pag-btn">
+          Next <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+      </nav>
+      {% endif %}
+
+      {% else %}
+      <div class="lib-empty">
+        <i class="fas fa-folder-open"></i>
+        <p>No {{ tab if tab != 'all' else '' }} content found for this subject.</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+{# ── CONTENT MODAL ── #}
+<div id="contentModal" class="content-modal" onclick="if(event.target===this)closeModal()">
+  <div class="cm-sheet" onclick="event.stopPropagation()">
+    <button class="cm-close" onclick="closeModal()">&times;</button>
+    <div class="cm-header">
+      <div class="cm-icon" id="cmIcon"></div>
+      <h2 class="cm-title" id="cmTitle"></h2>
+      <p class="cm-desc" id="cmDesc"></p>
+      <div class="cm-meta" id="cmMeta"></div>
+    </div>
+    <div class="cm-actions" id="cmActions"></div>
+  </div>
+</div>
+
+<style>
+/* ── LAYOUT ── */
+.lib-wrap { max-width: 1160px; margin: 0 auto; padding: 1.5rem 1.25rem 5.5rem; }
+@media (min-width: 1024px) { .lib-wrap { padding: 2rem 2rem 3rem; } }
+
+/* ── BREADCRUMB ── */
+.lib-breadcrumb { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.25rem; font-size: .78rem; font-weight: 600; color: var(--text-muted, #64748b); overflow: hidden; }
+.lib-breadcrumb a { color: #2563eb; text-decoration: none; display: inline-flex; align-items: center; gap: .35rem; transition: color .15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1; }
+.lib-breadcrumb a:first-child { flex-shrink: 0; }
+.lib-breadcrumb a:hover { color: #60a5fa; }
+.lib-breadcrumb span { color: var(--text-secondary, #94a3b8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 2; }
+.lib-bc-sep { flex-shrink: 0; font-size: .55rem; }
+
+/* ── HEADER ── */
+.lib-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: nowrap;
+  padding: 1.5rem;
+  background: color-mix(in srgb, var(--sh, #6366f1) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sh, #6366f1) 20%, transparent);
+  border-left: 4px solid var(--sh, #6366f1);
+  border-radius: 14px; margin-bottom: 1.5rem;
+}
+.lib-header-left { display: flex; flex-direction: row; align-items: center; gap: 1rem; position: relative; flex: 1; min-width: 0; }
+.lib-header-icon { width: 44px; height: 44px; min-width: 44px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.lib-header-left > div:last-child { display: flex; flex-direction: column; min-width: 0; }
+
+.lib-title    { font-family: 'Nunito', sans-serif; font-size: clamp(1.2rem, 2.5vw, 1.75rem); font-weight: 800; color: var(--text-primary, #f1f5f9); letter-spacing: -.03em; margin: 0 0 .2rem; line-height: 1.1; }
+.lib-subtitle { font-size: .82rem; color: var(--text-muted, #64748b); margin: 0; }
+
+.lib-header-stats {
+  display: flex; flex-shrink: 0;
+  background: color-mix(in srgb, var(--sh, #6366f1) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sh, #6366f1) 25%, transparent);
+  border-radius: 12px; padding: .6rem .875rem;
+}
+.lib-stat { display: flex; flex-direction: column; align-items: center; }
+.lib-stat-val { font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 900; color: var(--text-primary, #f1f5f9); line-height: 1; }
+.lib-stat-lbl { font-size: .58rem; color: var(--text-muted, #64748b); font-weight: 600; margin-top: .1rem; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+:root:not([data-theme="dark"]) .lib-stat-val { color: var(--text-primary); }
+:root:not([data-theme="dark"]) .lib-stat-lbl { color: var(--text-muted); }
+
+
+
+.subj-tabs-wrap { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .25rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.subj-tabs-wrap::-webkit-scrollbar { display: none; }
+.st-tab {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .5rem 1rem; font-size: .8rem; font-weight: 600;
+  color: var(--text-muted, #64748b); text-decoration: none; border-radius: 50px;
+  background: var(--bg-card, #1a1d27); border: 1.5px solid var(--border, #2e3244);
+  white-space: nowrap; flex-shrink: 0; transition: all .18s;
+}
+.st-tab i { font-size: .7rem; }
+.st-tab:hover { border-color: #2563eb; color: #2563eb; }
+.st-tab.active { background: #2563eb; border-color: #2563eb; color: white; }
+
+/* ── PANEL ── */
+.subj-panel { background: var(--bg-card, #1a1d27); border: 1px solid var(--border, #2e3244); border-radius: 20px; overflow: hidden;}
+
+/* ── POST ROWS ── */
+.post-list { display: flex; flex-direction: column; }
+.post-row {
+  display: flex; align-items: center; gap: .875rem; padding: .875rem 1.1rem;
+  border-bottom: 1px solid var(--border-light, rgba(255,255,255,.04));
+  cursor: pointer; transition: background .14s; text-decoration: none;
+}
+.post-row:last-child { border-bottom: none; }
+.post-row:hover { background: var(--bg-hover, rgba(255,255,255,.04)); }
+
+.post-row-icon { width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .95rem; }
+.ct-icon-notes      { background: rgba(16,185,129,.14); color: #10b981; }
+.ct-icon-cheatsheet { background: rgba(245,158,11,.14);  color: #f59e0b; }
+.ct-icon-quiz       { background: rgba(139,92,246,.14);  color: #8b5cf6; }
+.ct-icon-mixed      { background: rgba(6,182,212,.14);   color: #06b6d4; }
+
+.post-row-body { flex: 1; min-width: 0; }
+.post-row-title { font-family: var(--font-display); font-size: .875rem; font-weight: 600; color: var(--text-primary, #f1f5f9); letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0 0 .28rem; }
+.post-row-meta { display: flex; align-items: center; gap: .28rem; overflow: hidden; flex-wrap: nowrap; }
+
+.type-badge { font-size: .63rem; font-weight: 700; padding: .1rem .4rem; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
+.type-notes      { background: rgba(16,185,129,.14); color: #10b981; }
+.type-cheatsheet { background: rgba(245,158,11,.14);  color: #f59e0b; }
+.type-quiz       { background: rgba(139,92,246,.14);  color: #8b5cf6; }
+.type-mixed      { background: rgba(6,182,212,.14);   color: #06b6d4; }
+
+.meta-sep  { font-size: .5rem; color: var(--border, #2e3244); flex-shrink: 0; }
+.meta-stat { font-size: .67rem; color: var(--text-muted, #64748b); display: inline-flex; align-items: center; gap: .15rem; white-space: nowrap; flex-shrink: 0; }
+.meta-chip { display: inline-flex; align-items: center; gap: .2rem; font-size: .62rem; font-weight: 700; padding: .1rem .4rem; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+.meta-chip-quiz  { background: rgba(139,92,246,.1);  color: #a78bfa; }
+.meta-chip-notes { background: rgba(16,185,129,.1);  color: #10b981; }
+.meta-chip-sheet { background: rgba(245,158,11,.1);  color: #f59e0b; }
+.meta-stat i { font-size: .56rem; }
+
+.post-row-right { display: flex; align-items: center; gap: .5rem; flex-shrink: 0; }
+.post-row-author { display: flex; align-items: center; gap: .35rem; text-decoration: none; padding: .2rem .4rem; border-radius: 8px; transition: background .15s; }
+.post-row-author:hover { background: var(--bg-hover, rgba(255,255,255,.06)); }
+.post-row-avatar, .post-row-avatar-fallback { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid var(--border, #2e3244); }
+.post-row-avatar-fallback { font-size: .55rem; font-weight: 700; color: white; display: flex; align-items: center; justify-content: center; }
+.post-row-author-name { font-size: .7rem; font-weight: 600; color: var(--text-muted, #64748b); white-space: nowrap; }
+
+.badge-paid { background: rgba(245,158,11,.14); color: #f59e0b; font-weight: 700; font-size: .62rem; padding: .1rem .4rem; border-radius: 4px; white-space: nowrap; }
+.badge-free { background: rgba(16,185,129,.11); color: #10b981; font-weight: 700; font-size: .62rem; padding: .1rem .4rem; border-radius: 4px; white-space: nowrap; }
+.post-chevron { font-size: .58rem; color: var(--text-muted, #64748b); transition: transform .18s; }
+.post-row:hover .post-chevron { transform: translateX(2px); }
+
+/* ── PAGINATION ── */
+.subj-pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 1rem; border-top: 1px solid var(--border-light, rgba(255,255,255,.05)); }
+.pag-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .45rem .875rem; font-size: .8rem; font-weight: 600; color: #2563eb; text-decoration: none; background: rgba(37,99,235,.08); border-radius: 8px; transition: background .15s; }
+.pag-btn:hover { background: rgba(37,99,235,.16); }
+.pag-info { font-size: .75rem; color: var(--text-muted, #64748b); }
+
+/* ── EMPTY ── */
+.lib-empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted, #64748b); font-size: .875rem; }
+.lib-empty i { font-size: 2rem; opacity: .2; display: block; margin-bottom: .6rem; }
+
+/* ── MODAL ── */
+.content-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 1000; align-items: flex-end; justify-content: center; }
+.content-modal.active { display: flex; }
+.cm-sheet {
+  background: var(--bg-card, #1a1d27); border-radius: 24px 24px 0 0;
+  width: 100%; padding: 1.5rem 1.25rem 2rem; position: relative;
+  box-shadow: 0 -8px 40px rgba(0,0,0,.4);
+  animation: sheetUp .25s cubic-bezier(.22,1,.36,1);
+  max-height: 85vh; overflow-y: auto;
+}
+@keyframes sheetUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@media (min-width: 640px) {
+  .content-modal { align-items: center; padding: 1rem; }
+  .cm-sheet { border-radius: 22px; max-width: 440px; max-height: none; }
+  .subj-panel { border-radius: 22px; }
+}
+.cm-sheet::before { content: ''; display: block; width: 36px; height: 4px; background: var(--border, #2e3244); border-radius: 2px; margin: 0 auto 1.25rem; }
+@media (min-width: 640px) { .cm-sheet::before { display: none; } }
+
+.cm-close { position: absolute; top: 1rem; right: 1rem; background: var(--bg-hover, rgba(255,255,255,.06)); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 1.25rem; color: var(--text-muted, #64748b); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.cm-close:hover { background: var(--border, #2e3244); color: var(--text-primary, #f1f5f9); }
+
+.cm-header { text-align: center; margin-bottom: 1.5rem; }
+.cm-icon { width: 60px; height: 60px; border-radius: 18px; margin: 0 auto .875rem; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: white; }
+.cm-icon.is-quiz       { background: linear-gradient(135deg, #8b5cf6, #6366f1); box-shadow: 0 8px 24px rgba(139,92,246,.3); }
+.cm-icon.is-notes      { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 8px 24px rgba(16,185,129,.3); }
+.cm-icon.is-cheatsheet { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 8px 24px rgba(245,158,11,.3); }
+.cm-icon.is-mixed      { background: linear-gradient(135deg, #06b6d4, #0891b2); box-shadow: 0 8px 24px rgba(6,182,212,.3); }
+.cm-title { font-family: 'Nunito', sans-serif; font-size: 1.05rem; font-weight: 800; color: var(--text-primary, #f1f5f9); margin: 0 0 .5rem; line-height: 1.3; }
+.cm-desc  { font-size: .83rem; color: var(--text-muted, #64748b); line-height: 1.6; margin: 0 0 .5rem; }
+.cm-meta  { font-size: .75rem; color: var(--text-muted, #64748b); }
+.cm-actions { display: flex; flex-direction: column; gap: .65rem; }
+.cm-btn { display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .875rem 1.25rem; border-radius: 14px; font-size: .9rem; font-weight: 700; text-decoration: none; transition: all .2s; }
+.cm-btn-primary   { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white !important; box-shadow: 0 4px 16px rgba(139,92,246,.3); }
+.cm-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(139,92,246,.4); }
+.cm-btn-green     { background: linear-gradient(135deg, #10b981, #059669); color: white !important; box-shadow: 0 4px 16px rgba(16,185,129,.3); }
+.cm-btn-green:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(16,185,129,.4); }
+.cm-btn-secondary { background: var(--bg-hover, rgba(255,255,255,.06)); color: var(--text-primary, #f1f5f9) !important; border: 1.5px solid var(--border, #2e3244); }
+.cm-btn-secondary:hover { border-color: #2563eb; color: #2563eb !important; }
+
+/* ── ANIMATIONS ── */
+.post-row { animation: fadeUp .2s ease-out both; }
+.post-row:nth-child(2) { animation-delay: .04s; }
+.post-row:nth-child(3) { animation-delay: .08s; }
+.post-row:nth-child(4) { animation-delay: .12s; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── MOBILE ── */
+@media (max-width: 480px) {
+  .subj-panel { border-radius: 14px; margin-top: 0.5rem; }
+  .lib-wrap { padding: 1rem .875rem 5.5rem; }
+  .lib-header { padding: 1.25rem 1rem; border-radius: 14px; }
+  .lib-header-stats { display: none; }
+  .lib-title { font-size: 1.2rem; }
+  .post-row-author-name { display: none; }
+}
+</style>
+
+<script>
+function openModal() {
+  document.getElementById('contentModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('contentModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+var TYPE_CFG = {
+  quiz:       { cls: 'is-quiz',       icon: 'fa-brain',       label: 'Quiz'       },
+  notes:      { cls: 'is-notes',      icon: 'fa-sticky-note', label: 'Notes'      },
+  cheatsheet: { cls: 'is-cheatsheet', icon: 'fa-clone',       label: 'Cheatsheet' },
+  mixed:      { cls: 'is-mixed',      icon: 'fa-layer-group', label: 'Mixed'      },
+};
+
+function mkBtn(cls, href, icon, text, target) {
+  return `<a href="${href}" class="cm-btn ${cls}"${target ? ` target="${target}"` : ''}>` +
+         `<i class="fas ${icon}"></i> ${text}</a>`;
+}
+
+document.addEventListener('click', function(e) {
+  var card = e.target.closest('.clickable-card');
+  if (!card) return;
+  if (e.target.closest('.post-row-author')) return;
+  e.preventDefault();
+
+  var ct         = card.dataset.contentType || 'notes';
+  var postId     = card.dataset.postId;
+  var title      = card.dataset.title || 'Untitled';
+  var desc       = card.dataset.description || '';
+  var documentId = card.dataset.documentId || '';
+  var cfg        = TYPE_CFG[ct] || TYPE_CFG['notes'];
+
+  var iconEl = document.getElementById('cmIcon');
+  iconEl.className = 'cm-icon ' + cfg.cls;
+  iconEl.innerHTML = `<i class="fas ${cfg.icon}"></i>`;
+  document.getElementById('cmTitle').textContent = title;
+  document.getElementById('cmDesc').textContent  = desc.length > 160 ? desc.slice(0, 160) + '…' : desc;
+  document.getElementById('cmMeta').innerHTML    = `<span><i class="fas fa-tag"></i> ${cfg.label}</span>`;
+
+  var html = '';
+  if (ct === 'quiz') {
+    html += mkBtn('cm-btn-primary', `/posts/${postId}`, 'fa-brain', 'View Quiz');
+    if (documentId) html += mkBtn('cm-btn-secondary', `/document/${documentId}/download`, 'fa-download', 'Download Document');
+  } else if (ct === 'notes' || ct === 'cheatsheet') {
+    html += mkBtn('cm-btn-green', `/posts/${postId}`, 'fa-eye', 'Read');
+    if (documentId) html += mkBtn('cm-btn-secondary', `/document/${documentId}/download`, 'fa-download', 'Download');
+  } else {
+    if (documentId) {
+      html += mkBtn('cm-btn-green', `/document/${documentId}/preview`, 'fa-eye', 'Preview', '_blank');
+      html += mkBtn('cm-btn-secondary', `/document/${documentId}/download`, 'fa-download', 'Download');
+    } else {
+      html += mkBtn('cm-btn-green', `/posts/${postId}`, 'fa-eye', 'View Post');
+    }
+  }
+  document.getElementById('cmActions').innerHTML = html;
+  openModal();
+});
+</script>
+
+{% endblock %}

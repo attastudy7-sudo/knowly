@@ -2,8 +2,8 @@ from flask import render_template, redirect, url_for, flash, request, current_ap
 from flask_login import current_user
 from app import db
 from app.admin import bp
-from app.forms import SubjectForm, BulkEmailForm
-from app.models import Subject, User, Post, Comment, Document
+from app.forms import SubjectForm, BulkEmailForm, ProgrammeForm
+from app.models import Subject, User, Post, Comment, Document, Programme
 from app.utils import admin_required
 import re
 import os
@@ -48,6 +48,102 @@ def dashboard():
     )
 
 
+# ============ PROGRAMME MANAGEMENT ============
+
+@bp.route('/programmes')
+@admin_required
+def programmes():
+    programmes = Programme.query.order_by(Programme.order, Programme.name).all()
+    return render_template('admin/programmes.html', title='Manage Programmes', programmes=programmes)
+
+
+@bp.route('/programmes/create', methods=['GET', 'POST'])
+@admin_required
+def create_programme():
+    form = ProgrammeForm()
+    if form.validate_on_submit():
+        slug = slugify(form.name.data)
+        if Programme.query.filter_by(slug=slug).first():
+            flash('A programme with this name already exists.', 'danger')
+            return redirect(url_for('admin.create_programme'))
+        prog = Programme(
+            name=form.name.data,
+            slug=slug,
+            description=form.description.data or None,
+            icon=form.icon.data or 'graduation-cap',
+            color=form.color.data or '#8b5cf6',
+            order=int(form.order.data) if form.order.data else 0,
+            is_active=form.is_active.data,
+            faculty=form.faculty.data or None,
+        )
+        db.session.add(prog)
+        db.session.commit()
+        flash(f'Programme "{prog.name}" created successfully!', 'success')
+        return redirect(url_for('admin.programmes'))
+    form.is_active.data = True
+    existing_faculties = sorted({p.faculty for p in Programme.query.all() if p.faculty})
+    return render_template('admin/programme_form.html', title='Create Programme', form=form, programme=None, existing_faculties=existing_faculties)
+
+
+@bp.route('/programmes/<int:programme_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def edit_programme(programme_id):
+    prog = Programme.query.get_or_404(programme_id)
+    form = ProgrammeForm()
+    if form.validate_on_submit():
+        new_slug = slugify(form.name.data)
+        if new_slug != prog.slug:
+            existing = Programme.query.filter_by(slug=new_slug).first()
+            if existing and existing.id != prog.id:
+                flash('A programme with this name already exists.', 'danger')
+                return redirect(url_for('admin.edit_programme', programme_id=prog.id))
+            prog.slug = new_slug
+        prog.name        = form.name.data
+        prog.description = form.description.data or None
+        prog.icon        = form.icon.data or 'graduation-cap'
+        prog.color       = form.color.data or '#8b5cf6'
+        prog.order       = int(form.order.data) if form.order.data else 0
+        prog.is_active   = form.is_active.data
+        prog.faculty = form.faculty.data or None
+        db.session.commit()
+        flash(f'Programme "{prog.name}" updated successfully!', 'success')
+        return redirect(url_for('admin.programmes'))
+    elif request.method == 'GET':
+        form.name.data        = prog.name
+        form.description.data = prog.description
+        form.icon.data        = prog.icon
+        form.color.data       = prog.color
+        form.order.data       = str(prog.order)
+        form.is_active.data   = prog.is_active
+        form.faculty.data = prog.faculty
+    existing_faculties = sorted({p.faculty for p in Programme.query.all() if p.faculty})
+    return render_template('admin/programme_form.html', title='Edit Programme', form=form, programme=prog, existing_faculties=existing_faculties)
+
+
+@bp.route('/programmes/<int:programme_id>/delete', methods=['POST'])
+@admin_required
+def delete_programme(programme_id):
+    prog = Programme.query.get_or_404(programme_id)
+    for s in prog.subjects.all():
+        s.programme_id = None
+    name = prog.name
+    db.session.delete(prog)
+    db.session.commit()
+    flash(f'Programme "{name}" deleted. Its subjects have been unlinked.', 'success')
+    return redirect(url_for('admin.programmes'))
+
+
+@bp.route('/programmes/<int:programme_id>/toggle', methods=['POST'])
+@admin_required
+def toggle_programme(programme_id):
+    prog = Programme.query.get_or_404(programme_id)
+    prog.is_active = not prog.is_active
+    db.session.commit()
+    status = 'activated' if prog.is_active else 'deactivated'
+    flash(f'Programme "{prog.name}" {status}.', 'success')
+    return redirect(url_for('admin.programmes'))
+
+
 # ============ SUBJECT MANAGEMENT ============
 
 @bp.route('/subjects')
@@ -61,14 +157,15 @@ def subjects():
 @admin_required
 def create_subject():
     form = SubjectForm()
+    form.programme_id.choices = [(0, '— None —')] + [
+        (p.id, p.name) for p in Programme.query.order_by(Programme.name).all()
+    ]
 
     if form.validate_on_submit():
         slug = slugify(form.name.data)
-        existing = Subject.query.filter_by(slug=slug).first()
-        if existing:
+        if Subject.query.filter_by(slug=slug).first():
             flash('A subject with this name already exists.', 'danger')
             return redirect(url_for('admin.create_subject'))
-
         subject = Subject(
             name=form.name.data,
             slug=slug,
@@ -76,13 +173,15 @@ def create_subject():
             icon=form.icon.data or 'book',
             color=form.color.data or '#6366f1',
             order=int(form.order.data) if form.order.data else 0,
-            is_active=form.is_active.data
+            is_active=form.is_active.data,
+            programme_id=form.programme_id.data if form.programme_id.data else None,
         )
         db.session.add(subject)
         db.session.commit()
         flash(f'Subject "{subject.name}" created successfully!', 'success')
         return redirect(url_for('admin.subjects'))
 
+    form.is_active.data = True
     return render_template('admin/subject_form.html', title='Create Subject', form=form)
 
 
@@ -91,6 +190,9 @@ def create_subject():
 def edit_subject(subject_id):
     subject = Subject.query.get_or_404(subject_id)
     form = SubjectForm()
+    form.programme_id.choices = [(0, '— None —')] + [
+        (p.id, p.name) for p in Programme.query.order_by(Programme.name).all()
+    ]
 
     if form.validate_on_submit():
         new_slug = slugify(form.name.data)
@@ -100,24 +202,25 @@ def edit_subject(subject_id):
                 flash('A subject with this name already exists.', 'danger')
                 return redirect(url_for('admin.edit_subject', subject_id=subject.id))
             subject.slug = new_slug
-
-        subject.name        = form.name.data
-        subject.description = form.description.data
-        subject.icon        = form.icon.data or 'book'
-        subject.color       = form.color.data or '#6366f1'
-        subject.order       = int(form.order.data) if form.order.data else 0
-        subject.is_active   = form.is_active.data
+        subject.name         = form.name.data
+        subject.description  = form.description.data
+        subject.icon         = form.icon.data or 'book'
+        subject.color        = form.color.data or '#6366f1'
+        subject.order        = int(form.order.data) if form.order.data else 0
+        subject.is_active    = form.is_active.data
+        subject.programme_id = form.programme_id.data if form.programme_id.data else None
         db.session.commit()
         flash(f'Subject "{subject.name}" updated successfully!', 'success')
         return redirect(url_for('admin.subjects'))
 
     elif request.method == 'GET':
-        form.name.data        = subject.name
-        form.description.data = subject.description
-        form.icon.data        = subject.icon
-        form.color.data       = subject.color
-        form.order.data       = str(subject.order)
-        form.is_active.data   = subject.is_active
+        form.name.data         = subject.name
+        form.description.data  = subject.description
+        form.icon.data         = subject.icon
+        form.color.data        = subject.color
+        form.order.data        = str(subject.order)
+        form.is_active.data    = subject.is_active
+        form.programme_id.data = subject.programme_id or 0
 
     return render_template('admin/subject_form.html', title='Edit Subject', form=form, subject=subject)
 
@@ -126,8 +229,7 @@ def edit_subject(subject_id):
 @admin_required
 def delete_subject(subject_id):
     subject = Subject.query.get_or_404(subject_id)
-    posts = Post.query.filter_by(subject_id=subject.id).all()
-    for post in posts:
+    for post in Post.query.filter_by(subject_id=subject.id).all():
         post.subject_id = None
     name = subject.name
     db.session.delete(subject)
@@ -188,7 +290,6 @@ def toggle_user_active(user_id):
 @bp.route('/users/<int:user_id>/toggle-premium-access', methods=['POST'])
 @admin_required
 def toggle_premium_access(user_id):
-    """Toggle user's ability to access all paid content and quizzes."""
     user = User.query.get_or_404(user_id)
     user.can_access_all_content = not user.can_access_all_content
     db.session.commit()
@@ -200,27 +301,25 @@ def toggle_premium_access(user_id):
 @bp.route('/users/<int:user_id>/set-subscription', methods=['POST'])
 @admin_required
 def set_subscription(user_id):
-    """Set a user's subscription tier."""
     user = User.query.get_or_404(user_id)
     tier = request.form.get('tier', 'free')
     start_date = request.form.get('start_date')
-    end_date = request.form.get('end_date')
-    
+    end_date   = request.form.get('end_date')
+
     from datetime import datetime
     if start_date:
         user.subscription_start_date = datetime.strptime(start_date, '%Y-%m-%d')
     if end_date:
         user.subscription_end_date = datetime.strptime(end_date, '%Y-%m-%d')
-    
+
     old_tier = user.subscription_tier
     user.subscription_tier = tier
     db.session.commit()
-    
-    # Send subscription activation email if tier is not free and was previously free
+
     if tier != 'free' and old_tier == 'free':
         from app.utils import send_subscription_activation_email
         send_subscription_activation_email(user, tier)
-    
+
     flash(f'Subscription tier set to {tier} for user "{user.username}".', 'success')
     return redirect(url_for('admin.users'))
 
@@ -247,7 +346,6 @@ def delete_user(user_id):
             doc_path = post.document.file_path
             if os.path.exists(doc_path):
                 os.remove(doc_path)
-            # Delete JSON sidecar file if it exists
             if post.document.json_sidecar_path:
                 json_path = post.document.json_sidecar_path
                 if os.path.exists(json_path):
@@ -309,13 +407,13 @@ def posts():
 @admin_required
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
-    title = post.title
+    title   = post.title
+    subject = post.subject
 
     if post.document:
         file_path = post.document.file_path
         if os.path.exists(file_path):
             os.remove(file_path)
-        # Delete JSON sidecar file if it exists
         if post.document.json_sidecar_path:
             json_path = post.document.json_sidecar_path
             if os.path.exists(json_path):
@@ -326,9 +424,12 @@ def delete_post(post_id):
 
     db.session.delete(post)
     db.session.commit()
+
+    if subject:
+        subject.update_post_count()
+
     flash(f'Post "{title}" has been deleted.', 'success')
     return redirect(url_for('admin.posts'))
-
 
 # ============ POST MODERATION ============
 
@@ -338,12 +439,10 @@ def moderation():
     tab  = request.args.get('tab', 'pending')
     page = request.args.get('page', 1, type=int)
 
-    valid_tabs = ('pending', 'approved', 'rejected')
-    if tab not in valid_tabs:
+    if tab not in ('pending', 'approved', 'rejected'):
         tab = 'pending'
 
-    query = Post.query.filter_by(status=tab)
-    posts = query.order_by(Post.created_at.desc()).paginate(
+    posts = Post.query.filter_by(status=tab).order_by(Post.created_at.desc()).paginate(
         page=page, per_page=15, error_out=False
     )
 
@@ -366,69 +465,64 @@ def moderation():
 @admin_required
 def approve_post(post_id):
     post = Post.query.get_or_404(post_id)
-
     post.status           = 'approved'
     post.rejection_reason = None
     db.session.commit()
 
-    # Attach quiz from JSON sidecar if one was uploaded with this post
+    # Update subject post count
+    if post.subject:
+        post.subject.update_post_count()
+
     from app.posts.routes import on_post_approved
     on_post_approved(post)
 
-    # Send notifications to students with matching programmes
+    # Award XP to the post author on approval (not at submission time)
+    post.author.add_xp(10)
+
+    from app.models import create_notification
+    create_notification(
+        user_id=post.author.id,
+        message=f'Your post "{post.title[:60]}" has been approved and is now live!',
+        notification_type='post_approved',
+        link=f'/posts/{post.id}',
+    )
+
     import threading
 
     def send_programme_notifications_background(post_id):
-        """Background task to send programme-specific notifications without blocking."""
         from app import create_app
         app = create_app()
         with app.app_context():
             try:
                 from app.models import User, Post
                 from app.utils import send_programme_relevant_post_email
-
-                post = Post.query.get(post_id)
+                post = db.session.get(Post, post_id)
                 if post:
-                    # Get all active users with programmes that might be relevant
                     users = User.query.filter(
                         User.is_active == True,
                         User.programme.isnot(None),
                         User.programme != '',
                         User.id != post.author.id
                     ).all()
-
-                    # Extract keywords from post for matching
                     post_text = f"{post.title} {post.description} {post.subject.name if post.subject else ''}".lower()
-
-                    # Find users with matching programmes
-                    matching_users = []
-                    for user in users:
-                        programme_keywords = user.programme.lower()
-                        if any(keyword in post_text for keyword in programme_keywords.split() if len(keyword) >= 3):
-                            matching_users.append(user)
-
-                    # Send notifications
-                    sent_count = 0
-                    for user in matching_users:
-                        success = send_programme_relevant_post_email(user, post)
-                        if success:
-                            sent_count += 1
-
-                    app.logger.info(f"Sent programme-specific notifications to {sent_count} users for post {post_id}")
-
+                    matching_users = [
+                        u for u in users
+                        if any(kw in post_text for kw in u.programme.lower().split() if len(kw) >= 3)
+                    ]
+                    sent_count = sum(
+                        1 for u in matching_users if send_programme_relevant_post_email(u, post)
+                    )
+                    app.logger.info(f"Sent programme notifications to {sent_count} users for post {post_id}")
             except Exception as e:
                 app.logger.error(f"Failed to send programme notifications for post {post_id}: {e}")
 
-    notification_thread = threading.Thread(
-        target=send_programme_notifications_background,
-        args=(post.id,)
-    )
-    notification_thread.daemon = True
-    notification_thread.start()
+    t = threading.Thread(target=send_programme_notifications_background, args=(post.id,))
+    t.daemon = True
+    t.start()
 
     flash(f'Post "{post.title}" approved and is now live.', 'success')
-    next_url = request.form.get('next') or url_for('admin.moderation')
-    return redirect(next_url)
+    return redirect(request.form.get('next') or url_for('admin.moderation'))
+
 
 @bp.route('/moderation/<int:post_id>/reject', methods=['POST'])
 @admin_required
@@ -438,34 +532,40 @@ def reject_post(post_id):
     post.status           = 'rejected'
     post.rejection_reason = reason or None
     db.session.commit()
-    flash(f'Post "{post.title}" has been rejected.', 'warning')
-    next_url = request.form.get('next') or url_for('admin.moderation')
-    return redirect(next_url)
 
+    if post.subject:
+        post.subject.update_post_count()
+
+    flash(f'Post "{post.title}" has been rejected.', 'warning')
+    return redirect(request.form.get('next') or url_for('admin.moderation'))
 
 # ============ STATISTICS & REPORTS ============
 
 @bp.route('/statistics')
 @admin_required
 def statistics():
-    total_users     = User.query.count()
-    active_users    = User.query.filter_by(is_active=True).count()
-    inactive_users  = total_users - active_users
+    total_users    = User.query.count()
+    active_users   = User.query.filter_by(is_active=True).count()
+    inactive_users = total_users - active_users
 
     total_posts             = Post.query.count()
     posts_with_documents    = Post.query.filter_by(has_document=True).count()
     posts_without_documents = total_posts - posts_with_documents
 
+    from sqlalchemy import func as _func
+    counts_q = db.session.query(
+        Post.subject_id,
+        _func.count(Post.id).label('cnt')
+    ).filter_by(status='approved').group_by(Post.subject_id).all()
+    counts_map = {row.subject_id: row.cnt for row in counts_q}
+
     subjects_stats = []
-    subjects = Subject.query.all()
-    for subject in subjects:
-        subject.update_post_count()
+    for subject in Subject.query.all():
         subjects_stats.append({
             'name':       subject.name,
-            'post_count': subject.post_count,
+            'post_count': counts_map.get(subject.id, 0),
             'color':      subject.color,
         })
-    db.session.commit()
 
     from app.models import Like
     total_likes    = Like.query.count()
@@ -493,7 +593,6 @@ def statistics():
         top_posters=top_posters,
     )
 
-
 # ============ BULK EMAIL ============
 
 @bp.route('/send-email', methods=['GET', 'POST'])
@@ -503,27 +602,24 @@ def send_email():
 
     users       = User.query.filter(User.email.isnot(None)).all()
     total_users = len(users)
+    form        = BulkEmailForm()
 
-    form = BulkEmailForm()
-    
     if form.validate_on_submit():
-        subject  = form.subject.data.strip()
-        body     = form.body.data.strip()
-        send_to  = form.send_to.data
-        selected = request.form.getlist('selected_emails')
-
+        subject    = form.subject.data.strip()
+        body       = form.body.data.strip()
+        send_to    = form.send_to.data
+        selected   = request.form.getlist('selected_emails')
         recipients = [u.email for u in users] if send_to == 'all' else selected
 
         if not recipients:
             flash('No recipients selected.', 'danger')
             return render_template('admin/send_email.html', users=users, total_users=total_users, form=form)
 
-        sender = (
-            current_app.config.get('MAIL_DEFAULT_SENDER') or
-            current_app.config.get('MAIL_USERNAME')
-        )
-
+        sender  = current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('MAIL_USERNAME')
         api_key = current_app.config.get('BREVO_API_KEY')
+        if not api_key:
+            flash('BREVO_API_KEY is not configured -- email sending is disabled.', 'danger')
+            return render_template('admin/send_email.html', users=users, total_users=total_users, form=form)
         sent    = 0
         failed  = 0
 
@@ -531,10 +627,7 @@ def send_email():
             try:
                 response = requests.post(
                     "https://api.brevo.com/v3/smtp/email",
-                    headers={
-                        "api-key": api_key,
-                        "Content-Type": "application/json"
-                    },
+                    headers={"api-key": api_key, "Content-Type": "application/json"},
                     json={
                         "sender": {"email": sender},
                         "to": [{"email": email}],

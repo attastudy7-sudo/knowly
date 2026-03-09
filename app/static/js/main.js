@@ -181,7 +181,7 @@ document.querySelectorAll('form').forEach(function(form) {
         const submitBtn = this.querySelector('button[type="submit"]');
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Loading...';
+            submitBtn.textContent = '';
             
             // Re-enable after 3 seconds in case of error
             setTimeout(function() {

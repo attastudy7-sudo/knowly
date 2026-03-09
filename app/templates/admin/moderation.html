@@ -1,25 +1,17 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
+{% block admin_title %}Moderation{% endblock %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block admin_content %}
 
-{% block content %}
-<div class="admin-container mod-page">
-
-    <!-- Page Header -->
-    <div class="mod-header">
-        <div class="mod-header-left">
-            <div class="mod-header-icon">
-                <i class="fas fa-shield-alt"></i>
-            </div>
-            <div>
-                <h1>Post Moderation</h1>
-                <p class="mod-subtitle">Review and approve user-submitted posts before they go live</p>
-            </div>
+<div class="adm-header">
+    <div class="adm-header-left">
+        <div class="adm-header-icon"><i class="fas fa-shield-alt"></i></div>
+        <div>
+            <p class="adm-header-title">Post Moderation</p>
+            <p class="adm-header-sub">Review and approve user-submitted posts before they go live</p>
         </div>
-        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Dashboard
-        </a>
     </div>
+</div>
 
     <!-- Status Tabs -->
     <div class="mod-tabs">
@@ -223,15 +215,15 @@
 
     <!-- Pagination -->
     {% if posts.has_prev or posts.has_next %}
-    <div class="pagination mod-pagination">
+    <div class="adm-pagination">
         {% if posts.has_prev %}
-        <a href="{{ url_for('admin.moderation', tab=tab, page=posts.prev_num) }}" class="page-btn">
+        <a href="{{ url_for('admin.moderation', tab=tab, page=posts.prev_num) }}" class="adm-page-btn">
             <i class="fas fa-chevron-left"></i> Previous
         </a>
         {% endif %}
-        <span class="page-info">Page {{ posts.page }} of {{ posts.pages }}</span>
+        <span class="adm-page-info">Page {{ posts.page }} of {{ posts.pages }}</span>
         {% if posts.has_next %}
-        <a href="{{ url_for('admin.moderation', tab=tab, page=posts.next_num) }}" class="page-btn">
+        <a href="{{ url_for('admin.moderation', tab=tab, page=posts.next_num) }}" class="adm-page-btn">
             Next <i class="fas fa-chevron-right"></i>
         </a>
         {% endif %}
@@ -239,35 +231,18 @@
     {% endif %}
 
     {% else %}
-    <!-- Empty state -->
-    <div class="mod-empty">
-        <div class="mod-empty-icon">
-            {% if tab == 'pending' %}
-                <i class="fas fa-inbox"></i>
-            {% elif tab == 'approved' %}
-                <i class="fas fa-check-double"></i>
-            {% else %}
-                <i class="fas fa-ban"></i>
-            {% endif %}
-        </div>
-        <h2>
-            {% if tab == 'pending' %}No posts awaiting review{% endif %}
-            {% if tab == 'approved' %}No approved posts yet{% endif %}
-            {% if tab == 'rejected' %}No rejected posts{% endif %}
-        </h2>
+    <div class="adm-empty">
+        <i class="fas fa-{% if tab == 'pending' %}inbox{% elif tab == 'approved' %}check-double{% else %}ban{% endif %}"></i>
         <p>
-            {% if tab == 'pending' %}You're all caught up! New submissions will appear here.{% endif %}
-            {% if tab == 'approved' %}Approved posts will appear here once you start reviewing.{% endif %}
-            {% if tab == 'rejected' %}Posts you've rejected will be listed here.{% endif %}
+            {% if tab == 'pending' %}No posts awaiting review — you're all caught up!{% endif %}
+            {% if tab == 'approved' %}No approved posts yet.{% endif %}
+            {% if tab == 'rejected' %}No rejected posts.{% endif %}
         </p>
     </div>
     {% endif %}
 
-</div>
-
 <style>
-/* ── Page shell ── */
-.mod-page { max-width: 1000px; }
+/* mod-page local styles only — layout provided by adm-shell */
 
 /* ── Header ── */
 .mod-header {
@@ -505,4 +480,4 @@ function toggleReject(postId) {
     }
 }
 </script>
-{% endblock %}
+{% endblock %}{# admin_content #}

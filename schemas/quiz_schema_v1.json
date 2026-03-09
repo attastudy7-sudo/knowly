@@ -71,47 +71,63 @@
         }
       }
     },
-    "question": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["question_number","question_text","correct_answer","explanation","marks"],
-      "properties": {
-        "question_number": { "type": "integer", "minimum": 1 },
-        "question_text":   { "type": "string",  "minLength": 5 },
-        "correct_answer":  { "type": "string",  "minLength": 1 },
-        "explanation":     { "type": "string",  "minLength": 20 },
-        "marks":           { "type": "number",  "minimum": 0 },
-        "options": {
-          "type": "array",
-          "minItems": 4,
-          "maxItems": 4,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["letter","text"],
-            "properties": {
-              "letter": { "type": "string", "enum": ["A","B","C","D"] },
-              "text":   { "type": "string", "minLength": 1 }
-            }
-          }
-        },
-        "subparts": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["label","question_text","correct_answer","explanation","marks"],
-            "properties": {
-              "label":         { "type": "string", "pattern": "^[a-z]\\)$" },
-              "question_text": { "type": "string", "minLength": 5 },
-              "correct_answer":{ "type": "string", "minLength": 1 },
-              "explanation":   { "type": "string", "minLength": 20 },
-              "marks":         { "type": "integer","minimum": 1 }
+"question": {
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["question_number", "explanation", "marks"],
+  "properties": {
+    "question_number": { "type": "integer", "minimum": 1 },
+    "question_text":   { "type": "string", "minLength": 5 },
+    "correct_answer":  { "type": "string" },
+    "explanation":     { "type": "string", "minLength": 20 },
+    "marks":           { "type": "number", "minimum": 0 },
+    "options": {
+      "type": "array",
+      "oneOf": [
+        { "minItems": 4, "maxItems": 4 },
+        { "minItems": 2, "maxItems": 2 }
+      ],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["letter", "text"],
+        "properties": {
+          "letter": { "type": "string", "enum": ["A","B","C","D"] },
+          "text":   { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "subparts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "question_text", "correct_answer", "explanation", "marks"],
+        "properties": {
+          "label":          { "type": "string", "pattern": "^[a-z]\\)$" },
+          "question_text":  { "type": "string", "minLength": 5 },
+          "correct_answer": { "type": "string", "minLength": 1 },
+          "explanation":    { "type": "string", "minLength": 20 },
+          "marks":          { "type": "integer", "minimum": 1 },
+          "options": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["letter", "text"],
+              "properties": {
+                "letter": { "type": "string", "enum": ["A","B"] },
+                "text":   { "type": "string", "minLength": 1 }
+              }
             }
           }
         }
       }
     }
+  }
+}
   }
 }

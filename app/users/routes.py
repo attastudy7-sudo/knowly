@@ -5,27 +5,64 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.users import bp
 from app.forms import EditProfileForm, SearchForm
-from app.models import User, Post
-
+from app.models import User, Post, Bookmark
 
 @bp.route('/profile/<username>')
 def profile(username):
-    """
-    View a user's profile with their posts.
-    """
     user = User.query.filter_by(username=username).first_or_404()
 
     page = request.args.get('page', 1, type=int)
-    posts = user.posts.order_by(Post.created_at.desc()).paginate(
-        page=page,
-        per_page=current_app.config['POSTS_PER_PAGE'],
-        error_out=False
-    )
+
+    # Own profile: show all posts including pending/rejected
+    # Anyone else's profile: only approved posts
+    is_own_profile = current_user.is_authenticated and current_user.id == user.id
+    if is_own_profile:
+        posts = user.posts.order_by(Post.created_at.desc()).paginate(
+            page=page,
+            per_page=current_app.config['POSTS_PER_PAGE'],
+            error_out=False
+        )
+    else:
+        posts = user.posts.filter_by(status='approved').order_by(Post.created_at.desc()).paginate(
+            page=page,
+            per_page=current_app.config['POSTS_PER_PAGE'],
+            error_out=False
+        )
+
+# Fetch quiz attempts — only shown on own profile
+    quiz_attempts = []
+    quiz_stats = {'total': 0, 'avg_score': 0, 'perfect': 0}
+    if is_own_profile:
+        from app.models import QuizAttempt
+        quiz_attempts = (
+            QuizAttempt.query
+            .filter_by(user_id=user.id)
+            .order_by(QuizAttempt.created_at.desc())
+            .limit(20)
+            .all()
+        )
+        if quiz_attempts:
+            total   = len(quiz_attempts)
+            avg     = round(sum(a.score_pct for a in quiz_attempts) / total, 1)
+            perfect = sum(1 for a in quiz_attempts if a.score_pct >= 100)
+            quiz_stats = {'total': total, 'avg_score': avg, 'perfect': perfect}
 
     return render_template('users/profile.html',
                            title=f'{user.username}\'s Profile',
                            user=user,
-                           posts=posts)
+                           posts=posts,
+                           is_own_profile=is_own_profile,
+                           quiz_attempts=quiz_attempts,
+                           quiz_stats=quiz_stats)
+
+@bp.route('/bookmarks')
+@login_required
+def bookmarks():
+    page = request.args.get('page', 1, type=int)
+    bookmarks = Bookmark.query.filter_by(user_id=current_user.id)\
+                              .order_by(Bookmark.created_at.desc())\
+                              .paginate(page=page, per_page=15, error_out=False)
+    return render_template('users/bookmarks.html', title='Saved Posts', bookmarks=bookmarks)
 
 
 @bp.route('/save-education', methods=['POST'])
@@ -53,12 +90,10 @@ def save_education():
         current_user.add_xp(xp_earned)
         flash(f'🎉 You earned {xp_earned} XP for completing your profile!', 'success')
     
-    db.session.commit()
-    response = redirect(request.referrer or url_for('main.explore'))
     # Clear the session variable so the overlay won't reappear
-    if 'education_skipped' in session:
-        del session['education_skipped']
-    return response
+    db.session.commit()
+    return redirect(request.referrer or url_for('main.explore'))
+
 
 @bp.route('/edit-profile', methods=['GET', 'POST'])
 @login_required
@@ -160,6 +195,13 @@ def follow(username):
         current_user.follow(user)
         db.session.commit()
         flash(f'You are now following {username}!', 'success')
+        from app.models import create_notification
+        create_notification(
+            user_id=user.id,
+            message=f'{current_user.username} started following you',
+            notification_type='follow',
+            link=f'/profile/{current_user.username}',
+        )
 
     return redirect(url_for('users.profile', username=username))
 
@@ -228,43 +270,61 @@ def following(username):
 
 @bp.route('/search')
 def search():
-    """
-    Search for users and posts.
-    """
-    query = request.args.get('q', '')
+    query        = request.args.get('q', '').strip()
+    content_type = request.args.get('type', '')
+    subject_id   = request.args.get('subject', type=int)
+
+    from app.models import Subject
+    subjects = Subject.query.filter_by(is_active=True).order_by(Subject.order, Subject.name).all()
 
     if not query:
         return render_template('users/search.html',
                                title='Search',
                                query='',
                                users=[],
-                               posts=[])
+                               posts=[],
+                               subjects=subjects,
+                               content_type=content_type,
+                               subject_id=subject_id)
 
-    # Search users by username or full name
+    # Search users
     users = User.query.filter(
         db.or_(
             User.username.contains(query),
             User.full_name.contains(query)
         )
-    ).limit(20).all()
+    ).limit(12).all()
 
-    # Search posts by title or description
-    posts = Post.query.filter(
+    # Search posts — approved only
+    post_query = Post.query.filter(
+        Post.status == 'approved',
         db.or_(
             Post.title.contains(query),
             Post.description.contains(query)
         )
-    ).order_by(Post.created_at.desc()).limit(20).all()
+    )
+
+    if content_type in ('notes', 'cheatsheet', 'quiz', 'mixed'):
+        post_query = post_query.filter(Post.content_type == content_type)
+
+    if subject_id:
+        post_query = post_query.filter(Post.subject_id == subject_id)
+
+    posts = post_query.order_by(Post.created_at.desc()).limit(30).all()
 
     return render_template('users/search.html',
-                           title=f'Search Results for "{query}"' if query else 'Search',
+                           title=f'Results for "{query}"',
                            query=query,
                            users=users,
-                           posts=posts)
-
+                           posts=posts,
+                           subjects=subjects,
+                           content_type=content_type,
+                           subject_id=subject_id)
+                           
 @bp.route('/skip-education', methods=['POST'])
 @login_required
 def skip_education():
-    """Mark education onboarding as skipped in the session."""
-    session['education_skipped'] = True
+    """Mark education onboarding as permanently skipped in the DB."""
+    current_user.onboarding_skipped = True
+    db.session.commit()
     return '', 204

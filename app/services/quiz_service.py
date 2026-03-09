@@ -177,6 +177,7 @@ _NOTES_SCHEMA: dict = {
                 "properties": {
                     "section_number": {"type": "integer", "minimum": 1},
                     "section_title":  {"type": "string"},
+                    "section_type":   {"type": "string"},
                     "content": {
                         "type": "array",
                         "items": {
@@ -230,6 +231,7 @@ _CHEATSHEET_SCHEMA: dict = {
                 "required": ["section_title", "entries"],
                 "properties": {
                     "section_title": {"type": "string"},
+                    "section_type":  {"type": "string"},
                     "entries": {
                         "type": "array",
                         "minItems": 1,
@@ -240,6 +242,7 @@ _CHEATSHEET_SCHEMA: dict = {
                                 "label":   {"type": "string"},
                                 "content": {"type": "string"},
                                 "notes":   {"type": "string"},
+                                "example": {"type": "string"},
                             }
                         }
                     }
@@ -593,16 +596,13 @@ def _compute_section_marks(s_type: str, questions: list[dict]) -> int:
     for q in questions:
         if s_type == "problem_solving":
             total += sum(
-                sp.get("marks", 0)
-                for sp in q.get("subparts", [])
-                if isinstance(sp.get("marks"), int)
+                sp.get("marks", 0) for sp in q.get("subparts", [])
+                if isinstance(sp.get("marks"), (int, float))
             )
         else:
             m = q.get("marks", 0)
             total += m if isinstance(m, (int, float)) else 0
     return int(total)
-
-
 # ── Notes ─────────────────────────────────────────────────────────────────────
 
 def _validate_notes_semantics(doc: dict) -> list[str]:
@@ -883,34 +883,28 @@ def _ensure_two_options(
 
 def grade_quiz(flat_questions: list[dict], answers: dict[str, str]) -> tuple[float, int]:
     """
-    Grade a quiz submission.
+    Grade a flat question list against a user answers dict keyed by flat index.
 
-    Args:
-        flat_questions: Output of normalise_quiz_to_flat_questions().
-        answers: Dict mapping question index string → selected answer letter.
-
-    Returns:
-        (earned_marks: float, total_marks: int)
-
-    All question types use the same letter-comparison grading.
+    PS subparts are already exploded into individual flat entries by
+    normalise_quiz_to_flat_questions — there is no nested subparts list here.
+    Every entry regardless of type has its own answer, options, and marks.
     """
     total_marks  = sum(q.get("marks", 0) for q in flat_questions)
     earned_marks = 0.0
 
-    for i, q in enumerate(flat_questions):
-        user_answer    = str(answers.get(str(i), "")).strip()
-        correct_answer = str(q.get("answer", "")).strip()
-        marks          = q.get("marks", 0)
+    for index, q in enumerate(flat_questions):
+        correct_answer = str(q.get("answer") or "").strip()
+        user_answer    = str(answers.get(str(index), "")).strip()
 
-        if not user_answer or not correct_answer:
-            continue
+        has_options = bool(q.get("options"))
+        is_auto     = has_options and bool(correct_answer)
 
-        if user_answer.upper() == correct_answer.upper():
-            earned_marks += marks
+        if is_auto and user_answer and correct_answer:
+            if user_answer.upper() == correct_answer.upper():
+                earned_marks += q.get("marks", 0)
 
     return earned_marks, int(total_marks)
-
-
+    
 # ═══════════════════════════════════════════════════════════════════════════════
 # QUIZ ATTACHMENT HELPERS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -935,40 +929,83 @@ def validate_and_attach_quiz(post, json_bytes: bytes):
         quiz_json     = json.loads(json_bytes.decode("utf-8"))
         validated_doc = validate_document(quiz_json)
 
-        flat_questions = normalise_quiz_to_flat_questions(validated_doc)
-        total_marks    = validated_doc["metadata"]["total_marks"]
+        doc_type = validated_doc.get("document_type", "quiz")
+
+        if doc_type == "notes":
+            questions_to_store = [
+                {
+                    "section_number": s["section_number"],
+                    "section_title":  s["section_title"],
+                    "section_type":   s.get("section_type", ""),
+                    "content":        s.get("content", []),
+                }
+                for s in validated_doc.get("sections", [])
+            ]
+            total_marks = 0
+            xp_reward   = 10
+        elif doc_type == "cheatsheet":
+            questions_to_store = [
+                {
+                    "section_title": s["section_title"],
+                    "section_type":  s.get("section_type", ""),
+                    "entries":       s.get("entries", []),
+                }
+                for s in validated_doc.get("sections", [])
+            ]
+            total_marks = 0
+            xp_reward   = 5
+        else:
+            questions_to_store = normalise_quiz_to_flat_questions(validated_doc)
+            total_marks        = validated_doc["metadata"]["total_marks"]
+            xp_reward          = max(5, total_marks // 10)
 
         quiz_data = QuizData.query.filter_by(post_id=post.id).first()
         if not quiz_data:
             quiz_data         = QuizData()
             quiz_data.post_id = post.id
 
-        quiz_data.questions  = json.dumps(flat_questions)
+        quiz_data.questions   = json.dumps(questions_to_store)
         quiz_data.total_marks = total_marks
-        quiz_data.xp_reward  = total_marks * 10
-        quiz_data.meta = json.dumps({
-            # Root-level fields
-            "title":            validated_doc.get("title", ""),
-            "schema_version":   validated_doc.get("schema_version", ""),
-            "type":             validated_doc.get("type", ""),
-            "course":           validated_doc.get("course", ""),
-            "level":            validated_doc.get("level", ""),
-            "document_hash":    validated_doc.get("document_hash", ""),
-            "generated_at":     validated_doc.get("generated_at", ""),
-            "instructions":     validated_doc.get("instructions", []),
-            # Metadata fields
-            "total_questions":  validated_doc["metadata"]["total_questions"],
-            "total_marks":      validated_doc["metadata"]["total_marks"],
-            "time":             validated_doc["metadata"].get("time", ""),
-            "time_allowed":     validated_doc["metadata"].get("time_allowed", ""),
-        })
+        quiz_data.xp_reward   = xp_reward
+        
+        meta_dict = {
+            "document_type":  doc_type,
+            "title":          validated_doc.get("title", ""),
+            "schema_version": validated_doc.get("schema_version", ""),
+            "course":         validated_doc.get("course", ""),
+            "level":          validated_doc.get("level", ""),
+            "document_hash":  validated_doc.get("document_hash", ""),
+            "generated_at":   validated_doc.get("generated_at", ""),
+        }
+        if doc_type == "quiz":
+            meta_dict.update({
+                "type":            validated_doc.get("type", ""),
+                "instructions":    validated_doc.get("instructions", []),
+                "total_questions": validated_doc["metadata"]["total_questions"],
+                "total_marks":     validated_doc["metadata"]["total_marks"],
+                "time":            validated_doc["metadata"].get("time", ""),
+                "time_allowed":    validated_doc["metadata"].get("time_allowed", ""),
+            })
+        elif doc_type == "notes":
+            notes_meta = validated_doc.get("metadata", {})
+            meta_dict["estimated_read_time"] = notes_meta.get("estimated_read_time", "")
+            meta_dict["focus_areas"]          = notes_meta.get("focus_areas", "")
+            meta_dict["prerequisites"]        = notes_meta.get("prerequisites", "")
+            # Top-level summary array
+            meta_dict["summary"] = validated_doc.get("summary", [])
+        elif doc_type == "cheatsheet":
+            cs_meta = validated_doc.get("metadata", {})
+            meta_dict["purpose"]       = cs_meta.get("purpose", "")
+            meta_dict["exam_context"]  = cs_meta.get("exam_context", "")
+            meta_dict["topics"]        = cs_meta.get("topics", [])
+        quiz_data.meta = json.dumps(meta_dict)
 
         db.session.add(quiz_data)
         db.session.commit()
 
         logger.info(
-            "Quiz attached to post %s: %d flat questions, %d total marks",
-            post.id, len(flat_questions), total_marks
+            "Document attached to post %s: type=%s, %d sections/questions, %d total marks",
+            post.id, doc_type, len(questions_to_store), total_marks
         )
         return quiz_data, None
 
@@ -979,7 +1016,6 @@ def validate_and_attach_quiz(post, json_bytes: bytes):
     except Exception:
         logger.exception("Error attaching quiz to post %s", post.id)
         return None, "Unexpected error — see server logs."
-
 
 def quiz_from_sidecar(post):
     """
@@ -1000,22 +1036,29 @@ def quiz_from_sidecar(post):
 
     sidecar_path = post.document.json_sidecar_path
 
-    # Support both absolute paths and paths relative to the static uploads dir
-    if not os.path.isabs(sidecar_path):
-        from flask import current_app
-        sidecar_path = os.path.join(
-            current_app.root_path,
-            "static", "uploads", "documents",
-            os.path.basename(sidecar_path),
-        )
-
-    if not os.path.exists(sidecar_path):
-        logger.warning("Sidecar file not found at %s for post %s", sidecar_path, post.id)
-        return None
-
     try:
-        with open(sidecar_path, "rb") as f:
-            json_bytes = f.read()
+        # ── Remote URL (Cloudinary or any https:// sidecar) ───────────────────
+        if sidecar_path.startswith("http://") or sidecar_path.startswith("https://"):
+            import requests as _req
+            resp = _req.get(sidecar_path, timeout=15)
+            resp.raise_for_status()
+            json_bytes = resp.content
+
+        # ── Local path ────────────────────────────────────────────────────────
+        else:
+            from flask import current_app
+            # Resolve relative /static/... URLs to an absolute filesystem path
+            if not os.path.isabs(sidecar_path):
+                sidecar_path = os.path.join(
+                    current_app.root_path,
+                    "static", "uploads", "documents",
+                    os.path.basename(sidecar_path),
+                )
+            if not os.path.exists(sidecar_path):
+                logger.warning("Sidecar file not found at %s for post %s", sidecar_path, post.id)
+                return None
+            with open(sidecar_path, "rb") as f:
+                json_bytes = f.read()
 
         quiz_data, error = validate_and_attach_quiz(post, json_bytes)
         if error:

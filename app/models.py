@@ -1,15 +1,17 @@
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 import urllib.parse
 from flask import current_app
 from app import db, login_manager
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-
+import json
 
 @login_manager.user_loader
 def load_user(user_id):
     """Required by Flask-Login to load a user from the session."""
-    return User.query.get(int(user_id))
+
+    from app import db
+    return db.session.get(User, int(user_id))
 
 
 # Association table for many-to-many follow relationship
@@ -56,43 +58,13 @@ class User(UserMixin, db.Model):
     __tablename__ = 'profiles'
 
     id = db.Column(db.Integer, primary_key=True)
-    
-    # Property to calculate free attempts left
-    @property
-    def free_attempts_left(self):
-        # Reset free attempts if reset date is in the past
-        today = date.today()
-        if self.free_quiz_attempts_reset_date and self.free_quiz_attempts_reset_date < today:
-            self.free_quiz_attempts = 3
-            # Reset to next week (7 days from now)
-            self.free_quiz_attempts_reset_date = today + timedelta(days=7)
-            db.session.commit()
         
-        return self.free_quiz_attempts
-    
-    def use_free_attempt(self):
-        """
-        Consume one free attempt. Returns True if successful, False if no attempts left.
-        Premium users can take unlimited quizzes - this method returns True for them.
-        """
-        # Premium users have unlimited attempts
-        if self.is_premium or self.has_active_subscription:
-            return True
-        
-        # Check if user has free attempts remaining
-        if self.free_attempts_left <= 0:
-            return False
-        
-        # Decrement the free attempts
-        self.free_quiz_attempts -= 1
-        db.session.commit()
-        return True
-    
     # Property to check if user has active subscription
     @property
     def has_active_subscription(self):
         if self.subscription_tier != 'free' and self.subscription_end_date:
-            return datetime.utcnow() < self.subscription_end_date
+            return datetime.now(timezone.utc) < self.subscription_end_date.replace(tzinfo=timezone.utc)
+
         return False
     
     @property
@@ -104,11 +76,45 @@ class User(UserMixin, db.Model):
         return _initials_avatar_url(self.username, self.full_name)
 
     @property
+    def free_attempts_left(self):
+        today = date.today()
+
+        # Initialise reset date for new users who have never had one set
+        if self.free_quiz_attempts_reset_date is None:
+            self.free_quiz_attempts_reset_date = today + timedelta(days=7)
+            return self.free_quiz_attempts
+
+        # Reset if the scheduled reset date has passed
+        if self.free_quiz_attempts_reset_date < today:
+            self.free_quiz_attempts = 3
+            self.free_quiz_attempts_reset_date = today + timedelta(days=7)
+            # No commit here — mutations are committed by use_free_attempt()
+            # so the reset and deduction happen atomically in one transaction
+
+        return self.free_quiz_attempts
+
+    def use_free_attempt(self):
+        """
+        Consume one free attempt. Returns True if successful, False if no attempts left.
+        Premium users can take unlimited quizzes - this method returns True for them.
+        """
+        if self.is_premium or self.has_active_subscription:
+            return True
+
+        if self.free_attempts_left <= 0:
+            return False
+
+        self.free_quiz_attempts -= 1
+        db.session.commit()
+        return True
+
+    @property
     def is_premium(self):
         return self.subscription_tier != 'free' or self.can_access_all_content
+
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(255), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=True)  # NULL = Google-only account
     
     # Subscription information
     subscription_tier = db.Column(db.String(20), default='free', nullable=False)
@@ -123,9 +129,10 @@ class User(UserMixin, db.Model):
     profile_picture = db.Column(db.String(500), default='default.jpg')
     school = db.Column(db.String(200), nullable=True)
     programme = db.Column(db.String(200), nullable=True)
-
+    onboarding_skipped = db.Column(db.Boolean, default=False, nullable=False)
+    
     # Account metadata
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     
@@ -253,12 +260,15 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
     subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=True)
     document_id = db.Column(db.Integer, db.ForeignKey('document.id'), nullable=True)
     has_document = db.Column(db.Boolean, default=False)
+    
+    # Content type for categorizing posts: notes, cheatsheet, quiz, mixed
+    content_type = db.Column(db.String(20), default='notes', nullable=False)
     # document = db.relationship('Document', foreign_keys=[document_id], backref='post_ref', uselist=False)
     likes = db.relationship('Like', backref='post', lazy='dynamic', cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='post', lazy='dynamic', cascade='all, delete-orphan')
@@ -275,21 +285,114 @@ class Post(db.Model):
         return self.likes.filter_by(user_id=user.id).first() is not None
 
     def is_bookmarked_by(self, user):
-        return False
+        """Check if this post is bookmarked by the given user."""
+        if not user.is_authenticated:
+            return False
+        return Bookmark.query.filter_by(user_id=user.id, post_id=self.id).first() is not None
 
     def has_quiz(self):
         """Check if this post has an associated quiz."""
         return hasattr(self, 'quiz') and self.quiz is not None
 
+    @property
+    def content_type_color(self):
+        """Return color based on content type."""
+        colors = {
+            'notes': '#2563eb',
+            'cheatsheet': '#10b981',
+            'quiz': '#7c3aed',
+            'mixed': '#f59e0b'
+        }
+        return colors.get(self.content_type, '#2563eb')
+
+    @property
+    def content_type_icon(self):
+        """Return icon based on content type."""
+        icons = {
+            'notes': 'sticky-note',
+            'cheatsheet': 'list-alt',
+            'quiz': 'brain',
+            'mixed': 'layer-group'
+        }
+        return icons.get(self.content_type, 'file-alt')
+
+    @property
+    def content_type_label(self):
+        """Return label based on content type."""
+        labels = {
+            'notes': 'Notes',
+            'cheatsheet': 'Cheatsheet',
+            'quiz': 'Quiz',
+            'mixed': 'Mixed'
+        }
+        return labels.get(self.content_type, 'Notes')
+
+    @property
+    def quiz_card_meta(self):
+        """Returns {questions, marks, duration} for quiz post cards."""
+        if not self.has_quiz() or not self.quiz.meta:
+            return None
+        try:
+            m = json.loads(self.quiz.meta)
+            return {
+                "questions": m.get("total_questions"),
+                "marks":     m.get("total_marks"),
+                "duration":  m.get("time_allowed") or m.get("time") or None,
+            }
+        except (ValueError, KeyError):
+            return None
+
+    @property
+    def notes_card_meta(self):
+        """Returns {read_time} for notes post cards."""
+        if not self.has_quiz() or not self.quiz.meta:
+            return None
+        try:
+            m = json.loads(self.quiz.meta)
+            if m.get("document_type") != "notes":
+                return None
+            return {
+                "read_time": m.get("estimated_read_time"),
+            }
+        except (ValueError, KeyError):
+            return None
+
+    @property
+    def cheatsheet_card_meta(self):
+        """Returns {formula_count, definition_count} for cheatsheet post cards."""
+        if not self.has_quiz() or not self.quiz.questions:
+            return None
+        try:
+            m = json.loads(self.quiz.meta) if self.quiz.meta else {}
+            if m.get("document_type") != "cheatsheet":
+                return None
+            sections = json.loads(self.quiz.questions)
+            formula_count    = sum(
+                len(s.get("entries", []))
+                for s in sections if s.get("section_type") == "formulas"
+            )
+            definition_count = sum(
+                len(s.get("entries", []))
+                for s in sections if s.get("section_type") == "definitions"
+            )
+            return {
+                "formula_count":    formula_count,
+                "definition_count": definition_count,
+            }
+        except (ValueError, KeyError):
+            return None
+
     def __repr__(self):
         return f'<Post {self.title}>'
+
+
 
 
 class Comment(db.Model):
     __tablename__ = 'comment'
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
 
@@ -297,7 +400,7 @@ class Comment(db.Model):
 class Like(db.Model):
     __tablename__ = 'like'
     id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
     __table_args__ = (db.UniqueConstraint('user_id', 'post_id', name='unique_like'),)
@@ -312,7 +415,7 @@ class Purchase(db.Model):
     payment_method = db.Column(db.String(50))
     transaction_id = db.Column(db.String(200), unique=True)
     status = db.Column(db.String(50), default='pending')
-    purchased_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    purchased_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     document = db.relationship('Document', backref='purchases')
 
 
@@ -324,9 +427,27 @@ class Notification(db.Model):
     notification_type = db.Column(db.String(50))
     link = db.Column(db.String(300))
     is_read = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
     user = db.relationship('User', backref='notifications')
 
+
+def create_notification(user_id, message, notification_type, link=None):
+    """
+    Create and persist a notification for a user.
+    Never raises — notification failure must not break the caller.
+    """
+    try:
+        from app import db as _db
+        notif = Notification(
+            user_id=user_id,
+            message=message,
+            notification_type=notification_type,
+            link=link,
+        )
+        _db.session.add(notif)
+        _db.session.commit()
+    except Exception:
+        pass
 
 class Document(db.Model):
     __tablename__ = 'document'
@@ -339,7 +460,7 @@ class Document(db.Model):
     json_sidecar_path = db.Column(db.String(500), nullable=True)
     is_paid = db.Column(db.Boolean, default=False)
     price = db.Column(db.Float, default=0.0)
-    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    uploaded_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     download_count = db.Column(db.Integer, default=0)
 
     post = db.relationship('Post', foreign_keys='Post.document_id', backref='document', uselist=False, overlaps="post_ref")
@@ -359,6 +480,31 @@ class Document(db.Model):
         return f'<Document {self.original_filename}>'
 
 
+class Programme(db.Model):
+    """
+    Programme model - represents a academic programme/course of study.
+    Groups subjects together (e.g., Computer Science, Business Administration).
+    """
+    __tablename__ = 'programme'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), unique=True, nullable=False, index=True)
+    slug = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    description = db.Column(db.Text)
+    icon = db.Column(db.String(50), default='graduation-cap')
+    color = db.Column(db.String(7), default='#8b5cf6')
+    order = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    faculty = db.Column(db.String(200), nullable=True, index=True)
+    
+    # Relationship to subjects - use lazy='dynamic' for query-style access
+    subjects = db.relationship('Subject', back_populates='programme', lazy='dynamic')
+
+    def __repr__(self):
+        return f'<Programme {self.name}>'
+
+
 class Subject(db.Model):
     __tablename__ = 'subject'
     id = db.Column(db.Integer, primary_key=True)
@@ -369,8 +515,14 @@ class Subject(db.Model):
     color = db.Column(db.String(7), default='#6366f1')
     order = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     post_count = db.Column(db.Integer, default=0)
+    
+    # Foreign key to link subjects to programmes
+    programme_id = db.Column(db.Integer, db.ForeignKey('programme.id'), nullable=True)
+    
+    # Relationship to Programme using back_populates
+    programme = db.relationship('Programme', back_populates='subjects')
     posts = db.relationship('Post', backref='subject', lazy='dynamic')
 
     def update_post_count(self):
@@ -379,6 +531,30 @@ class Subject(db.Model):
 
     def __repr__(self):
         return f'<Subject {self.name}>'
+
+
+class Bookmark(db.Model):
+    """
+    Bookmark model - allows users to bookmark posts for later reference.
+    """
+    __tablename__ = 'bookmark'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False, index=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', backref='bookmarks')
+    post = db.relationship('Post', backref='bookmarks')
+    
+    # Unique constraint - a user can only bookmark a post once
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'post_id', name='unique_bookmark'),
+    )
+
+    def __repr__(self):
+        return f'<Bookmark user_id={self.user_id} post_id={self.post_id}>'
 
 
 # ── Helper: format seconds for display ────────────────────────────────────────
@@ -411,7 +587,7 @@ class QuizLeaderboard(db.Model):
     # Server-calculated elapsed seconds; never trusted from frontend
     time_taken = db.Column(db.Integer, nullable=False)   # seconds
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     # Public flag - determines if entry is visible on leaderboard
     is_public = db.Column(db.Boolean, default=False, nullable=False)
@@ -440,7 +616,7 @@ class QuizData(db.Model):
     total_marks = db.Column(db.Integer, default=0)
     xp_reward   = db.Column(db.Integer, default=0)
     meta        = db.Column(db.Text)
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at  = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     post        = db.relationship('Post', backref=db.backref('quiz', uselist=False, cascade='all, delete-orphan'))
 
 
@@ -462,7 +638,7 @@ class QuizAttempt(db.Model):
 
     time_taken = db.Column(db.Integer, default=0)  # seconds, server-calculated
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = db.relationship('User', backref='quiz_attempts')
     post = db.relationship('Post', backref=db.backref(
@@ -480,7 +656,7 @@ class QuizAssessment(db.Model):
     score = db.Column(db.Float, nullable=False)
     feedback = db.Column(db.Text, nullable=True)
     assessed_by = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=True)
-    assessed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    assessed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     attempt = db.relationship('QuizAttempt', backref=db.backref(
         'assessments',
@@ -491,10 +667,6 @@ class QuizAssessment(db.Model):
     __table_args__ = (
         db.UniqueConstraint('attempt_id', 'question_index', name='unique_question_assessment'),
     )
-
-    @property
-    def formatted_time(self) -> str:
-        return format_time_taken(self.time_taken)
 
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'
@@ -508,15 +680,67 @@ class Subscription(db.Model):
     payment_method = db.Column(db.String(64),  nullable=True)
     transaction_id = db.Column(db.String(128), nullable=True, unique=True, index=True)
     status         = db.Column(db.String(32),  nullable=False, default='pending')
-    started_at     = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    started_at     = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     expires_at     = db.Column(db.DateTime, nullable=False)
-    created_at     = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at     = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     user = db.relationship('User', back_populates='subscriptions')
 
     @property
     def is_active(self):
-        return self.status == 'active' and self.expires_at > datetime.utcnow()
+        return self.status == 'active' and self.expires_at.replace(tzinfo=timezone.utc) > datetime.now(timezone.utc)
+
 
     def __repr__(self):
         return f'<Subscription {self.plan_key} user={self.user_id} expires={self.expires_at}>'
+
+class XpTransaction(db.Model):
+    """Logs every XP award so students can see their history."""
+    __tablename__ = 'xp_transaction'
+
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
+    amount     = db.Column(db.Integer, nullable=False)
+    reason     = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    user = db.relationship('User', backref='xp_transactions')
+
+
+class StudentPastPaper(db.Model):
+    """A past exam paper uploaded by a student."""
+    __tablename__ = 'student_past_paper'
+
+    id           = db.Column(db.Integer, primary_key=True)
+    user_id      = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
+    subject_id   = db.Column(db.Integer, db.ForeignKey('subject.id'),  nullable=False)
+    subject_slug = db.Column(db.String(100), nullable=False, index=True)
+    filename     = db.Column(db.String(255), nullable=False)
+    file_path    = db.Column(db.String(500), nullable=False)
+    file_type    = db.Column(db.String(10),  nullable=False)  # pdf | image
+    file_size    = db.Column(db.Integer,     nullable=True)
+    year         = db.Column(db.String(10),  nullable=True)
+    semester     = db.Column(db.String(20),  nullable=True)
+    description  = db.Column(db.String(300), nullable=True)
+    status       = db.Column(db.String(20),  default='pending')  # pending|collected|rejected
+    xp_awarded   = db.Column(db.Boolean,     default=False)
+    collected_at = db.Column(db.DateTime,    nullable=True)
+    uploaded_at  = db.Column(db.DateTime,    default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    user    = db.relationship('User',    backref='past_papers')
+    subject = db.relationship('Subject', backref='student_past_papers')
+
+    def to_dict(self) -> dict:
+        return {
+            'id':           self.id,
+            'subject_slug': self.subject_slug,
+            'subject_name': self.subject.name if self.subject else self.subject_slug,
+            'filename':     self.filename,
+            'file_type':    self.file_type,
+            'file_size':    self.file_size,
+            'year':         self.year,
+            'semester':     self.semester,
+            'description':  self.description,
+            'uploaded_at':  self.uploaded_at.isoformat(),
+            'uploader':     self.user.username if self.user else 'unknown',
+        }

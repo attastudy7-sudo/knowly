@@ -5,6 +5,7 @@ from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationE
 from app.models import User
 
 
+
 class LoginForm(FlaskForm):
     """Form for user login."""
     username = StringField('Username', validators=[DataRequired()])
@@ -60,7 +61,8 @@ class EditProfileForm(FlaskForm):
 
 
 class CreatePostForm(FlaskForm):
-    """Form for creating a new post."""
+    """Form for creating / editing a post."""
+
     title = StringField('Title', validators=[
         DataRequired(),
         Length(min=3, max=200, message='Title must be between 3 and 200 characters')
@@ -69,16 +71,33 @@ class CreatePostForm(FlaskForm):
         Length(max=2000, message='Description too long')
     ])
     subject = SelectField('Subject/Category', coerce=int, validators=[Optional()])
+
+    # ── NEW: explicit content type selector ──────────────────────────────────
+    # This replaces the implicit (and buggy) inference that happened at query time.
+    # The route will also auto-upgrade to 'quiz' if a valid JSON sidecar is uploaded,
+    # so users who forget to select 'Quiz' are still handled gracefully.
+    content_type = SelectField(
+        'Content Type',
+        choices=[
+            ('notes',      'Notes'),
+            ('cheatsheet', 'Cheatsheet'),
+            ('quiz',       'Quiz'),
+        ],
+        default='notes',
+        validators=[DataRequired()],
+    )
+    # ─────────────────────────────────────────────────────────────────────────
+
     document = FileField('Upload Document (Optional)', validators=[
         FileAllowed(['pdf', 'docx', 'pptx', 'txt', 'doc', 'ppt'],
                    'Only PDF, DOCX, PPTX, and TXT files allowed!')
     ])
-    json_sidecar = FileField('Upload JSON Sidecar (Optional)', validators=[
+    json_sidecar = FileField('Upload Quiz JSON Sidecar (Optional)', validators=[
         FileAllowed(['json'], 'Only JSON files allowed!')
     ])
     is_paid = BooleanField('Paid Document (Future Feature)')
-    price = StringField('Price (Future Feature)', validators=[Optional()])
-    submit = SubmitField('Create Post')
+    price   = StringField('Price (Future Feature)', validators=[Optional()])
+    submit  = SubmitField('Create Post')
 
 
 class CommentForm(FlaskForm):
@@ -113,8 +132,29 @@ class SubjectForm(FlaskForm):
     ])
     order = StringField('Display Order', validators=[Optional()])
     is_active = BooleanField('Active')
+    programme_id = SelectField('Programme', coerce=int, validators=[Optional()])
     submit = SubmitField('Save Subject')
 
+
+class ProgrammeForm(FlaskForm):
+    """Form for creating/editing programmes (admin only)."""
+    name = StringField('Programme Name', validators=[
+        DataRequired(),
+        Length(min=2, max=200, message='Name must be between 2 and 200 characters')
+    ])
+    description = TextAreaField('Description', validators=[
+        Length(max=1000, message='Description too long')
+    ])
+    icon = StringField('Icon (Font Awesome)', validators=[
+        Length(max=50)
+    ])
+    color = StringField('Color (Hex)', validators=[
+        Length(min=7, max=7, message='Must be a valid hex color (e.g., #8b5cf6)')
+    ])
+    order = StringField('Display Order', validators=[Optional()])
+    is_active = BooleanField('Active')
+    faculty = StringField('Faculty', validators=[Optional(), Length(max=200)])
+    submit = SubmitField('Save Programme')
 
 class BulkEmailForm(FlaskForm):
     """Form for sending bulk emails to users."""
@@ -123,3 +163,21 @@ class BulkEmailForm(FlaskForm):
     send_to = SelectField('Send To', choices=[('all', 'All Users'), ('selected', 'Selected Users')], default='all')
     selected_emails = StringField('Selected Emails')
     submit = SubmitField('Send Email')
+
+class PasswordResetRequestForm(FlaskForm):
+    """Request a password reset link by email."""
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Send Reset Link')
+
+
+class PasswordResetForm(FlaskForm):
+    """Set a new password using a valid reset token."""
+    password = PasswordField('New Password', validators=[
+        DataRequired(),
+        Length(min=6, message='Password must be at least 6 characters')
+    ])
+    confirm_password = PasswordField('Confirm New Password', validators=[
+        DataRequired(),
+        EqualTo('password', message='Passwords must match')
+    ])
+    submit = SubmitField('Reset Password')

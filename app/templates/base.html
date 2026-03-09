@@ -1,26 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta property="og:image" content="https://res.cloudinary.com/dvufjcpw7/image/upload/v1771464708/edushare_oqvbt9.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="eDuShare - Educational social media platform for students">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{% block title %}{% endblock %} - eDuShare</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    {% block extra_css %}{% endblock %}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#6366f1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="knowly">
+<meta name="description" content="knowly - Educational social media platform for students">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<meta property="og:image" content="{{ url_for('static', filename='images/knowly.png') }}">
+<title>{% block title %}{% endblock %} - knowly</title>
+<link rel="manifest" href="/static/manifest.json">
+<link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/images/icon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/images/icon-16x16.png">
+<link rel="shortcut icon" href="/static/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% block extra_css %}{% endblock %}
+<!-- Capture install prompt + restore dark mode as early as possible -->
+<script>
+  window._pwaPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); window._pwaPrompt = e; });
+  (function(){ var t = localStorage.getItem('knowly-theme'); if (t) document.documentElement.setAttribute('data-theme', t); })();
+</script>
     <style>
     :root {
-        --font-display:  'Syne', sans-serif;
+        --font-display:  'Nunito', sans-serif;
         --font-body:     'DM Sans', sans-serif;
         --nav-h:          62px;
         --nav-bg:         rgba(255,255,255,0.82);
         --nav-border:     rgba(99,102,241,0.10);
         --nav-shadow:     0 1px 0 rgba(99,102,241,0.07), 0 4px 24px rgba(99,102,241,0.06);
-        --brand-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        --brand-gradient: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
         --search-bg:      #f3f4f6;
         --search-radius:  12px;
     }
@@ -40,8 +57,9 @@
     }
     .top-nav .container {
         height: 100%;
-        max-width: 1200px;
-        margin: 0 auto;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
         padding: 0 1.25rem;
     }
     .nav-content {
@@ -55,25 +73,22 @@
     .logo {
         display: flex;
         align-items: center;
-        gap: 0rem;
+        gap: 0.4rem;
         text-decoration: none;
         flex-shrink: 0;
-        margin-right: 0.5rem;
+        margin-right: 0.25rem;
     }
     .auth-brand-icon {
-        width: 28px; height: 28px;
+        width: 34px; height: 34px;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
     }
-    .auth-brand-icon i {
-        font-size: 1.35rem;
-        background: var(--brand-gradient);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        filter: drop-shadow(0 2px 6px rgba(99,102,241,0.30));
+    .nav-brand-img {
+        width: 34px; height: 34px;
+        object-fit: contain;
+        display: block;
     }
     .auth-brand-name {
         font-family: var(--font-display);
@@ -90,10 +105,16 @@
     /* ── DESKTOP SEARCH ── */
     .nav-search-wrap {
         flex: 1;
-        max-width: 340px;
-        margin: 0 auto 0 0.25rem;
+        max-width: 380px;
+        min-width: 0;
+        margin: 0 0.5rem;
+        position: relative;
     }
-    .search-form { position: relative; display: flex; align-items: center; }
+    .search-form {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
     .search-icon {
         position: absolute; left: 0.875rem;
         color: #9ca3af; font-size: 0.8rem;
@@ -102,12 +123,12 @@
     .search-input {
         width: 100%;
         padding: 0.55rem 0.875rem 0.55rem 2.25rem;
-        background: var(--search-bg);
-        border: 1.5px solid transparent;
+        background: var(--bg-secondary, #f3f4f6);
+        border: 1.5px solid var(--border, #e5e7eb);
         border-radius: var(--search-radius);
         font-family: var(--font-body);
         font-size: 0.875rem;
-        color: var(--text-primary);
+        color: var(--text-primary, #111827);
         transition: all 0.2s ease;
         outline: none;
     }
@@ -142,6 +163,72 @@
         transition: all 0.18s ease;
         cursor: pointer;
     }
+
+    /* ── NOTIFICATION BELL ── */
+    .notif-wrap { position: relative; }
+    .notif-badge {
+        position: absolute; top: 2px; right: 2px;
+        min-width: 16px; height: 16px;
+        background: #ef4444; color: white;
+        border-radius: 99px; font-size: .6rem; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+        padding: 0 3px; border: 2px solid white;
+        pointer-events: none; display: none;
+    }
+    .notif-badge.visible { display: flex; }
+    .notif-dropdown {
+        position: absolute; top: calc(100% + 10px); right: 0;
+        width: 280px; background: white;
+        border: 1px solid #e5e7eb; border-radius: 14px;
+        box-shadow: 0 8px 32px rgba(0,0,0,.12);
+        z-index: 300; display: none; overflow: hidden;
+    }
+    .notif-dropdown.open { display: block; }
+    .notif-header {
+        padding: .75rem 1rem; font-weight: 700; font-size: .875rem;
+        color: #111827; border-bottom: 1px solid #f3f4f6;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .notif-mark-read {
+        font-size: .75rem; font-weight: 500; color: #6366f1;
+        background: none; border: none; cursor: pointer; padding: 0;
+    }
+    .notif-mark-read:hover { text-decoration: underline; }
+    .notif-list { max-height: 260px; overflow-y: auto; }
+    .notif-item {
+        display: flex; align-items: flex-start; gap: .75rem;
+        padding: .75rem 1rem; border-bottom: 1px solid #f9fafb;
+        text-decoration: none; color: inherit;
+        transition: background .15s;
+    }
+    .notif-item:hover { background: #f9fafb; }
+    .notif-item.unread { background: #eff6ff; }
+    .notif-item.unread:hover { background: #dbeafe; }
+    .notif-icon {
+        width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .8rem; color: white;
+    }
+    .notif-icon.like    { background: #ef4444; }
+    .notif-icon.comment { background: #6366f1; }
+    .notif-icon.follow  { background: #10b981; }
+    .notif-icon.post_approved { background: #10b981; }
+    .notif-icon.post_rejected { background: #f59e0b; }
+    .notif-icon.default { background: #9ca3af; }
+    .notif-text { font-size: .8125rem; color: #374151; line-height: 1.45; }
+    .notif-time { font-size: .7rem; color: #9ca3af; margin-top: .2rem; }
+    .notif-empty {
+        padding: 2rem 1rem; text-align: center;
+        color: #9ca3af; font-size: .875rem;
+    }
+    [data-theme="dark"] .notif-dropdown { background:#1f2937; border-color:#374151; }
+    [data-theme="dark"] .notif-header { color:#f9fafb; border-color:#374151; }
+    [data-theme="dark"] .notif-item { border-color:#1f2937; color:#f9fafb; }
+    [data-theme="dark"] .notif-item:hover { background:#374151; }
+    [data-theme="dark"] .notif-item.unread { background:#1e3a5f; }
+    [data-theme="dark"] .notif-item.unread:hover { background:#1e40af33; }
+    [data-theme="dark"] .notif-badge { border-color:#1f2937; }
+
     .nav-icon-btn:hover {
         background: #f3f4f6;
         color: var(--primary);
@@ -172,7 +259,7 @@
         transform: translateY(-1px);
         box-shadow: 0 5px 18px rgba(99,102,241,0.38) !important;
     }
-    .create-btn i { font-size: 0.8rem; color: #fff }
+    .create-btn i { font-size: 0.8rem; color: inherit; }
 
     .nav-btn-login {
         display: inline-flex; align-items: center;
@@ -274,7 +361,7 @@
     }
     .dropdown-avatar {
         width: 38px; height: 38px;
-        border-radius: 10px;
+        border-radius: 50%;
         object-fit: cover;
         border: 2px solid rgba(99,102,241,0.18);
         flex-shrink: 0;
@@ -312,9 +399,7 @@
     .dropdown-item--danger:hover i { color: #dc2626; }
 
     /* ════════════════════════════════════════════
-       MOBILE NAV RIGHT — dark mode toggle only
-       (bottom nav handles all navigation;
-        profile/account accessed via bottom nav)
+       MOBILE NAV RIGHT
        ════════════════════════════════════════════ */
     .mobile-nav-right {
         display: none;
@@ -324,7 +409,6 @@
         flex-shrink: 0;
     }
 
-    /* Compact icon-only dark toggle for mobile top bar */
     .dark-toggle-mobile {
         width: 34px; height: 34px;
         display: flex; align-items: center; justify-content: center;
@@ -439,7 +523,7 @@
         display: flex; align-items: center; justify-content: center;
         flex-direction: row;
     }
-    .bottom-nav .nav-item.create i { font-size: 1.25rem; }
+    .bottom-nav .nav-item.create i { font-size: 1.5rem; color: inherit; }
     .bottom-nav .nav-item.create:hover {
         box-shadow: 0 6px 22px rgba(99,102,241,0.50);
         transform: translateY(-2px);
@@ -468,6 +552,165 @@
     }
     @media (max-width: 360px) { .auth-brand-name { font-size: 1.2rem; } }
 
+    /* ── MOBILE HAMBURGER ── */
+    .hamburger-btn {
+        width: 36px; height: 36px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 5px; background: transparent;
+        border: 1.5px solid var(--border, #e5e7eb);
+        border-radius: 10px; cursor: pointer;
+        transition: all 0.18s ease; flex-shrink: 0;
+        padding: 0;
+    }
+    .hamburger-btn span {
+        display: block; width: 16px; height: 1.5px;
+        background: #6b7280; border-radius: 2px;
+        transition: all 0.25s ease;
+        transform-origin: center;
+    }
+    .hamburger-btn.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+    .hamburger-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .hamburger-btn.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+    .hamburger-btn:hover { border-color: rgba(99,102,241,0.4); background: rgba(99,102,241,0.05); }
+    .hamburger-btn:hover span { background: #6366f1; }
+    [data-theme="dark"] .hamburger-btn { border-color: #374151; }
+    [data-theme="dark"] .hamburger-btn span { background: #9ca3af; }
+    [data-theme="dark"] .hamburger-btn.open span,
+    [data-theme="dark"] .hamburger-btn:hover span { background: #7dd3fc; }
+
+    /* ── SIDEBAR OVERLAY ── */
+    .mobile-menu-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.5);
+        z-index: 299;
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+    }
+    .mobile-menu-overlay.open { display: block; }
+
+    /* ── SIDEBAR DRAWER ── */
+    .mobile-menu {
+        position: fixed;
+        top: 0; left: 0; bottom: 0;
+        width: 290px;
+        z-index: 300;
+        background: #fff;
+        border-right: 1px solid rgba(99,102,241,0.10);
+        box-shadow: 6px 0 40px rgba(99,102,241,0.13);
+        overflow-y: auto;
+        transform: translateX(-100%);
+        transition: transform .28s cubic-bezier(0.16,1,0.3,1);
+        display: flex;
+        flex-direction: column;
+    }
+    .mobile-menu.open { transform: translateX(0); }
+    [data-theme="dark"] .mobile-menu {
+        background: #111827;
+        border-right-color: rgba(99,102,241,0.15);
+    }
+
+    /* Sticky header inside drawer */
+    .mobile-menu-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: .875rem 1rem;
+        border-bottom: 1px solid rgba(99,102,241,0.08);
+        position: sticky; top: 0;
+        background: #fff;
+        z-index: 1;
+        flex-shrink: 0;
+    }
+    [data-theme="dark"] .mobile-menu-header {
+        background: #111827;
+        border-bottom-color: rgba(99,102,241,0.14);
+    }
+    .mobile-menu-close {
+        width: 30px; height: 30px;
+        border-radius: 8px;
+        border: 1.5px solid #e5e7eb;
+        background: #f9fafb;
+        color: #6b7280;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: .78rem;
+        transition: all .15s; flex-shrink: 0;
+        outline: none;
+    }
+    .mobile-menu-close:hover { background: #fee2e2; border-color: #fca5a5; color: #ef4444; }
+    [data-theme="dark"] .mobile-menu-close { background: #1f2937; border-color: #374151; color: #9ca3af; }
+    [data-theme="dark"] .mobile-menu-close:hover { background: #450a0a; border-color: #7f1d1d; color: #f87171; }
+
+    /* Scrollable body of drawer */
+    .mobile-menu-inner {
+        padding: .625rem 1rem 2rem;
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+    }
+    .mobile-menu-section { margin-bottom: 0.5rem; }
+    .mobile-menu-label {
+        font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+        text-transform: uppercase; color: #9ca3af;
+        padding: 0.4rem 0.25rem 0.25rem; display: block;
+    }
+    .mobile-menu-item {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.65rem 0.75rem; border-radius: 10px;
+        font-size: 0.9rem; font-weight: 600;
+        color: #374151; text-decoration: none;
+        transition: background 0.15s, color 0.15s;
+        border: none; background: none; width: 100%;
+        cursor: pointer; text-align: left; font-family: var(--font-body);
+    }
+    .mobile-menu-item:hover { background: #f3f4f6; color: #6366f1; }
+    .mobile-menu-item i { width: 20px; text-align: center; color: #9ca3af; font-size: 0.9rem; flex-shrink: 0; transition: color 0.15s; }
+    .mobile-menu-item:hover i { color: #6366f1; }
+    .mobile-menu-item--danger { color: #ef4444; }
+    .mobile-menu-item--danger i { color: #ef4444; }
+    .mobile-menu-item--danger:hover { background: #fff5f5; color: #dc2626; }
+    .mobile-menu-item--danger:hover i { color: #dc2626; }
+    .mobile-menu-item--highlight {
+        background: var(--brand-gradient); color: #fff !important;
+        box-shadow: 0 2px 10px rgba(99,102,241,0.28);
+    }
+    .mobile-menu-item--highlight i { color: #fff !important; }
+    .mobile-menu-item--highlight:hover { opacity: 0.9; background: var(--brand-gradient); }
+    .mobile-menu-divider { height: 1px; background: #f3f4f6; margin: 0.4rem 0; }
+    .mobile-menu-user {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.75rem; background: rgba(99,102,241,0.05);
+        border-radius: 12px; margin-bottom: 0.5rem;
+        border: 1px solid rgba(99,102,241,0.08);
+    }
+    .mobile-menu-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid rgba(99,102,241,0.18); }
+    .mobile-menu-user-info { display: flex; flex-direction: column; min-width: 0; }
+    .mobile-menu-name { font-weight: 700; font-size: 0.9rem; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mobile-menu-handle { font-size: 0.72rem; color: #9ca3af; }
+    [data-theme="dark"] .mobile-menu-item { color: #d1d5db; }
+    [data-theme="dark"] .mobile-menu-item:hover { background: #1f2937; color: #7dd3fc; }
+    [data-theme="dark"] .mobile-menu-item:hover i { color: #7dd3fc; }
+    [data-theme="dark"] .mobile-menu-divider { background: #1f2937; }
+    [data-theme="dark"] .mobile-menu-user { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.15); }
+    [data-theme="dark"] .mobile-menu-name { color: #f9fafb; }
+    .mobile-dark-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.65rem 0.75rem; border-radius: 10px;
+        cursor: pointer; transition: background 0.15s;
+    }
+    .mobile-dark-row:hover { background: #f3f4f6; }
+    [data-theme="dark"] .mobile-dark-row:hover { background: #1f2937; }
+    .mobile-dark-label { display: flex; align-items: center; gap: 0.75rem; font-size: 0.9rem; font-weight: 600; color: #374151; font-family: var(--font-body); }
+    .mobile-dark-label i { width: 20px; text-align: center; color: #9ca3af; font-size: 0.9rem; }
+    [data-theme="dark"] .mobile-dark-label { color: #d1d5db; }
+    .mobile-dark-pill {
+        font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem;
+        border-radius: 50px; background: #f3f4f6; border: 1.5px solid #e5e7eb;
+        color: #6b7280; transition: all 0.18s;
+    }
+    [data-theme="dark"] .mobile-dark-pill { background: #374151; border-color: #4b5563; color: #9ca3af; }
+
     .top-nav.scrolled {
         background: rgba(255,255,255,0.95);
         box-shadow: 0 1px 0 rgba(99,102,241,0.10), 0 6px 32px rgba(99,102,241,0.09);
@@ -481,7 +724,7 @@
     }
     [data-theme="dark"] .dark-toggle:hover {
         background: rgba(0, 0, 0, 0.12);
-        border-color:rgba(255, 255, 255, 0.8);
+        border-color: rgba(255, 255, 255, 0.8);
     }
     [data-theme="dark"] .dark-toggle-mobile {
         background: rgba(0, 0, 0, 0.12);
@@ -502,15 +745,14 @@
         background: rgba(17,24,39,0.96);
         border-top-color: rgba(99,102,241,0.15);
     }
-    [data-theme="dark"] .bottom-nav .nav-item { color: #6b7280; }
     [data-theme="dark"] .bottom-nav .nav-item:hover,
-    [data-theme="dark"] .bottom-nav .nav-item.active { color: #a5b4fc; }
+    [data-theme="dark"] .bottom-nav .nav-item.active { color: #7dd3fc; }
     [data-theme="dark"] .nav-btn-login { color: #d1d5db; border-color: #374151; }
-    [data-theme="dark"] .nav-btn-login:hover { color: #a5b4fc; border-color: #6366f1; background: rgba(99,102,241,0.08); }
+    [data-theme="dark"] .nav-btn-login:hover { color: #7dd3fc; border-color: #2563eb; background: rgba(37,99,235,0.08); }
     [data-theme="dark"] .nav-icon-btn { color: #9ca3af; }
-    [data-theme="dark"] .nav-icon-btn:hover { background: #374151; color: #a5b4fc; border-color: rgba(99,102,241,0.3); }
+    [data-theme="dark"] .nav-icon-btn:hover { background: #374151; color: #7dd3fc; border-color: rgba(37,99,235,0.3); }
     [data-theme="dark"] .search-input { background: #1f2937; color: #f9fafb; border-color: transparent; }
-    [data-theme="dark"] .search-input:focus { background: #111827; border-color: rgba(99,102,241,0.5); }
+    [data-theme="dark"] .search-input:focus { background: #111827; border-color: rgba(37,99,235,0.5); }
     [data-theme="dark"] .profile-dropdown {
         background: #1f2937;
         border-color: rgba(99,102,241,0.2);
@@ -521,449 +763,948 @@
     [data-theme="dark"] .dropdown-username { color: #6b7280; }
     [data-theme="dark"] .dropdown-divider { background: #374151; }
     [data-theme="dark"] .dropdown-item { color: #d1d5db; }
-    [data-theme="dark"] .dropdown-item:hover { background: #374151; color: #a5b4fc; }
+    [data-theme="dark"] .dropdown-item:hover { background: #374151; color: #7dd3fc; }
     [data-theme="dark"] .dropdown-item i { color: #6b7280; }
-    [data-theme="dark"] .dropdown-item:hover i { color: #a5b4fc; }
+    [data-theme="dark"] .dropdown-item:hover i { color: #7dd3fc; }
 
     /* Suggestion tabs & overlays */
-    .suggestion-tabs { display: flex; gap: 0.4rem; margin-bottom: 1rem; background: var(--search-bg, #f3f4f6); padding: 0.3rem; border-radius: 10px; }
-    .ob-tab { flex: 1; padding: 0.45rem 0.4rem; border: none; background: none; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; color: #6b7280; transition: all 0.2s; font-family: var(--font-body); }
-    .ob-tab.active { background: var(--primary, #6366f1); color: white; }
+    .suggestion-tabs { display: flex; gap: 0.4rem; margin-bottom: 1rem; background: var(--bg-secondary); border: 1px solid var(--border-light); padding: 0.3rem; border-radius: 10px; }
+    .ob-tab { flex: 1; padding: 0.45rem 0.4rem; border: none; background: none; border-radius: 8px; cursor: pointer; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); transition: all 0.2s; font-family: var(--font-body); }
+    .ob-tab.active { background: var(--brand-gradient); color: white; }
     .sug-list { max-height: 280px; overflow-y: auto; }
     .sug-list.hidden { display: none; }
-    .sug-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0; border-bottom: 1px solid #f3f4f6; }
+    .sug-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border-light); }
     .sug-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .sug-info { flex: 1; min-width: 0; }
-    .sug-name { display: block; font-weight: 700; font-size: 0.875rem; color: #111827; }
-    .sug-meta { display: block; font-size: 0.72rem; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sug-name { display: block; font-weight: 700; font-size: 0.85rem; color: var(--text-primary); }
+    .sug-meta { display: block; font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sug-empty { text-align: center; color: #9ca3af; font-size: 0.875rem; padding: 1.5rem 0; }
     </style>
+<style>
+/* ── PAGE FADE-IN ── */
+body { opacity: 0; transition: opacity .18s ease; }
+
+/* ── NAV PROGRESS BAR ── */
+#kn-progress {
+    position: fixed; top: 0; left: 0; z-index: 9999;
+    height: 2px; width: 0%;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    opacity: 0;
+    transition: width .22s ease, opacity .25s ease;
+    pointer-events: none;
+    border-radius: 0 2px 2px 0;
+}
+#kn-progress.kn-pb-active  { opacity: 1; }
+#kn-progress.kn-pb-done    { width: 100% !important; opacity: 0; transition: width .15s ease, opacity .3s ease .1s; }
+</style>
 </head>
 <body>
-    <nav class="top-nav" id="topNav">
-        <div class="container">
-            <div class="nav-content">
+<div id="kn-progress"></div>
 
-                <!-- Logo -->
-                <a href="{{ url_for('main.index') }}" class="logo" aria-label="eDuShare home">
-                    <div class="auth-brand-icon">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <span class="auth-brand-name">eDuShare</span>
-                </a>
+{% block topnav %}
+<nav class="top-nav" id="topNav">
+    <div class="container">
+        <div class="nav-content">
 
-                <!-- Desktop nav right -->
-                <div class="nav-right mobile-hidden">
-                    <button class="dark-toggle" id="darkToggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
-                        <i class="fas fa-moon toggle-icon" id="darkToggleIcon"></i>
-                        <span class="toggle-label" id="darkToggleLabel">Dark</span>
-                    </button>
-                    {% if current_user.is_authenticated %}
-                        <a href="{{ url_for('posts.create') }}" class="create-btn">
-                            <i class="fas fa-plus"></i><span>Create</span>
-                        </a>
-                        {% if current_user.username == "alan" %}
-                        <a href="{{ url_for('admin.dashboard') }}" class="nav-icon-btn" title="Admin Dashboard" aria-label="Admin">
-                            <i class="fas fa-cog"></i>
-                        </a>
-                        {% endif %}
-                        <div class="profile-menu">
-                            <button class="profile-trigger" id="profileTrigger"
-                                    aria-expanded="false" aria-haspopup="true"
-                                    aria-controls="profileDropdown" aria-label="Account menu">
-                                <img src="{{ current_user.profile_picture_url }}"
-                                     alt="{{ current_user.username }}" class="nav-avatar">
-                            </button>
-                            <div class="profile-dropdown" id="profileDropdown" role="menu" aria-labelledby="profileTrigger">
-                                <div class="dropdown-header">
-                                    <img src="{{ current_user.profile_picture_url }}"
-                                         alt="{{ current_user.username }}" class="dropdown-avatar">
-                                    <div class="dropdown-user-info">
-                                        <span class="dropdown-name">{{ current_user.full_name or current_user.username }}</span>
-                                        <span class="dropdown-username">@{{ current_user.username }}</span>
-                                    </div>
-                                </div>
-                                <div class="dropdown-divider"></div>
-                                <a href="{{ url_for('users.profile', username=current_user.username) }}" class="dropdown-item" role="menuitem">
-                                    <i class="fas fa-user-circle" aria-hidden="true"></i>My Profile
-                                </a>
-                                <a href="{{ url_for('users.edit_profile') }}" class="dropdown-item" role="menuitem">
-                                    <i class="fas fa-sliders-h" aria-hidden="true"></i>Edit Profile
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a href="{{ url_for('auth.logout') }}" class="dropdown-item dropdown-item--danger" role="menuitem">
-                                    <i class="fas fa-right-from-bracket" aria-hidden="true"></i>Log Out
-                                </a>
+            <!-- Logo -->
+            <a href="{{ url_for('main.index') }}" class="logo" aria-label="knowly home">
+                <div class="auth-brand-icon">
+                    <img src="{{ url_for('static', filename='images/knowly.png') }}" alt="knowly" class="nav-brand-img">
+                </div>
+                <span class="auth-brand-name">knowly</span>
+            </a>
+
+            <!-- Desktop Search -->
+            <div class="nav-search-wrap mobile-hidden">
+                <form action="{{ url_for('users.search') }}" method="get" class="search-form">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" name="q" class="search-input"
+                           placeholder="Search posts, people…"
+                           value="{{ request.args.get('q', '') }}">
+                </form>
+            </div>
+
+            <!-- Desktop nav right -->
+            <div class="nav-right mobile-hidden">
+                <button class="dark-toggle" id="darkToggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon toggle-icon" id="darkToggleIcon"></i>
+                    <span class="toggle-label" id="darkToggleLabel">Dark</span>
+                </button>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('posts.create') }}" class="create-btn">
+                        <i class="fas fa-plus"></i><span>Create</span>
+                    </a>
+                    {% if current_user.is_admin %}
+                    <a href="{{ url_for('admin.dashboard') }}" class="nav-icon-btn" title="Admin Dashboard" aria-label="Admin">
+                        <i class="fas fa-cog"></i>
+                    </a>
+                    {% endif %}
+
+                    <!-- Notification bell -->
+                    <div class="notif-wrap">
+                        <button class="nav-icon-btn" id="notifToggle"
+                                aria-label="Notifications" aria-expanded="false"
+                                aria-controls="notifDropdown">
+                            <i class="fas fa-bell"></i>
+                        </button>
+                        <span class="notif-badge" id="notifBadge"></span>
+                        <div class="notif-dropdown" id="notifDropdown" role="menu">
+                            <div class="notif-header">
+                                <span>Notifications</span>
+                                <button class="notif-mark-read" id="notifMarkRead">Mark all read</button>
+                            </div>
+                            <div class="notif-list" id="notifList">
+                                <div class="notif-empty">Loading…</div>
                             </div>
                         </div>
-                    {% else %}
-                        <a href="{{ url_for('auth.login') }}" class="nav-btn-login">Log in</a>
-                        <a href="{{ url_for('auth.signup') }}" class="create-btn">
-                            <i class="fas fa-user-plus" style="font-size:0.75rem;"></i>Sign Up
-                        </a>
-                    {% endif %}
-                </div>
-
-                <!-- ══════════════════════════════════════════
-                     MOBILE NAV RIGHT
-                     Only visible on mobile (≤ 768px).
-                     Contains only the dark mode toggle.
-                     Bottom nav handles all navigation.
-                     FIX 1: div is now properly closed.
-                     ══════════════════════════════════════════ -->
-                <div class="mobile-nav-right" aria-label="Mobile controls">
-                    <button class="dark-toggle-mobile" id="darkToggleMobile"
-                            onclick="toggleDarkMode()" aria-label="Toggle dark mode">
-                        <i class="fas fa-moon" id="darkToggleIconMobile"></i>
-                    </button>
-                </div><!-- /mobile-nav-right  ← FIX 1: was missing -->
-
-            </div><!-- /nav-content -->
-        </div><!-- /container -->
-    </nav>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="flash-container" role="region" aria-live="polite" aria-label="Notifications">
-                {% for category, message in messages %}
-                    <div class="flash flash-{{ category }}" role="alert">
-                        <span>{{ message }}</span>
-                        <button class="flash-close" onclick="this.parentElement.remove()" aria-label="Dismiss">
-                            <i class="fas fa-times" aria-hidden="true"></i>
-                        </button>
                     </div>
-                {% endfor %}
+
+                    <div class="profile-menu">
+                        <button class="profile-trigger" id="profileTrigger"
+                                aria-expanded="false" aria-haspopup="true"
+                                aria-controls="profileDropdown" aria-label="Account menu">
+                            <img src="{{ current_user.profile_picture_url }}"
+                                 alt="{{ current_user.username }}" class="nav-avatar">
+                        </button>
+                        <div class="profile-dropdown" id="profileDropdown" role="menu" aria-labelledby="profileTrigger">
+                            <div class="dropdown-header">
+                                <img src="{{ current_user.profile_picture_url }}"
+                                     alt="{{ current_user.username }}" class="dropdown-avatar">
+                                <div class="dropdown-user-info">
+                                    <span class="dropdown-name">{{ current_user.full_name or current_user.username }}</span>
+                                    <span class="dropdown-username">@{{ current_user.username }}</span>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="{{ url_for('users.profile', username=current_user.username) }}" class="dropdown-item" role="menuitem">
+                                <i class="fas fa-user-circle" aria-hidden="true"></i>My Profile
+                            </a>
+                            <a href="{{ url_for('users.edit_profile') }}" class="dropdown-item" role="menuitem">
+                                <i class="fas fa-sliders-h" aria-hidden="true"></i>Edit Profile
+                            </a>
+                            <a href="{{ url_for('payments.my_purchases') }}" class="dropdown-item" role="menuitem">
+                                <i class="fas fa-receipt" aria-hidden="true"></i>My Purchases
+                            </a>
+                            <a href="{{ url_for('payments.my_subscription') }}" class="dropdown-item" role="menuitem">
+                                <i class="fas fa-crown" aria-hidden="true"></i>My Subscription
+                                {% if current_user.has_active_subscription %}
+                                <span style="margin-left:auto;font-size:.65rem;font-weight:700;padding:.1rem .4rem;border-radius:4px;background:rgba(16,185,129,.12);color:#10b981;">Active</span>
+                                {% endif %}
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{{ url_for('auth.logout') }}" class="dropdown-item dropdown-item--danger" role="menuitem">
+                                <i class="fas fa-right-from-bracket" aria-hidden="true"></i>Log Out
+                            </a>
+                        </div>
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="nav-btn-login">Log in</a>
+                    <a href="{{ url_for('auth.signup') }}" class="create-btn">
+                        <i class="fas fa-user-plus" style="font-size:0.75rem;"></i>Sign Up
+                    </a>
+                {% endif %}
             </div>
+
+            <!-- Mobile nav right (notification bell + hamburger) -->
+            <div class="mobile-nav-right" aria-label="Mobile controls">
+                {% if current_user.is_authenticated %}
+                <div class="notif-wrap">
+                    <button class="nav-icon-btn" id="notifToggleMobile"
+                            aria-label="Notifications" aria-expanded="false"
+                            aria-controls="notifDropdownMobile">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <span class="notif-badge" id="notifBadgeMobile"></span>
+                    <div class="notif-dropdown" id="notifDropdownMobile" role="menu">
+                        <div class="notif-header">
+                            <span>Notifications</span>
+                            <button class="notif-mark-read" id="notifMarkReadMobile">Mark all read</button>
+                        </div>
+                        <div class="notif-list" id="notifListMobile">
+                            <div class="notif-empty">Loading…</div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                <button class="hamburger-btn" id="hamburgerBtn"
+                        aria-label="Open menu" aria-expanded="false"
+                        aria-controls="mobileMenu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+
+        </div><!-- /nav-content -->
+    </div><!-- /container -->
+</nav>
+{% endblock %}
+
+<!-- ── MOBILE SIDEBAR OVERLAY (outside nav, so z-index works) ── -->
+<div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+
+<!-- ── MOBILE SIDEBAR DRAWER (outside nav, so z-index works) ── -->
+<div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-label="Mobile menu">
+    <div class="mobile-menu-header">
+        <a href="{{ url_for('main.index') }}" class="logo" aria-label="knowly home">
+            <div class="auth-brand-icon">
+                <img src="{{ url_for('static', filename='images/knowly.png') }}" alt="knowly" class="nav-brand-img">
+            </div>
+            <span class="auth-brand-name">knowly</span>
+        </a>
+        <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="mobile-menu-inner">
+        {% if current_user.is_authenticated %}
+        <div class="mobile-menu-user">
+            <img src="{{ current_user.profile_picture_url }}"
+                 alt="{{ current_user.username }}" class="mobile-menu-avatar">
+            <div class="mobile-menu-user-info">
+                <span class="mobile-menu-name">{{ current_user.full_name or current_user.username }}</span>
+                <span class="mobile-menu-handle">@{{ current_user.username }}</span>
+            </div>
+        </div>
+        <a href="{{ url_for('posts.create') }}" class="mobile-menu-item mobile-menu-item--highlight">
+            <i class="fas fa-plus"></i> Create Post
+        </a>
+        <div class="mobile-menu-divider"></div>
+        <a href="{{ url_for('users.profile', username=current_user.username) }}" class="mobile-menu-item">
+            <i class="fas fa-user-circle"></i> My Profile
+        </a>
+        <a href="{{ url_for('users.edit_profile') }}" class="mobile-menu-item">
+            <i class="fas fa-sliders-h"></i> Edit Profile
+        </a>
+        <a href="{{ url_for('payments.my_purchases') }}" class="mobile-menu-item">
+            <i class="fas fa-receipt"></i> My Purchases
+        </a>
+        <a href="{{ url_for('payments.my_subscription') }}" class="mobile-menu-item">
+            <i class="fas fa-crown"></i> My Subscription
+            {% if current_user.has_active_subscription %}
+            <span style="margin-left:auto;font-size:.65rem;font-weight:700;padding:.1rem .4rem;border-radius:4px;background:rgba(16,185,129,.12);color:#10b981;">Active</span>
+            {% endif %}
+        </a>
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('admin.dashboard') }}" class="mobile-menu-item">
+            <i class="fas fa-cog"></i> Admin Dashboard
+        </a>
         {% endif %}
-    {% endwith %}
+        <div class="mobile-menu-divider"></div>
+        {% endif %}
+        <div class="mobile-dark-row" onclick="toggleDarkMode()">
+            <div class="mobile-dark-label">
+                <i class="fas fa-moon" id="darkToggleIconMobile"></i>
+                <span id="darkToggleLabelMobile">Dark mode</span>
+            </div>
+            <span class="mobile-dark-pill" id="darkTogglePill">Off</span>
+        </div>
+        {% if current_user.is_authenticated %}
+        <div class="mobile-menu-divider"></div>
+        <a href="{{ url_for('auth.logout') }}" class="mobile-menu-item mobile-menu-item--danger">
+            <i class="fas fa-right-from-bracket"></i> Log Out
+        </a>
+        {% else %}
+        <div class="mobile-menu-divider"></div>
+        <a href="{{ url_for('auth.login') }}" class="mobile-menu-item">
+            <i class="fas fa-sign-in-alt"></i> Log In
+        </a>
+        <a href="{{ url_for('auth.signup') }}" class="mobile-menu-item mobile-menu-item--highlight">
+            <i class="fas fa-user-plus"></i> Sign Up
+        </a>
+        {% endif %}
+    </div>{# /mobile-menu-inner #}
+</div>
 
-    <main class="main-content">
-        {% block content %}{% endblock %}
-    </main>
-
-    {% if current_user.is_authenticated %}
-    <nav class="bottom-nav" aria-label="Mobile navigation">
-        <a href="{{ url_for('main.index') }}" class="nav-item {% if request.endpoint == 'main.index' %}active{% endif %}" aria-label="Home">
-            <i class="fas fa-home" aria-hidden="true"></i><span>Home</span>
-        </a>
-        <a href="{{ url_for('main.explore') }}" class="nav-item {% if request.endpoint == 'main.explore' %}active{% endif %}" aria-label="Explore">
-            <i class="fas fa-compass" aria-hidden="true"></i><span>Explore</span>
-        </a>
-        <a href="{{ url_for('posts.create') }}" class="nav-item create" aria-label="Create post">
-            <i class="fas fa-plus" aria-hidden="true"></i>
-        </a>
-        <a href="{{ url_for('users.search') }}" class="nav-item {% if request.endpoint == 'users.search' %}active{% endif %}" aria-label="Search">
-            <i class="fas fa-search" aria-hidden="true"></i><span>Search</span>
-        </a>
-        <a href="{{ url_for('users.profile', username=current_user.username) }}" class="nav-item {% if request.endpoint == 'users.profile' %}active{% endif %}" aria-label="Profile">
-            <img src="{{ current_user.profile_picture_url }}" alt="{{ current_user.username }}" class="bottom-nav-avatar">
-            <span>Profile</span>
-        </a>
-    </nav>
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-container" role="region" aria-live="polite" aria-label="Notifications">
+            {% for category, message in messages %}
+                <div class="flash flash-{{ category }}" role="alert">
+                    <span>{{ message }}</span>
+                    <button class="flash-close" onclick="this.parentElement.remove()" aria-label="Dismiss">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
     {% endif %}
+{% endwith %}
 
-    {#
-        FIX 3: Onboarding overlay flash prevention.
+<main class="main-content">
+    {% block content %}{% endblock %}
+</main>
 
-        Previously the overlay was always rendered when the user had no school/programme,
-        then hidden client-side by a JS cookie check — causing a visible flash on every
-        page load after the user had already skipped.
+{% if current_user.is_authenticated %}
+<nav class="bottom-nav" aria-label="Mobile navigation">
+    <a href="{{ url_for('main.index') }}" class="nav-item {% if request.endpoint in ('main.index', 'main.explore', 'main.feed_route') %}active{% endif %}" aria-label="Home">
+        <i class="fas fa-home" aria-hidden="true"></i><span>Home</span>
+    </a>
+    <a href="{{ url_for('main.library') }}" class="nav-item {% if request.endpoint in ('main.library', 'main.library_programme', 'main.library_subject') %}active{% endif %}" aria-label="Library">
+        <i class="fas fa-book-open" aria-hidden="true"></i><span>Library</span>
+    </a>
+    <a href="{{ url_for('posts.create') }}" class="nav-item create" aria-label="Create post">
+        <i class="fas fa-plus" aria-hidden="true"></i>
+    </a>
+    <button class="nav-item" id="bottomNavNotif" aria-label="Notifications" style="background:none;border:none;cursor:pointer;position:relative;">
+        <i class="fas fa-bell" aria-hidden="true"></i>
+        <span class="notif-badge" id="bottomNavBadge" style="top:-2px;right:6px;"></span>
+        <span>Alerts</span>
+    </button>
+    <a href="{{ url_for('users.profile', username=current_user.username) }}" class="nav-item {% if request.endpoint == 'users.profile' %}active{% endif %}" aria-label="Profile">
+        <img src="{{ current_user.profile_picture_url }}" alt="{{ current_user.username }}" class="bottom-nav-avatar">
+        <span>Profile</span>
+    </a>
+</nav>
+{% endif %}
 
-        Now the skip state is tracked server-side in the Flask session via the
-        'education_skipped' key (set by the skip route below), so the overlay is
-        simply not rendered at all when the user has already dismissed it.
-        The JS cookie logic has been removed entirely.
-
-        Required route in your users blueprint (or main blueprint):
-
-            @bp.route('/skip-education', methods=['POST'])
-            @login_required
-            def skip_education():
-                session['education_skipped'] = True
-                return ('', 204)
-
-        And in every route that renders base.html (or via a context processor),
-        pass:  education_skipped = session.get('education_skipped', False)
-        — OR use the session directly in the template as shown below.
-    #}
-    {% if current_user.is_authenticated
-          and not current_user.school
-          and not current_user.programme
-          and not session.get('education_skipped') %}
+{% if current_user.is_authenticated
+      and not current_user.school
+      and not current_user.programme
+      and not current_user.onboarding_skipped %}
     <div class="onboarding-overlay" id="onboardingOverlay">
-        <div class="onboarding-card">
-            <div class="onboarding-icon"><i class="fas fa-graduation-cap"></i></div>
-            <h2>Complete Your Profile</h2>
-            <p>Tell us where you study so you can connect with students from your school!</p>
-            <div class="onboarding-xp-info">
-                <span class="xp-reward"><i class="fas fa-star"></i> Add school: <strong>+10 XP</strong></span>
-                <span class="xp-reward"><i class="fas fa-star"></i> Add programme: <strong>+15 XP</strong></span>
-            </div>
-            <form method="post" action="{{ url_for('users.save_education') }}" class="onboarding-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="onboarding-field">
-                    <label><i class="fas fa-university"></i> School / University <span class="xp-badge">+10 XP</span></label>
-                    <input type="text" id="ob-school-search" placeholder="Search your university..." class="ob-input" autocomplete="off">
-                    <input type="hidden" name="school" id="ob-school-value">
-                    <div class="ob-dropdown" id="ob-school-dropdown"></div>
-                </div>
-                <div class="onboarding-field">
-                    <label><i class="fas fa-book"></i> Programme / Course <span class="xp-badge">+15 XP</span></label>
-                    <input type="text" id="ob-programme-search" placeholder="Search your programme..." class="ob-input" autocomplete="off">
-                    <input type="hidden" name="programme" id="ob-programme-value">
-                    <div class="ob-dropdown" id="ob-programme-dropdown"></div>
-                </div>
-                <button type="submit" class="ob-submit">Save & Continue</button>
-                <button type="button" class="ob-skip" onclick="skipOnboarding()">Skip for now</button>
-            </form>
+    <div class="onboarding-card">
+        <div class="onboarding-icon"><i class="fas fa-graduation-cap" style="background: var(--brand-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i></div>
+        <h2>Complete Your Profile</h2>
+        <p>Tell us where you study so you can connect with students from your school!</p>
+        <div class="onboarding-xp-info">
+            <span class="xp-reward"><i class="fas fa-star"></i> Add school: <strong>+10 XP</strong></span>
+            <span class="xp-reward"><i class="fas fa-star"></i> Add programme: <strong>+15 XP</strong></span>
         </div>
+        <form method="post" action="{{ url_for('users.save_education') }}" class="onboarding-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="onboarding-field">
+                <label><i class="fas fa-university"></i> School / University <span class="xp-badge">+10 XP</span></label>
+                <input type="text" id="ob-school-search" placeholder="Search your university..." class="ob-input" autocomplete="off">
+                <input type="hidden" name="school" id="ob-school-value">
+                <div class="ob-dropdown" id="ob-school-dropdown"></div>
+            </div>
+            <div class="onboarding-field">
+                <label><i class="fas fa-book"></i> Programme / Course <span class="xp-badge">+15 XP</span></label>
+                <input type="text" id="ob-programme-search" placeholder="Search your programme..." class="ob-input" autocomplete="off">
+                <input type="hidden" name="programme" id="ob-programme-value">
+                <div class="ob-dropdown" id="ob-programme-dropdown"></div>
+            </div>
+            <button type="submit" class="ob-submit">Save & Continue</button>
+            <button type="button" class="ob-skip" onclick="skipOnboarding()">Skip for now</button>
+        </form>
     </div>
-    {% endif %}
+</div>
+{% endif %}
 
-    {% if current_user.is_authenticated and show_suggestions %}
-    <div class="onboarding-overlay" id="suggestionOverlay">
-        <div class="onboarding-card">
-            <div class="onboarding-icon"><i class="fas fa-users"></i></div>
-            <h2>People you might know 👋🏽</h2>
-            <p>Connect with students from your school or programme</p>
-            <div class="suggestion-tabs">
-                <button class="ob-tab active" onclick="switchSugTab('school', this)"><i class="fas fa-university"></i> Same School</button>
-                <button class="ob-tab" onclick="switchSugTab('programme', this)"><i class="fas fa-graduation-cap"></i> Same Programme</button>
-                <button class="ob-tab" onclick="switchSugTab('random', this)"><i class="fas fa-random"></i> Discover</button>
-            </div>
-            <div class="sug-list" id="sug-school">
-                {% for u in suggested_users.same_school %}
-                <div class="sug-item">
-                    <img src="{{ u.profile_picture_url }}" class="sug-avatar" alt="{{ u.username }}">
-                    <div class="sug-info"><span class="sug-name">{{ u.full_name or u.username }}</span><span class="sug-meta">{{ u.school }}</span></div>
-                    <form action="{{ url_for('users.follow', username=u.username) }}" method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="ob-submit" style="padding:0.4rem 1rem;font-size:0.8rem;">Follow</button>
-                    </form>
-                </div>
-                {% else %}<p class="sug-empty">No students from your school yet — be the pioneer! 🚀</p>{% endfor %}
-            </div>
-            <div class="sug-list hidden" id="sug-programme">
-                {% for u in suggested_users.same_programme %}
-                <div class="sug-item">
-                    <img src="{{ u.profile_picture_url }}" class="sug-avatar" alt="{{ u.username }}">
-                    <div class="sug-info"><span class="sug-name">{{ u.full_name or u.username }}</span><span class="sug-meta">{{ u.programme }}</span></div>
-                    <form action="{{ url_for('users.follow', username=u.username) }}" method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="ob-submit" style="padding:0.4rem 1rem;font-size:0.8rem;">Follow</button>
-                    </form>
-                </div>
-                {% else %}<p class="sug-empty">No one from your programme yet!</p>{% endfor %}
-            </div>
-            <div class="sug-list hidden" id="sug-random">
-                {% for u in suggested_users.random %}
-                <div class="sug-item">
-                    <img src="{{ u.profile_picture_url }}" class="sug-avatar" alt="{{ u.username }}">
-                    <div class="sug-info"><span class="sug-name">{{ u.full_name or u.username }}</span><span class="sug-meta">@{{ u.username }}</span></div>
-                    <form action="{{ url_for('users.follow', username=u.username) }}" method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="ob-submit" style="padding:0.4rem 1rem;font-size:0.8rem;">Follow</button>
-                    </form>
-                </div>
-                {% endfor %}
-            </div>
-            <button type="button" class="ob-skip" onclick="closeSuggestions()">Maybe later</button>
+{% if current_user.is_authenticated and show_suggestions %}
+<div class="onboarding-overlay" id="suggestionOverlay">
+    <div class="onboarding-card">
+        <div class="onboarding-icon"><i class="fas fa-users"></i></div>
+        <h2>People you might know 👋🏽</h2>
+        <p>Connect with students from your school or programme</p>
+        <div class="suggestion-tabs">
+            <button class="ob-tab active" onclick="switchSugTab('school', this)"><i class="fas fa-university"></i> Same School</button>
+            <button class="ob-tab" onclick="switchSugTab('programme', this)"><i class="fas fa-graduation-cap"></i> Same Programme</button>
+            <button class="ob-tab" onclick="switchSugTab('random', this)"><i class="fas fa-random"></i> Discover</button>
         </div>
+        <div class="sug-list" id="sug-school">
+            {% for u in suggested_users.same_school %}
+            <div class="sug-item">
+                <img src="{{ u.profile_picture_url }}" class="sug-avatar" alt="{{ u.username }}">
+                <div class="sug-info"><span class="sug-name">{{ u.full_name or u.username }}</span><span class="sug-meta">{{ u.school }}</span></div>
+                <form action="{{ url_for('users.follow', username=u.username) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="ob-submit" style="padding:0.4rem 1rem;font-size:0.8rem;">Follow</button>
+                </form>
+            </div>
+            {% else %}<p class="sug-empty">No students from your school yet — be the pioneer! 🚀</p>{% endfor %}
+        </div>
+        <div class="sug-list hidden" id="sug-programme">
+            {% for u in suggested_users.same_programme %}
+            <div class="sug-item">
+                <img src="{{ u.profile_picture_url }}" class="sug-avatar" alt="{{ u.username }}">
+                <div class="sug-info"><span class="sug-name">{{ u.full_name or u.username }}</span><span class="sug-meta">{{ u.programme }}</span></div>
+                <form action="{{ url_for('users.follow', username=u.username) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="ob-submit" style="padding:0.4rem 1rem;font-size:0.8rem;">Follow</button>
+                </form>
+            </div>
+            {% else %}<p class="sug-empty">No one from your programme yet!</p>{% endfor %}
+        </div>
+        <div class="sug-list hidden" id="sug-random">
+            {% for u in suggested_users.random %}
+            <div class="sug-item">
+                <img src="{{ u.profile_picture_url }}" class="sug-avatar" alt="{{ u.username }}">
+                <div class="sug-info"><span class="sug-name">{{ u.full_name or u.username }}</span><span class="sug-meta">@{{ u.username }}</span></div>
+                <form action="{{ url_for('users.follow', username=u.username) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="ob-submit" style="padding:0.4rem 1rem;font-size:0.8rem;">Follow</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="ob-skip" onclick="closeSuggestions()">Maybe later</button>
     </div>
-    {% endif %}
+</div>
+{% endif %}
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script>
-    /* ── DARK MODE ── */
-    function updateDarkToggleUI(theme) {
-        const isDark = theme === 'dark';
-        const icon   = document.getElementById('darkToggleIcon');
-        const label  = document.getElementById('darkToggleLabel');
-        if (icon)  icon.className  = isDark ? 'fas fa-sun toggle-icon' : 'fas fa-moon toggle-icon';
-        if (label) label.textContent = isDark ? 'Light' : 'Dark';
-        const mIcon = document.getElementById('darkToggleIconMobile');
-        if (mIcon) mIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
-    }
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+/* ── PAGE REVEAL ── */
+(function(){
+    document.body.style.opacity = '1';
+})();
 
-    function toggleDarkMode() {
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const next   = isDark ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('edushare-theme', next);
-        updateDarkToggleUI(next);
-    }
+/* ── NAV PROGRESS BAR ── */
+(function(){
+    var bar = document.getElementById('kn-progress');
+    var timer, fillTimer;
 
-    /* Apply saved theme before first paint */
-    (function () {
-        const saved = localStorage.getItem('edushare-theme');
-        if (saved) {
-            document.documentElement.setAttribute('data-theme', saved);
-            updateDarkToggleUI(saved);
-        }
-    })();
-
-    /* ── ONBOARDING SKIP
-       FIX 3: Skip now posts to the server so the session flag is set.
-       The overlay is never rendered on subsequent page loads, eliminating
-       the flash that occurred when the JS cookie check ran after render.
-    ── */
-    function skipOnboarding() {
-        const overlay = document.getElementById('onboardingOverlay');
-        if (overlay) overlay.style.display = 'none';
-
-        /* Persist skip server-side via session so the overlay is not
-           rendered at all on future page loads (no more flash). */
-        fetch('{{ url_for("users.skip_education") }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content,
-                'Content-Type': 'application/json',
-            },
-        }).catch(function() {
-            /* Non-critical: if the request fails the overlay simply
-               reappears next page load, which is acceptable. */
+    function start() {
+        clearTimeout(timer);
+        clearTimeout(fillTimer);
+        bar.classList.remove('kn-pb-done');
+        bar.style.transition = 'width .22s ease, opacity .25s ease';
+        bar.style.width = '0%';
+        requestAnimationFrame(function(){
+            requestAnimationFrame(function(){
+                bar.classList.add('kn-pb-active');
+                bar.style.width = '72%';
+                fillTimer = setTimeout(function(){ bar.style.width = '88%'; }, 1200);
+            });
         });
     }
 
-    /* ── SUGGESTIONS ── */
-    function closeSuggestions() {
-        const el = document.getElementById('suggestionOverlay');
-        if (el) el.style.display = 'none';
+    function finish() {
+        clearTimeout(fillTimer);
+        bar.style.width = '100%';
+        bar.style.transition = 'width .15s ease, opacity .3s ease .12s';
+        timer = setTimeout(function(){
+            bar.classList.remove('kn-pb-active');
+            bar.classList.add('kn-pb-done');
+            setTimeout(function(){
+                bar.classList.remove('kn-pb-done');
+                bar.style.width = '0%';
+            }, 400);
+        }, 150);
     }
-    function switchSugTab(tab, btn) {
-        document.querySelectorAll('.sug-list').forEach(function(el) { el.classList.add('hidden'); });
-        document.querySelectorAll('.ob-tab').forEach(function(el) { el.classList.remove('active'); });
-        document.getElementById('sug-' + tab).classList.remove('hidden');
-        btn.classList.add('active');
-    }
 
-    /* ── PROFILE DROPDOWN (desktop only) ── */
-    (function () {
-        const trigger  = document.getElementById('profileTrigger');
-        const dropdown = document.getElementById('profileDropdown');
-        if (!trigger || !dropdown) return;
-
-        trigger.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const open = dropdown.classList.toggle('open');
-            trigger.setAttribute('aria-expanded', String(open));
-        });
-
-        document.addEventListener('click', function() {
-            if (dropdown.classList.contains('open')) {
-                dropdown.classList.remove('open');
-                trigger.setAttribute('aria-expanded', 'false');
-            }
-        });
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && dropdown.classList.contains('open')) {
-                dropdown.classList.remove('open');
-                trigger.setAttribute('aria-expanded', 'false');
-            }
-        });
-    })();
-
-    /* ── SCROLL SHADOW ── */
-    (function () {
-        const nav = document.getElementById('topNav');
-        if (nav) {
-            window.addEventListener('scroll', function() {
-                nav.classList.toggle('scrolled', window.scrollY > 8);
-            }, { passive: true });
-        }
-    })();
-
-    /* ── FLASH AUTO-DISMISS ── */
-    document.querySelectorAll('.flash').forEach(function(el) {
-        setTimeout(function() {
-            el.style.transition = 'opacity 0.4s, transform 0.4s';
-            el.style.opacity    = '0';
-            el.style.transform  = 'translateX(20px)';
-            setTimeout(function() { el.remove(); }, 420);
-        }, 5000);
+    document.addEventListener('click', function(e){
+        var a = e.target.closest('a');
+        if (!a || !a.href) return;
+        if (a.target === '_blank') return;
+        if (a.protocol !== location.protocol) return;
+        if (a.host !== location.host) return;
+        if (a.pathname === location.pathname && a.hash) return;
+        if (a.href.startsWith('javascript:')) return;
+        start();
     });
 
-    /* ── AUTOCOMPLETE (onboarding)
-       FIX 4: Hidden input is now cleared when the visible text input is
-       emptied, preventing stale values from being submitted.
-    ── */
-    function setupObDropdown(searchId, dropdownId, valueId, items) {
-        const search   = document.getElementById(searchId);
-        const dropdown = document.getElementById(dropdownId);
-        const value    = document.getElementById(valueId);
-        if (!search) return;
+    document.addEventListener('submit', function(){ start(); });
+    window.addEventListener('pageshow', finish);
+})();
+</script>
+<script>
+/* ── DARK MODE ── */
+function updateDarkToggleUI(theme) {
+    const isDark = theme === 'dark';
+    const icon   = document.getElementById('darkToggleIcon');
+    const label  = document.getElementById('darkToggleLabel');
+    if (icon)  icon.className  = isDark ? 'fas fa-sun toggle-icon' : 'fas fa-moon toggle-icon';
+    if (label) label.textContent = isDark ? 'Light' : 'Dark';
+    const mIcon  = document.getElementById('darkToggleIconMobile');
+    const mLabel = document.getElementById('darkToggleLabelMobile');
+    const mPill  = document.getElementById('darkTogglePill');
+    if (mIcon)  mIcon.className   = isDark ? 'fas fa-sun' : 'fas fa-moon';
+    if (mLabel) mLabel.textContent = isDark ? 'Light mode' : 'Dark mode';
+    if (mPill)  mPill.textContent  = isDark ? 'On' : 'Off';
+}
 
-        search.addEventListener('input', function() {
-            const q = this.value.toLowerCase();
+function toggleDarkMode() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const next   = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('knowly-theme', next);
+    updateDarkToggleUI(next);
+}
 
-            /* FIX 4: clear the hidden input whenever the text box is empty */
-            if (!this.value.trim()) {
-                value.value = '';
-                dropdown.classList.remove('open');
-                dropdown.innerHTML = '';
-                return;
-            }
+function skipOnboarding() {
+    const overlay = document.getElementById('onboardingOverlay');
+    if (overlay) overlay.style.display = 'none';
+    fetch('{{ url_for("users.skip_education") }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content,
+            'Content-Type': 'application/json',
+        },
+    }).catch(function() {});
+}
 
-            value.value = this.value;  /* keep in sync while typing */
+/* ── SUGGESTIONS ── */
+function closeSuggestions() {
+    const el = document.getElementById('suggestionOverlay');
+    if (el) el.style.display = 'none';
+}
+function switchSugTab(tab, btn) {
+    document.querySelectorAll('.sug-list').forEach(function(el) { el.classList.add('hidden'); });
+    document.querySelectorAll('.ob-tab').forEach(function(el) { el.classList.remove('active'); });
+    document.getElementById('sug-' + tab).classList.remove('hidden');
+    btn.classList.add('active');
+}
 
-            const filtered = items.filter(function(i) { return i.toLowerCase().includes(q); });
-            dropdown.innerHTML = '';
-            if (filtered.length) {
-                filtered.forEach(function(item) {
-                    const div = document.createElement('div');
-                    div.className = 'ob-dropdown-item';
-                    div.textContent = item;
-                    div.addEventListener('click', function() {
-                        search.value = item;
-                        value.value  = item;
-                        dropdown.classList.remove('open');
-                        dropdown.innerHTML = '';
-                    });
-                    dropdown.appendChild(div);
-                });
-                dropdown.classList.add('open');
-            } else {
-                dropdown.classList.remove('open');
-            }
-        });
+/* ── PROFILE DROPDOWN (desktop only) ── */
+(function () {
+    const trigger  = document.getElementById('profileTrigger');
+    const dropdown = document.getElementById('profileDropdown');
+    if (!trigger || !dropdown) return;
 
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('#' + searchId) && !e.target.closest('#' + dropdownId))
-                dropdown.classList.remove('open');
-        });
+    trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const open = dropdown.classList.toggle('open');
+        trigger.setAttribute('aria-expanded', String(open));
+    });
+
+    document.addEventListener('click', function() {
+        if (dropdown.classList.contains('open')) {
+            dropdown.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && dropdown.classList.contains('open')) {
+            dropdown.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+    });
+})();
+
+/* ── MOBILE SIDEBAR ── */
+function closeMobileMenu() {
+    const btn     = document.getElementById('hamburgerBtn');
+    const menu    = document.getElementById('mobileMenu');
+    const overlay = document.getElementById('mobileMenuOverlay');
+    if (menu)    menu.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+    if (btn)     { btn.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+    document.body.style.overflow = '';
+}
+
+(function () {
+    const btn      = document.getElementById('hamburgerBtn');
+    const menu     = document.getElementById('mobileMenu');
+    const overlay  = document.getElementById('mobileMenuOverlay');
+    const closeBtn = document.getElementById('mobileMenuClose');
+    if (!btn || !menu) return;
+
+    function openMenu() {
+        menu.classList.add('open');
+        if (overlay) overlay.classList.add('open');
+        btn.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
     }
 
-    var GHANA_UNIVERSITIES = [
-        "University of Ghana","KNUST","University of Cape Coast",
-        "University for Development Studies","GIMPA","Ashesi University",
-        "Central University","Valley View University","Methodist University Ghana",
-        "UPSA","GCTU","Accra Technical University","Ho Technical University",
-        "Kumasi Technical University","Takoradi Technical University",
-        "Koforidua Technical University","Sunyani Technical University",
-        "Cape Coast Technical University","Wa Technical University",
-        "Bolgatanga Technical University","University of Health and Allied Sciences",
-        "Ghana Institute of Journalism","NAFTI","Regent University College",
-        "C.K. Tedam University","SD Dombo University","Other"
-    ];
-    var GHANA_PROGRAMMES = [
-        "BSc Computer Science","BSc Information Technology","BSc Computer Engineering",
-        "BSc Electrical Engineering","BSc Mechanical Engineering","BSc Civil Engineering",
-        "BSc Chemical Engineering","BA Economics","BSc Business Administration",
-        "Bsc Packaging Technology",
-        "BSc Accounting","BSc Marketing","BA English","BA History",
-        "BSc Mathematics","BSc Statistics","BSc Physics","BSc Chemistry",
-        "BSc Biology","BSc Biochemistry","BSc Nursing","BSc Pharmacy",
-        "MBChB Medicine and Surgery","LLB Law","BSc Agriculture",
-        "BSc Education","BA Communication Studies","BSc Psychology",
-        "BSc Sociology","BSc Political Science","BSc Architecture",
-        "BSc Quantity Surveying","BSc Land Economy","MBA",
-        "MSc Computer Science","MSc Engineering","Other"
-    ];
+    btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        menu.classList.contains('open') ? closeMobileMenu() : openMenu();
+    });
 
-    setupObDropdown('ob-school-search',    'ob-school-dropdown',    'ob-school-value',    GHANA_UNIVERSITIES);
-    setupObDropdown('ob-programme-search', 'ob-programme-dropdown', 'ob-programme-value', GHANA_PROGRAMMES);
-    </script>
-    {% block extra_js %}{% endblock %}
+    if (closeBtn) closeBtn.addEventListener('click', closeMobileMenu);
+    if (overlay)  overlay.addEventListener('click', closeMobileMenu);
+
+    menu.querySelectorAll('a').forEach(function(a) {
+        a.addEventListener('click', function() { closeMobileMenu(); });
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && menu.classList.contains('open')) closeMobileMenu();
+    });
+})();
+
+/* ── SCROLL SHADOW ── */
+(function () {
+    const nav = document.getElementById('topNav');
+    if (nav) {
+        window.addEventListener('scroll', function() {
+            nav.classList.toggle('scrolled', window.scrollY > 8);
+        }, { passive: true });
+    }
+})();
+
+/* ── FLASH AUTO-DISMISS ── */
+document.querySelectorAll('.flash').forEach(function(el) {
+    setTimeout(function() {
+        el.style.transition = 'opacity 0.4s, transform 0.4s';
+        el.style.opacity    = '0';
+        el.style.transform  = 'translateX(20px)';
+        setTimeout(function() { el.remove(); }, 420);
+    }, 5000);
+});
+
+/* ── AUTOCOMPLETE (onboarding) ── */
+function setupObDropdown(searchId, dropdownId, valueId, items) {
+    const search   = document.getElementById(searchId);
+    const dropdown = document.getElementById(dropdownId);
+    const value    = document.getElementById(valueId);
+    if (!search) return;
+
+    search.addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        if (!this.value.trim()) {
+            value.value = '';
+            dropdown.classList.remove('open');
+            dropdown.innerHTML = '';
+            return;
+        }
+        value.value = this.value;
+        const filtered = items.filter(function(i) { return i.toLowerCase().includes(q); });
+        dropdown.innerHTML = '';
+        if (filtered.length) {
+            filtered.forEach(function(item) {
+                const div = document.createElement('div');
+                div.className = 'ob-dropdown-item';
+                div.textContent = item;
+                div.addEventListener('click', function() {
+                    search.value = item;
+                    value.value  = item;
+                    dropdown.classList.remove('open');
+                    dropdown.innerHTML = '';
+                });
+                dropdown.appendChild(div);
+            });
+            dropdown.classList.add('open');
+        } else {
+            dropdown.classList.remove('open');
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#' + searchId) && !e.target.closest('#' + dropdownId))
+            dropdown.classList.remove('open');
+    });
+}
+
+updateDarkToggleUI(localStorage.getItem('knowly-theme') || 'light');
+
+var GHANA_UNIVERSITIES = [
+    "University of Ghana","KNUST","University of Cape Coast",
+    "University for Development Studies","GIMPA","Ashesi University",
+    "Central University","Valley View University","Methodist University Ghana",
+    "UPSA","GCTU","Accra Technical University","Ho Technical University",
+    "Kumasi Technical University","Takoradi Technical University",
+    "Koforidua Technical University","Sunyani Technical University",
+    "Cape Coast Technical University","Wa Technical University",
+    "Bolgatanga Technical University","University of Health and Allied Sciences",
+    "Ghana Institute of Journalism","NAFTI","Regent University College",
+    "C.K. Tedam University","SD Dombo University","Other"
+];
+var GHANA_PROGRAMMES = [
+    "BSc Computer Science","BSc Information Technology","BSc Computer Engineering",
+    "BSc Electrical Engineering","BSc Mechanical Engineering","BSc Civil Engineering",
+    "BSc Chemical Engineering","BA Economics","BSc Business Administration",
+    "Bsc Packaging Technology",
+    "BSc Accounting","BSc Marketing","BA English","BA History",
+    "BSc Mathematics","BSc Statistics","BSc Physics","BSc Chemistry",
+    "BSc Biology","BSc Biochemistry","BSc Nursing","BSc Pharmacy",
+    "MBChB Medicine and Surgery","LLB Law","BSc Agriculture",
+    "BSc Education","BA Communication Studies","BSc Psychology",
+    "BSc Sociology","BSc Political Science","BSc Architecture",
+    "BSc Quantity Surveying","BSc Land Economy","MBA",
+    "MSc Computer Science","MSc Engineering","Other"
+];
+
+setupObDropdown('ob-school-search',    'ob-school-dropdown',    'ob-school-value',    GHANA_UNIVERSITIES);
+setupObDropdown('ob-programme-search', 'ob-programme-dropdown', 'ob-programme-value', GHANA_PROGRAMMES);
+</script>
+{% block extra_js %}{% endblock %}
+<script>
+(function () {
+  // Collect desktop + mobile bell elements (mobile bell may not exist if logged out)
+  const bells = [
+    {
+      toggle:   document.getElementById('notifToggle'),
+      dropdown: document.getElementById('notifDropdown'),
+      badge:    document.getElementById('notifBadge'),
+      list:     document.getElementById('notifList'),
+      markBtn:  document.getElementById('notifMarkRead'),
+    },
+    {
+      toggle:   document.getElementById('notifToggleMobile'),
+      dropdown: document.getElementById('notifDropdownMobile'),
+      badge:    document.getElementById('notifBadgeMobile'),
+      list:     document.getElementById('notifListMobile'),
+      markBtn:  document.getElementById('notifMarkReadMobile'),
+    },
+  ].filter(b => b.toggle); // only keep entries where the element exists
+
+  if (!bells.length) return;
+
+  const ICONS = {
+    like:          'fa-heart',
+    comment:       'fa-comment',
+    follow:        'fa-user-plus',
+    post_approved: 'fa-check-circle',
+    post_rejected: 'fa-times-circle',
+  };
+
+  function timeAgo(iso) {
+    const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+    if (diff < 60)    return 'just now';
+    if (diff < 3600)  return Math.floor(diff / 60)   + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600)  + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  function notifHTML(notifs) {
+    if (!notifs.length) {
+      return '<div class="notif-empty"><i class="fas fa-bell-slash" style="font-size:1.5rem;margin-bottom:.5rem;display:block;"></i>No notifications yet</div>';
+    }
+    return notifs.map(n => `
+      <a class="notif-item ${n.is_read ? '' : 'unread'}" href="${n.link || '#'}" data-id="${n.id}">
+        <div class="notif-icon ${n.type || 'default'}">
+          <i class="fas ${ICONS[n.type] || 'fa-bell'}"></i>
+        </div>
+        <div>
+          <div class="notif-text">${n.message}</div>
+          <div class="notif-time">${timeAgo(n.created_at)}</div>
+        </div>
+      </a>`).join('');
+  }
+
+  function updateBadge(count) {
+    const label = count > 99 ? '99+' : String(count);
+    const bottomBadge = document.getElementById('bottomNavBadge');
+    bells.forEach(b => {
+      if (!b.badge) return;
+      if (count > 0) { b.badge.textContent = label; b.badge.classList.add('visible'); }
+      else           { b.badge.classList.remove('visible'); }
+    });
+    if (bottomBadge) {
+      if (count > 0) { bottomBadge.textContent = label; bottomBadge.classList.add('visible'); }
+      else           { bottomBadge.classList.remove('visible'); }
+    }
+  }
+
+  function closeAll(except) {
+    bells.forEach(b => {
+      if (b.dropdown === except) return;
+      b.dropdown.classList.remove('open');
+      if (b.toggle) b.toggle.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  async function loadNotifs(listEl) {
+    try {
+      const r    = await fetch('/notifications');
+      const data = await r.json();
+      const html = notifHTML(data);
+      // Render into all open lists simultaneously so both stay in sync
+      bells.forEach(b => { if (b.list) b.list.innerHTML = html; });
+      updateBadge(data.filter(n => !n.is_read).length);
+    } catch(e) {
+      if (listEl) listEl.innerHTML = '<div class="notif-empty">Could not load notifications.</div>';
+    }
+  }
+
+  async function pollUnread() {
+    try {
+      const r    = await fetch('/notifications/unread-count');
+      const data = await r.json();
+      updateBadge(data.count);
+    } catch(e) {}
+  }
+
+  // Wire each bell toggle
+  bells.forEach(b => {
+    b.toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closeAll(b.dropdown);
+      const isOpen = b.dropdown.classList.toggle('open');
+      b.toggle.setAttribute('aria-expanded', String(isOpen));
+      if (isOpen) loadNotifs(b.list);
+    });
+
+    if (b.markBtn) {
+      b.markBtn.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        await fetch('/notifications/mark-read', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+        });
+        updateBadge(0);
+        bells.forEach(bell => {
+          if (bell.list) bell.list.querySelectorAll('.notif-item.unread').forEach(el => el.classList.remove('unread'));
+        });
+      });
+    }
+  });
+
+  // Bottom nav bell — opens the desktop dropdown repositioned above the bottom bar
+  const bottomBell = document.getElementById('bottomNavNotif');
+  if (bottomBell && bells[0]) {
+    bottomBell.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closeAll(bells[0].dropdown);
+      const isOpen = bells[0].dropdown.classList.toggle('open');
+      bells[0].toggle.setAttribute('aria-expanded', String(isOpen));
+      if (isOpen) {
+        loadNotifs(bells[0].list);
+        bells[0].dropdown.style.cssText += ';bottom:4.5rem;top:auto;right:0.5rem;left:auto;';
+      }
+    });
+  }
+
+  // Close on outside click
+  document.addEventListener('click', function (e) {
+    bells.forEach(b => {
+      if (!b.dropdown.contains(e.target) && e.target !== b.toggle) {
+        b.dropdown.classList.remove('open');
+        if (b.toggle) b.toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
+
+  pollUnread();
+  setInterval(pollUnread, 60000);
+})();
+</script>
+{# ── SW update toast ── #}
+<div id="sw-update-toast" style="
+    display:none;position:fixed;bottom:1.25rem;left:50%;transform:translateX(-50%);
+    background:#1e1b4b;border:1px solid #6366f1;border-radius:16px;
+    padding:.8rem 1.1rem;align-items:center;gap:.85rem;
+    box-shadow:0 8px 40px rgba(99,102,241,.35);z-index:10000;
+    font-size:.8rem;color:#e0e7ff;white-space:nowrap;max-width:calc(100vw - 2rem);
+    animation:pwaSlideUp .35s cubic-bezier(.22,1,.36,1);">
+  <span>✨ A new version of knowly is ready.</span>
+  <button id="sw-update-btn" style="
+      background:#6366f1;color:#fff;border:none;border-radius:9px;
+      padding:.4rem .9rem;font-size:.78rem;font-weight:700;cursor:pointer;
+      white-space:nowrap;flex-shrink:0">
+    Refresh
+  </button>
+</div>
+{# ── PWA install prompt ── #}
+<div id="pwa-bar" style="
+    display:none;position:fixed;bottom:1.25rem;left:50%;transform:translateX(-50%);
+    background:#1e1b4b;border:1px solid #6366f1;border-radius:16px;
+    padding:.8rem 1.1rem;align-items:center;gap:.85rem;
+    box-shadow:0 8px 40px rgba(99,102,241,.35);z-index:9999;
+    font-size:.8rem;color:#e0e7ff;white-space:nowrap;max-width:calc(100vw - 2rem);
+    animation:pwaSlideUp .35s cubic-bezier(.22,1,.36,1);">
+  <img src="/static/images/icon-72x72.png"
+       style="width:32px;height:32px;border-radius:8px;flex-shrink:0">
+  <span style="flex:1;min-width:0">
+    Add <strong>knowly</strong> to your home screen
+  </span>
+  <button id="pwa-install-btn" style="
+      background:#6366f1;color:#fff;border:none;border-radius:9px;
+      padding:.4rem .9rem;font-size:.78rem;font-weight:700;cursor:pointer;
+      white-space:nowrap;flex-shrink:0">
+    Install
+  </button>
+  <button id="pwa-dismiss-btn" style="
+      background:none;border:none;color:#818cf8;cursor:pointer;
+      font-size:1.1rem;line-height:1;padding:0 .1rem;flex-shrink:0">
+    ✕
+  </button>
+</div>
+<style>
+  @keyframes pwaSlideUp {
+    from { opacity:0; transform:translateX(-50%) translateY(16px); }
+    to   { opacity:1; transform:translateX(-50%) translateY(0); }
+  }
+</style>
+<script>
+  /* ── Service Worker registration ── */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(reg => {
+          // Check for updates every time the page loads
+          reg.update();
+
+          // A new SW has installed and is waiting to activate
+          reg.addEventListener('updatefound', () => {
+            const newSW = reg.installing;
+            newSW.addEventListener('statechange', () => {
+              if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                _showUpdateToast(reg);
+              }
+            });
+          });
+        })
+        .catch(e => console.warn('[SW] registration failed:', e));
+
+      // Only reload when the user explicitly triggered a SW swap via the toast.
+      // _swUpdateRequested is set to true by the update button before posting SKIP_WAITING.
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (window._swUpdateRequested && !refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    });
+  }
+
+  function _showUpdateToast(reg) {
+    const toast = document.getElementById('sw-update-toast');
+    if (!toast) return;
+    toast.style.display = 'flex';
+    document.getElementById('sw-update-btn').addEventListener('click', () => {
+      toast.style.display = 'none';
+      window._swUpdateRequested = true;
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    });
+  }
+
+  /* ── Install prompt ── */
+  const _pwaBar    = document.getElementById('pwa-bar');
+  let   _pwaPrompt = window._pwaPrompt || null;
+
+  // Don't show install bar if already running as an installed PWA
+  const _isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                     || window.navigator.standalone === true;
+
+  function _showInstallBar() {
+    if (_isStandalone) return;
+    if (_pwaBar && !sessionStorage.getItem('pwa-dismissed')) {
+      _pwaBar.style.display = 'flex';
+    }
+  }
+
+  // In case the event fired before this script ran (captured in <head>)
+  if (_pwaPrompt && !_isStandalone) _showInstallBar();
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _pwaPrompt = e;
+    window._pwaPrompt = e;
+    _showInstallBar();
+  });
+
+  const _installBtn = document.getElementById('pwa-install-btn');
+  const _dismissBtn = document.getElementById('pwa-dismiss-btn');
+
+  if (_installBtn) {
+    _installBtn.addEventListener('click', async () => {
+      if (!_pwaPrompt) return;
+      _pwaPrompt.prompt();
+      const { outcome } = await _pwaPrompt.userChoice;
+      _pwaPrompt = null;
+      window._pwaPrompt = null;
+      if (_pwaBar) _pwaBar.style.display = 'none';
+      if (outcome === 'accepted') sessionStorage.removeItem('pwa-dismissed');
+    });
+  }
+
+  if (_dismissBtn) {
+    _dismissBtn.addEventListener('click', () => {
+      if (_pwaBar) _pwaBar.style.display = 'none';
+      sessionStorage.setItem('pwa-dismissed', '1');
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    if (_pwaBar) _pwaBar.style.display = 'none';
+    sessionStorage.removeItem('pwa-dismissed');
+  });
+</script>
 </body>
 </html>

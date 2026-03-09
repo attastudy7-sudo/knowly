@@ -1,422 +1,396 @@
 {% extends "base.html" %}
-
-{% block title %}{{ title }}{% endblock %}
+{% block title %}Search — knowly{% endblock %}
 
 {% block content %}
-<div class="search-container">
+<div class="home-wrap">
 
-    <!-- Search Header -->
-    <div class="search-header">
-        <div class="header-content">
-            <div class="header-icon-wrapper">
-                <i class="fas fa-search"></i>
-            </div>
-            <div class="header-text">
-                <h1>Search</h1>
-                {% if query %}
-                <p class="search-subtitle">
-                    <i class="fas fa-filter"></i>
-                    Results for "<strong>{{ query }}</strong>"
-                </p>
-                {% else %}
-                <p class="search-subtitle">
-                    <i class="fas fa-compass"></i>
-                    Discover users and posts
-                </p>
-                {% endif %}
-            </div>
-        </div>
+  {# ── SEARCH BAR ── #}
+  <div class="srch-bar-wrap">
+    <form action="{{ url_for('users.search') }}" method="get" id="searchForm">
+      <input type="hidden" name="type" id="typeHidden" value="{{ content_type }}">
+      <input type="hidden" name="subject" id="subjectHidden" value="{{ subject_id or '' }}">
+      <div class="srch-bar" id="searchWrap">
+        <i class="fas fa-search srch-icon"></i>
+        <input type="text" name="q" value="{{ query }}" placeholder="Search posts, users…"
+               id="searchInput" autofocus autocomplete="off" class="srch-input">
+        {% if query %}
+        <a href="{{ url_for('users.search') }}" class="srch-clear">
+          <i class="fas fa-times"></i>
+        </a>
+        {% endif %}
+        <button type="submit" class="srch-btn" id="srchBtn" onmousedown="srchSpinner()" ontouchstart="srchSpinner()">
+          <i class="fas fa-arrow-right srch-btn-arrow"></i>
+          <svg class="srch-ring" viewBox="0 0 38 38" aria-hidden="true">
+            <defs>
+              <linearGradient id="srchGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="100%" stop-color="rgba(255,255,255,.25)"/>
+              </linearGradient>
+            </defs>
+            <circle cx="19" cy="19" r="14" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="2.5"/>
+            <circle cx="19" cy="19" r="14" fill="none" stroke="url(#srchGrad)" stroke-width="2.5"
+              stroke-dasharray="88" stroke-dashoffset="66"
+              stroke-linecap="round" transform="rotate(-90 19 19)"/>
+          </svg>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {% if query %}
+
+  {# ── FILTERS PANEL ── #}
+  <div class="srch-filters home-panel">
+
+    <div class="srch-filter-row">
+      <span class="srch-filter-label">Type</span>
+      <div class="srch-chips">
+        <button onclick="srchGo('type','')" class="chip {% if not content_type %}chip-active{% endif %}">All</button>
+        <button onclick="srchGo('type','notes')" class="chip {% if content_type=='notes' %}chip-active{% endif %}" style="--cc:#10b981">
+          <i class="fas fa-sticky-note"></i> Notes
+        </button>
+        <button onclick="srchGo('type','cheatsheet')" class="chip {% if content_type=='cheatsheet' %}chip-active{% endif %}" style="--cc:#f59e0b">
+          <i class="fas fa-clone"></i> Cheatsheets
+        </button>
+        <button onclick="srchGo('type','quiz')" class="chip {% if content_type=='quiz' %}chip-active{% endif %}" style="--cc:#8b5cf6">
+          <i class="fas fa-brain"></i> Quizzes
+        </button>
+      </div>
     </div>
 
-    <!-- Search Input Bar -->
-    <div class="search-input-section">
-        <form action="{{ url_for('users.search') }}" method="get" class="main-search-form" id="searchForm">
-            <div class="search-input-wrapper">
-                <i class="fas fa-search search-icon-inner"></i>
-                <input
-                    type="text"
-                    name="q"
-                    value="{{ query }}"
-                    placeholder="Search for users, posts, or documents..."
-                    class="main-search-input"
-                    id="searchInput"
-                    autofocus>
-                <button type="submit" class="search-submit-btn" id="searchBtn">
-                    <i class="fas fa-arrow-right"></i>
-                </button>
-            </div>
-        </form>
+    {% if subjects %}
+    <div class="srch-filter-row srch-filter-row--sep">
+      <span class="srch-filter-label">Subject</span>
+      <div class="srch-chips">
+        <button onclick="srchGo('subject',0)" class="chip {% if not subject_id %}chip-active{% endif %}">All</button>
+        {% for s in subjects %}
+        <button onclick="srchGo('subject',{{ s.id }})" class="chip {% if subject_id == s.id %}chip-active{% endif %}" style="--cc:{{ s.color }}">
+          <i class="fas fa-{{ s.icon }}"></i> {{ s.name }}
+        </button>
+        {% endfor %}
+      </div>
     </div>
+    {% endif %}
 
-    <!-- Loading Overlay -->
-    <div class="search-loading-overlay" id="searchLoadingOverlay">
-        <div class="loading-spinner">
-            <div class="spinner"></div>
-            <p>Searching...</p>
-        </div>
-    </div>
+  </div>
 
-    <!-- Users Results -->
-    {% if users %}
-    <div class="search-section">
-        <div class="section-label">
+  {# ── PEOPLE ── #}
+  {% if users %}
+  <div class="srch-section">
+    <div class="home-panel">
+      <div class="panel-head">
+        <div class="panel-head-left">
+          <div class="panel-icon panel-icon-lib">
             <i class="fas fa-users"></i>
-            <span>Users</span>
-            <span class="result-count">{{ users|length }}</span>
+          </div>
+          <div>
+            <h2>People</h2>
+            <p>{{ users|length }} result{% if users|length != 1 %}s{% endif %}</p>
+          </div>
         </div>
-        <div class="users-grid">
-            {% for user in users %}
-            <div class="user-card">
-                <a href="{{ url_for('users.profile', username=user.username) }}" class="user-avatar-link">
-                            <img src="{{ user.profile_picture_url }}"                         alt="{{ user.username }}"
-                         class="user-avatar"
-                         onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
-                </a>
-                <div class="user-info">
-                    <a href="{{ url_for('users.profile', username=user.username) }}" class="user-name">
-                        {{ user.full_name or user.username }}
-                    </a>
-                    <p class="user-username">@{{ user.username }}</p>
-                    {% if user.bio %}
-                        <p class="user-bio">{{ user.bio[:100] }}{% if user.bio|length > 100 %}...{% endif %}</p>
-                    {% endif %}
-                    <div class="user-stats">
-                        <span><i class="fas fa-book"></i> {{ user.posts.count() }}</span>
-                        <span><i class="fas fa-users"></i> {{ user.followers_count() }}</span>
-                    </div>
-                </div>
-                {% if current_user.is_authenticated and current_user.id != user.id %}
-                <div class="user-actions">
-                    {% if current_user.is_following(user) %}
-                    <form action="{{ url_for('users.unfollow', username=user.username) }}" method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-sm btn-secondary">
-                            <i class="fas fa-user-minus"></i> Unfollow
-                        </button>
-                    </form>
-                    {% else %}
-                    <form action="{{ url_for('users.follow', username=user.username) }}" method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-sm btn-primary">
-                            <i class="fas fa-user-plus"></i> Follow
-                        </button>
-                    </form>
-                    {% endif %}
-                </div>
-                {% endif %}
+      </div>
+      <div class="srch-user-list">
+        {% for user in users %}
+        <a href="{{ url_for('users.profile', username=user.username) }}" class="srch-user-row">
+          <img src="{{ user.profile_picture_url }}" alt="{{ user.username }}" class="srch-avatar">
+          <div class="srch-user-info">
+            <span class="srch-user-name">{{ user.full_name or user.username }}</span>
+            <span class="srch-user-meta">
+              @{{ user.username }}{% if user.programme %} · {{ user.programme }}{% endif %}
+            </span>
+          </div>
+          <div class="srch-user-stats">
+            <span><i class="fas fa-file-alt"></i> {{ user.posts.count() }}</span>
+            <span><i class="fas fa-users"></i> {{ user.followers_count() }}</span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── POSTS ── #}
+  {% if posts %}
+  <div class="srch-section">
+    <div class="home-panel">
+      <div class="panel-head">
+        <div class="panel-head-left">
+          <div class="panel-icon panel-icon-fire">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <div>
+            <h2>Posts</h2>
+            <p>{{ posts|length }} result{% if posts|length != 1 %}s{% endif %}</p>
+          </div>
+        </div>
+      </div>
+      <div class="post-list">
+        {% for post in posts %}
+        <a href="{{ url_for('posts.view', post_id=post.id) }}" class="post-row">
+          <div class="post-row-icon" style="background:{{ post.content_type_color }}1a;color:{{ post.content_type_color }}">
+            <i class="fas fa-{{ post.content_type_icon }}"></i>
+          </div>
+          <div class="post-row-body">
+            <p class="post-row-title">{{ post.title }}</p>
+            <div class="post-row-meta">
+              <span class="type-badge" style="background:{{ post.content_type_color }}18;color:{{ post.content_type_color }}">{{ post.content_type_label }}</span>
+              {% if post.subject %}
+              <span class="meta-subject" style="color:{{ post.subject.color }}">
+                <i class="fas fa-{{ post.subject.icon }}"></i> {{ post.subject.name }}
+              </span>
+              {% endif %}
+              <span class="meta-sep">·</span>
+              <span class="meta-stat"><i class="fas fa-heart"></i> {{ post.like_count() }}</span>
+              <span class="meta-sep">·</span>
+              <span class="meta-stat">{{ post.created_at.strftime('%b %d') }}</span>
             </div>
-            {% endfor %}
-        </div>
+          </div>
+          <div class="post-row-right">
+            {% if post.has_document and post.document %}
+              {% if post.document.is_paid %}
+              <span class="badge-paid">GHS {{ "%.0f"|format(post.document.price) }}</span>
+              {% else %}
+              <span class="badge-free">Free</span>
+              {% endif %}
+            {% endif %}
+            <i class="fas fa-chevron-right post-chevron"></i>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
     </div>
-    {% endif %}
+  </div>
+  {% endif %}
 
-    <!-- Posts Results -->
-    {% if posts %}
-    <div class="search-section">
-        <div class="section-label">
-            <i class="fas fa-book"></i>
-            <span>Posts</span>
-            <span class="result-count">{{ posts|length }}</span>
-        </div>
-        <div class="posts-grid">
-            {% for post in posts %}
-            <div class="post-card">
-                <div class="post-header">
-                    <a href="{{ url_for('users.profile', username=post.author.username) }}" class="post-author">
-                        <img src="{{ post.author.profile_picture_url }}"                             alt="{{ post.author.username }}"
-                             class="author-avatar"
-                             onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
-                        <div class="author-info">
-                            <span class="author-name">{{ post.author.full_name or post.author.username }}</span>
-                            <span class="post-time">{{ post.created_at.strftime('%b %d, %Y') }}</span>
-                        </div>
-                    </a>
-                </div>
+  {# ── NO RESULTS ── #}
+  {% if not users and not posts %}
+  <div class="panel-empty" style="padding:3.5rem 1rem;text-align:center;">
+    <i class="fas fa-search" style="font-size:2rem;opacity:.2;display:block;margin-bottom:.75rem;"></i>
+    <p style="color:var(--text-muted,#64748b);font-size:.9rem;">No results for "<strong style="color:var(--text-secondary,#94a3b8)">{{ query }}</strong>". Try different keywords.</p>
+  </div>
+  {% endif %}
 
-                <div class="post-content">
-                    <a href="{{ url_for('posts.view', post_id=post.id) }}" class="post-link">
-                        <h3 class="post-title">{{ post.title }}</h3>
-                        {% if post.description %}
-                            <p class="post-description">{{ post.description[:150] }}{% if post.description|length > 150 %}...{% endif %}</p>
-                        {% endif %}
-                    </a>
+  {% else %}
 
-                    {% if post.has_quiz() %}
-                    <div class="quiz-badge" title="This post has a quiz!">
-                        <i class="fas fa-brain"></i>
-                        <span>Quiz</span>
-                    </div>
-                    {% endif %}
+  {# ── EMPTY STATE ── #}
+  <div class="panel-empty" style="padding:4rem 1rem;text-align:center;">
+    <i class="fas fa-search" style="font-size:2.5rem;opacity:.15;display:block;margin-bottom:.875rem;"></i>
+    <p style="color:var(--text-muted,#64748b);font-size:.9rem;max-width:280px;margin:0 auto;line-height:1.6;">
+      Search for posts, notes, cheatsheets, quizzes or people.
+    </p>
+  </div>
 
-                    {% if post.has_document and post.document %}
-                    <div class="document-badge">
-                        <i class="fas fa-file-{{ post.document.file_type }}"></i>
-                        <span class="doc-filename">{{ post.document.original_filename }}</span>
-                        {% if post.document.is_paid %}
-                            <span class="price-tag">${{ post.document.price }}</span>
-                        {% else %}
-                            <span class="free-tag">Free</span>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                </div>
-
-                <div class="post-actions">
-                    {% if current_user.is_authenticated %}
-                    <button class="action-btn like-btn {% if post.is_liked_by(current_user) %}liked{% endif %}"
-                            data-post-id="{{ post.id }}"
-                            data-liked="{{ 'true' if post.is_liked_by(current_user) else 'false' }}"
-                            data-real-likes="{{ post.like_count() }}"
-                            data-base-likes="{{ ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}"
-                            onclick="toggleLike(this)">
-                        <i class="fas fa-heart"></i>
-                        <span class="like-count">{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
-                    </button>
-                    {% else %}
-                    <span class="action-btn">
-                        <i class="fas fa-heart"></i>
-                        <span>{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
-                    </span>
-                    {% endif %}
-
-                    <a href="{{ url_for('posts.view', post_id=post.id) }}" class="action-btn">
-                        <i class="fas fa-comment"></i>
-                        <span>{{ post.comment_count() }}</span>
-                    </a>
-
-                    {% if post.has_document and post.document %}
-                    <span class="action-btn">
-                        <i class="fas fa-download"></i>
-                        <span>{{ post.document.download_count + ((post.id * 53 + post.created_at.toordinal() * 7) % 320) + 24 }}</span>
-                    </span>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- No Results -->
-    {% if query and not users and not posts %}
-    <div class="empty-state">
-        <div class="empty-icon"><i class="fas fa-search"></i></div>
-        <h2>No results found</h2>
-        <p>Try different keywords or check your spelling</p>
-    </div>
-    {% endif %}
-
-    <!-- Initial state -->
-    {% if not query %}
-    <div class="empty-state">
-        <div class="empty-icon"><i class="fas fa-compass"></i></div>
-        <h2>Start Searching</h2>
-        <p>Enter a keyword above to find users or posts</p>
-    </div>
-    {% endif %}
+  {% endif %}
 
 </div>
 
 <style>
-.search-container { max-width: 1200px; margin: 0 auto; padding: var(--spacing-lg) var(--spacing-md); position: relative; }
-.search-header { margin-bottom: 1.5rem; }
-.header-content { display: flex; align-items: center; gap: 1.25rem; padding: 1.5rem; background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08)); border-radius: 20px; border: 1px solid rgba(102, 126, 234, 0.15); }
-.header-icon-wrapper { width: 60px; height: 60px; background: #667eea; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; color: white; flex-shrink: 0; }
-.header-text h1 { margin: 0 0 0.25rem 0; font-size: 1.75rem; font-weight: 800; color: var(--text-primary); }
-.search-subtitle { display: flex; align-items: center; gap: 0.5rem; margin: 0; color: var(--text-secondary); font-size: 0.95rem; }
-.search-subtitle i { color: #667eea; }
-.search-subtitle strong { color: var(--text-primary); }
-.search-input-section { margin-bottom: 2rem; }
-.main-search-form { width: 100%; max-width: 720px; margin: 0 auto; }
-.search-input-wrapper { display: flex; align-items: center; background: var(--bg-card); border: 2px solid var(--border); border-radius: 50px; padding: 0.35rem 0.35rem 0.35rem 1rem; gap: 0.75rem; transition: border-color 0.25s ease, box-shadow 0.25s ease; }
-.search-input-wrapper:focus-within { border-color: #667eea; box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.12); }
-.search-icon-inner { color: var(--text-muted); font-size: 0.95rem; flex-shrink: 0; pointer-events: none; }
-.main-search-input { flex: 1; border: none; background: transparent; padding: 0.6rem 0; font-size: 1rem; color: var(--text-primary); min-width: 0; }
-.main-search-input:focus { outline: none; }
-.main-search-input::placeholder { color: var(--text-muted); }
-.search-submit-btn { flex-shrink: 0; width: 42px; height: 42px; background: #667eea; color: white; border: none; border-radius: 50%; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s ease, transform 0.2s ease; }
-.search-submit-btn:hover { background: #5a6fd6; transform: scale(1.08); }
-.search-submit-btn:active { transform: scale(0.96); }
-.search-section { margin-bottom: 2.5rem; }
-.section-label { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
-.section-label i { color: #667eea; font-size: 1rem; }
-.section-label span { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
-.result-count { margin-left: auto; background: rgba(102, 126, 234, 0.1); color: #667eea; font-size: 0.8rem !important; font-weight: 700 !important; padding: 0.2rem 0.6rem; border-radius: 50px; }
-.users-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-.user-card { display: flex; align-items: flex-start; gap: 0.875rem; padding: 1rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; transition: box-shadow 0.2s ease, transform 0.2s ease; }
-.user-card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); transform: translateY(-2px); }
-.user-avatar-link { flex-shrink: 0; }
-.user-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
-.user-info { flex: 1; min-width: 0; }
-.user-name { display: block; font-weight: 700; color: var(--text-primary); text-decoration: none; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.user-name:hover { color: #667eea; }
-.user-username { font-size: 0.8rem; color: var(--text-muted); margin: 0.1rem 0 0.4rem; }
-.user-bio { font-size: 0.82rem; color: var(--text-secondary); margin: 0 0 0.5rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.user-stats { display: flex; gap: 0.75rem; font-size: 0.78rem; color: var(--text-muted); }
-.user-stats i { color: #667eea; font-size: 0.75rem; }
-.user-actions { flex-shrink: 0; margin-top: 0.25rem; }
-.posts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.875rem; }
-.post-card { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--primary); border-left: 3px solid var(--primary); padding: 1rem 1.1rem 1rem calc(1.1rem - 2px); display: flex; flex-direction: column; transition: box-shadow 0.2s ease, transform 0.2s ease; overflow: hidden; }
-.post-card::before { display: none !important; content: none !important; }
-.post-card:hover { box-shadow: 0 12px 32px rgba(99, 102, 241, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08); transform: translateY(-4px) scale(1.01); border-color: var(--subject-accent, var(--primary)); border-left-color: var(--subject-accent, var(--primary)); }
-.post-header { margin-bottom: 0.625rem; }
-.post-author { display: flex; align-items: center; gap: 0.55rem; text-decoration: none; }
-.author-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-.author-info { min-width: 0; }
-.author-name { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.post-time { font-size: 0.75rem; color: var(--text-muted); }
-.post-content { margin-bottom: 0.75rem; }
-.post-link { text-decoration: none; display: block; }
-.post-title { font-size: 0.975rem; font-weight: 700; color: var(--text-primary); margin: 0 0 0.375rem 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.post-description { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 0.5rem 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.document-badge { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(102, 126, 234, 0.06); border: 1px solid rgba(102, 126, 234, 0.15); border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary); overflow: hidden; }
-.doc-filename { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+/* ── PANEL HEAD (copied from index.html) ── */
+.home-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.1rem .875rem; border-bottom: 1px solid var(--border-light, rgba(255,255,255,.05)); }
+.panel-head-left { display: flex; align-items: center; gap: .65rem; }
+.panel-icon { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .85rem; }
+.panel-icon-fire { background: rgba(239,68,68,.12); color: #ef4444; }
+.panel-icon-lib  { background: rgba(37,99,235,.12);  color: #2563eb; }
+.panel-head-left h2 { font-family: var(--font-display); font-size: .95rem; font-weight: 800; color: var(--text-primary); letter-spacing: -.02em; margin: 0 0 .05rem; }
+.panel-head-left p  { font-size: .72rem; color: var(--text-muted); margin: 0; }
 
-/* Quiz badge */
-.quiz-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-top: 0.3rem;
-    margin-left: 0.5rem;
-    padding: 0.2rem 0.5rem;
-    background: linear-gradient(135deg, #8b5cf6, #a855f7);
-    color: #fff;
-    border-radius: 6px;
-    width: fit-content;
+/* ── SEARCH BAR ── */
+.srch-bar-wrap { margin-bottom: 1.25rem; }
+.srch-bar {
+  display: flex; align-items: center; gap: .5rem;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: 50px;
+  padding: .35rem .35rem .35rem 1rem;
+  transition: border-color .2s, box-shadow .2s;
 }
-.quiz-badge i {
-    font-size: 0.7rem;
+.srch-bar:focus-within { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.srch-icon { color: var(--text-muted, #64748b); font-size: .9rem; flex-shrink: 0; }
+.srch-input {
+  flex: 1; border: none; background: transparent;
+  color: var(--text-primary);
+  font-size: .95rem; outline: none; padding: .4rem 0;
+  font-family: var(--font-body);
 }
-.price-tag { font-weight: 700; color: #667eea; flex-shrink: 0; }
-.free-tag { font-weight: 700; background-color: #10b981; color: white; padding: 0.1rem 0.4rem; border-radius: 4px; flex-shrink: 0; }
-.post-actions { display: flex; align-items: center; gap: 0.5rem; padding-top: 0.625rem; border-top: 1px solid var(--border-light); margin-top: auto; }
-.action-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.375rem 0.625rem; border-radius: 8px; background: none; border: none; color: var(--text-muted); font-size: 0.825rem; font-weight: 500; cursor: pointer; text-decoration: none; transition: all 0.2s ease; }
-.action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-.action-btn.liked { color: #ef4444; }
-.action-btn.liked i { color: #ef4444; }
-@keyframes heartPop { 0%{transform:scale(1);}50%{transform:scale(1.35);}100%{transform:scale(1);} }
-.action-btn.liked i { animation: heartPop 0.3s ease; }
-.btn { display: inline-flex; align-items: center; gap: 0.4rem; border: none; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s ease; white-space: nowrap; }
-.btn-sm { padding: 0.4rem 0.875rem; font-size: 0.82rem; }
-.btn-primary { background: var(--primary); color: white; }
-.btn-primary:hover { background: var(--primary-dark); }
-.btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); }
-.btn-secondary:hover { background: var(--bg-hover); }
-.empty-state { text-align: center; padding: 4rem 2rem; background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05)); border-radius: 24px; margin: 1rem 0; }
-.empty-icon { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; background: rgba(102, 126, 234, 0.1); border-radius: 50%; }
-.empty-icon i { font-size: 2.5rem; color: #667eea; }
-.empty-state h2 { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
-.empty-state p { font-size: 1rem; color: var(--text-secondary); margin: 0; }
+.srch-input::placeholder { color: var(--text-muted); }
+.srch-clear {
+  color: var(--text-muted, #64748b); padding: .4rem .6rem;
+  font-size: .85rem; text-decoration: none; flex-shrink: 0;
+  transition: color .15s;
+}
+.srch-clear:hover { color: var(--text-primary, #f1f5f9); }
+.srch-btn {
+  flex-shrink: 0; width: 38px; height: 38px;
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  color: white; border: none; border-radius: 50%;
+  font-size: .9rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity .18s, transform .18s;
+  position: relative; overflow: hidden;
+}
+.srch-btn:hover { opacity: .9; transform: scale(1.05); }
 
-/* Loading Overlay */
-.search-loading-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    z-index: 9999;
-    justify-content: center;
-    align-items: center;
+.srch-btn-arrow { transition: opacity .1s; }
+.srch-ring {
+  position: absolute;
+  inset: 0; width: 100%; height: 100%;
+  opacity: 0; pointer-events: none;
+  transform-origin: center;
 }
-.search-loading-overlay.active {
-    display: flex;
+.srch-btn--spin .srch-btn-arrow { opacity: 0; }
+.srch-btn--spin .srch-ring {
+  opacity: 1;
+  animation: srchSpin .65s linear infinite;
 }
-.loading-spinner {
-    text-align: center;
-    color: white;
+@keyframes srchSpin { to { transform: rotate(360deg); } }
+
+/* ── FILTER PANEL ── */
+.srch-filters { margin-bottom: 1.25rem; }
+.srch-filter-row {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .65rem 1.1rem;
 }
-.loading-spinner .spinner {
-    width: 50px;
-    height: 50px;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 1rem;
+.srch-filter-row--sep { border-top: 1px solid var(--border-light, rgba(255,255,255,.05)); }
+.srch-filter-label {
+  font-family: 'Poppins', sans-serif;
+  font-size: .68rem; font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: .04em; text-transform: uppercase;
+  flex-shrink: 0; width: 52px;
 }
-.loading-spinner p {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin: 0;
+.srch-chips {
+  display: flex; gap: .3rem; overflow-x: auto; scrollbar-width: none;
+  padding: .15rem 0;
 }
-@keyframes spin {
-    to { transform: rotate(360deg); }
+.srch-chips::-webkit-scrollbar { display: none; }
+
+/* ── CHIPS (reuse from index) ── */
+.chips-row {
+  display: flex; gap: .35rem; overflow-x: auto;
+  padding: .5rem 0; scrollbar-width: none;
+}
+.chips-row::-webkit-scrollbar { display: none; }
+.chip {
+  display: inline-flex; align-items: center; gap: .25rem;
+  padding: .3rem .65rem; border-radius: 50px; font-size: .72rem;
+  font-weight: 600; background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  color: var(--text-secondary);
+  white-space: nowrap; cursor: pointer; flex-shrink: 0;
+  transition: all .15s; font-family: var(--font-body);
+}
+.chip i { font-size: .62rem; }
+.chip:hover { background: rgba(255,255,255,.06); }
+.chip-active { background: var(--cc, #2563eb) !important; color: white !important; border-color: var(--cc, #2563eb) !important; }
+
+/* ── SECTIONS ── */
+.srch-section { margin-bottom: 1rem; }
+
+/* ── USER ROWS ── */
+.srch-user-list { display: flex; flex-direction: column; }
+.srch-user-row {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .75rem 1.1rem; text-decoration: none;
+  border-bottom: 1px solid var(--border-light, rgba(255,255,255,.04));
+  transition: background .14s;
+}
+.srch-user-row:last-child { border-bottom: none; }
+.srch-user-row:hover { background: var(--bg-hover, rgba(255,255,255,.04)); }
+.srch-avatar {
+  width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+  flex-shrink: 0; border: 2px solid var(--border, #2e3244);
+  transition: border-color .18s;
+}
+.srch-user-row:hover .srch-avatar { border-color: #2563eb; }
+.srch-user-info { flex: 1; min-width: 0; }
+.srch-user-name {
+  display: block; font-family: 'Poppins', sans-serif;
+  font-size: .875rem; font-weight: 700;
+  color: var(--text-primary, #f1f5f9);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.srch-user-meta { font-size: .72rem; color: var(--text-muted, #64748b); }
+.srch-user-stats {
+  display: flex; gap: .75rem; font-size: .72rem;
+  color: var(--text-muted, #64748b); flex-shrink: 0;
+}
+.srch-user-stats i { font-size: .62rem; margin-right: .2rem; }
+
+/* ── POST ROWS (same as index) ── */
+.post-list { display: flex; flex-direction: column; }
+.post-row {
+  display: flex; align-items: center; gap: .875rem;
+  padding: .875rem 1.1rem; text-decoration: none;
+  border-bottom: 1px solid var(--border-light, rgba(255,255,255,.04));
+  transition: background .14s;
+}
+.post-row:last-child { border-bottom: none; }
+.post-row:hover { background: var(--bg-hover, rgba(255,255,255,.04)); }
+.post-row-icon {
+  width: 38px; height: 38px; border-radius: 11px;
+  flex-shrink: 0; display: flex; align-items: center;
+  justify-content: center; font-size: .95rem;
+}
+.post-row-body { flex: 1; min-width: 0; }
+.post-row-title {
+  font-family: 'Poppins', sans-serif; font-size: .875rem; font-weight: 700;
+  color: var(--text-primary, #f1f5f9); letter-spacing: -.02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0 0 .28rem;
+}
+.post-row-meta { display: flex; align-items: center; gap: .28rem; overflow: hidden; }
+.type-badge { font-size: .63rem; font-weight: 700; padding: .1rem .4rem; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
+.meta-subject { font-size: .67rem; font-weight: 600; display: inline-flex; align-items: center; gap: .18rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0; }
+.meta-subject i { font-size: .56rem; flex-shrink: 0; }
+.meta-sep { font-size: .5rem; color: var(--border, #2e3244); flex-shrink: 0; }
+.meta-stat { font-size: .67rem; color: var(--text-muted, #64748b); display: inline-flex; align-items: center; gap: .15rem; white-space: nowrap; flex-shrink: 0; }
+.meta-stat i { font-size: .56rem; }
+.post-row-right { display: flex; align-items: center; gap: .4rem; flex-shrink: 0; }
+.badge-paid { background: rgba(245,158,11,.14); color: #f59e0b; font-weight: 700; font-size: .62rem; padding: .1rem .4rem; border-radius: 4px; white-space: nowrap; }
+.badge-free { background: rgba(16,185,129,.11); color: #10b981; font-weight: 700; font-size: .62rem; padding: .1rem .4rem; border-radius: 4px; white-space: nowrap; }
+.post-chevron { font-size: .58rem; color: var(--text-muted, #64748b); transition: transform .18s, color .18s; }
+.post-row:hover .post-chevron { transform: translateX(2px); color: var(--text-secondary, #94a3b8); }
+
+/* ── ANIMATIONS ── */
+.srch-user-row { animation: fadeUp .2s ease-out both; }
+.srch-user-row:nth-child(2) { animation-delay: .04s; }
+.srch-user-row:nth-child(3) { animation-delay: .08s; }
+.post-row { animation: fadeUp .2s ease-out both; }
+.post-row:nth-child(2) { animation-delay: .04s; }
+.post-row:nth-child(3) { animation-delay: .08s; }
+.post-row:nth-child(4) { animation-delay: .12s; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 1024px) { .users-grid { grid-template-columns: repeat(2, 1fr); } .posts-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) { .search-container { padding: 1rem; } .header-content { padding: 1.25rem; border-radius: 16px; gap: 1rem; } .header-icon-wrapper { width: 50px; height: 50px; font-size: 1.5rem; } .header-text h1 { font-size: 1.375rem; } .search-subtitle { font-size: 0.875rem; } .users-grid { grid-template-columns: 1fr; } .posts-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px) { .header-content { padding: 1rem; } .header-icon-wrapper { width: 45px; height: 45px; font-size: 1.375rem; } .header-text h1 { font-size: 1.25rem; } .posts-grid { grid-template-columns: 1fr; } .search-submit-btn { width: 38px; height: 38px; font-size: 0.9rem; } }
+/* ── MOBILE ── */
+@media (max-width: 480px) {
+  .srch-user-stats { display: none; }
+}
 </style>
 
 <script>
-// Search form loading overlay
-(function() {
-    const form = document.getElementById('searchForm');
-    const overlay = document.getElementById('searchLoadingOverlay');
-    
-    if (form && overlay) {
-        form.addEventListener('submit', function() {
-            const input = document.getElementById('searchInput');
-            if (input && input.value.trim()) {
-                overlay.classList.add('active');
-            }
-        });
-        
-        // Check if page is loading with query
-        window.addEventListener('load', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('q') && urlParams.get('q')) {
-                // Page loaded with search results - hide overlay if present
-                overlay.classList.remove('active');
-            }
-        });
-    }
-})();
-
-async function toggleLike(btn) {
-    if (btn.disabled) return;
-    btn.disabled = true;
-    const postId  = btn.dataset.postId;
-    const isLiked = btn.dataset.liked === 'true';
-    const countEl = btn.querySelector('.like-count');
-    const base    = parseInt(btn.dataset.baseLikes || '0', 10);
-    const newLiked = !isLiked;
-    btn.dataset.liked = newLiked;
-    btn.classList.toggle('liked', newLiked);
-    if (countEl) {
-        const displayed = parseInt(countEl.textContent, 10);
-        countEl.textContent = newLiked ? displayed + 1 : Math.max(base, displayed - 1);
-    }
-    try {
-        const res = await fetch(`/posts/${postId}/like`, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
-            }
-        });
-        if (!res.ok) throw new Error('Like failed');
-        const data = await res.json().catch(() => null);
-        if (data && data.like_count !== undefined && countEl) {
-            countEl.textContent = data.like_count + base;
-        }
-    } catch (e) {
-        btn.dataset.liked = isLiked;
-        btn.classList.toggle('liked', isLiked);
-        if (countEl) {
-            const displayed = parseInt(countEl.textContent, 10);
-            countEl.textContent = isLiked ? displayed + 1 : Math.max(base, displayed - 1);
-        }
-    } finally {
-        btn.disabled = false;
-    }
+// Spinner: triggered on mousedown/touchstart so it paints BEFORE navigation
+function srchSpinner() {
+  const btn = document.getElementById('srchBtn');
+  if (btn) btn.classList.add('srch-btn--spin');
 }
+
+// Filter helpers: show spinner then submit
+function srchGo(field, val) {
+  srchSpinner();
+  if (field === 'type') document.getElementById('typeHidden').value = val;
+  if (field === 'subject') document.getElementById('subjectHidden').value = val || '';
+  setTimeout(function() {
+    document.getElementById('searchForm').submit();
+  }, 80);
+}
+
+// Also show spinner when user presses Enter in the input
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') srchSpinner();
+});
 </script>
 {% endblock %}

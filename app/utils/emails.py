@@ -563,3 +563,68 @@ def send_programme_relevant_post_email(user, post):
     """
     
     return _send_brevo_email(user.email, subject, html_content)
+
+def send_password_reset_email(user, reset_url):
+    """
+    Send a password reset link to the user.
+
+    Args:
+        user:      User object
+        reset_url: Full URL containing the signed reset token
+
+    Returns:
+        bool: True if email was sent successfully
+    """
+    subject = "Reset Your knowly Password"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px;}}
+            .email-container {{background-color: white; max-width: 600px; margin: 0 auto; padding: 20px;
+                border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);}}
+            .header {{background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%); color: white;
+                padding: 24px 20px; text-align: center; border-radius: 8px 8px 0 0;
+                margin: -20px -20px 24px -20px;}}
+            .header h1 {{margin: 0; font-size: 1.4rem;}}
+            .content {{color: #333; line-height: 1.7;}}
+            .reset-box {{background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 8px;
+                padding: 20px; text-align: center; margin: 24px 0;}}
+            .btn {{display: inline-block; background: linear-gradient(135deg, #2563eb, #06b6d4);
+                color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px;
+                font-weight: 700; font-size: 1rem; letter-spacing: .01em;}}
+            .warning {{background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px;
+                padding: 12px 16px; color: #92400e; font-size: .875rem; margin-top: 20px;}}
+            .footer {{margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;
+                color: #666; font-size: .8rem; text-align: center;}}
+        </style>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header"><h1>🔑 Password Reset Request</h1></div>
+            <div class="content">
+                <p>Hi {user.full_name or user.username},</p>
+                <p>We received a request to reset your knowly password. Click the button below to choose a new one:</p>
+                <div class="reset-box">
+                    <a href="{reset_url}" class="btn">Reset My Password</a>
+                </div>
+                <p>Or copy and paste this link into your browser:</p>
+                <p style="word-break:break-all; color:#2563eb; font-size:.85rem;">{reset_url}</p>
+                <div class="warning">
+                    ⚠️ This link expires in <strong>30 minutes</strong>.
+                    If you did not request a password reset, you can safely ignore this email —
+                    your password will not change.
+                </div>
+            </div>
+            <div class="footer">
+                <p>knowly — Empowering Students Through Shared Knowledge</p>
+                <p>You received this email because a password reset was requested for your account.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    return _send_brevo_email(user.email, subject, html_content)

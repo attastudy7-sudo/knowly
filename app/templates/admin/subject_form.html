@@ -1,19 +1,20 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block admin_title %}{{ title }}{% endblock %}
+{% block admin_content %}
 
-{% block content %}
-<div class="create-container">
-    <div class="create-card">
-        <div class="create-header">
-            <h1>
-                <i class="fas fa-{% if subject %}edit{% else %}plus{% endif %}"></i> 
-                {{ title }}
-            </h1>
-            <p>{% if subject %}Edit{% else %}Create a new{% endif %} subject/category for organizing posts</p>
+<div class="adm-header">
+    <div class="adm-header-left">
+        <div class="adm-header-icon"><i class="fas fa-{% if subject %}pen{% else %}plus{% endif %}"></i></div>
+        <div>
+            <p class="adm-header-title">{{ title }}</p>
+            <p class="adm-header-sub">{% if subject %}Editing an existing subject{% else %}Create a new subject/category{% endif %}</p>
         </div>
-        
-        <form method="post" class="create-form" novalidate>
+    </div>
+</div>
+
+<div class="adm-form-card">
+    <form method="post" novalidate>
             {{ form.hidden_tag() }}
             
             <div class="form-group">
@@ -55,7 +56,7 @@
                     <small class="form-hint">Pick a color for this subject</small>
                 </div>
             </div>
-            
+
             <div class="form-row">
                 <div class="form-group">
                     {{ form.order.label }}
@@ -70,6 +71,12 @@
                     {{ form.is_active() }}
                     {{ form.is_active.label }}
                 </div>
+            </div>
+
+            <div class="form-group">
+                {{ form.programme_id.label }}
+                {{ form.programme_id(class="form-control") }}
+                <small class="form-hint">Assign this subject to a programme (optional)</small>
             </div>
             
             {% if subject %}
@@ -90,48 +97,7 @@
     </div>
 </div>
 
-<!-- <style>
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--spacing-md);
-}
-
-@media (max-width: 768px) {
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-}
-
-.preview-card {
-    background: var(--bg-hover);
-    padding: var(--spacing-lg);
-    border-radius: var(--radius-md);
-    margin-bottom: var(--spacing-lg);
-}
-
-.preview-card h3 {
-    margin-bottom: var(--spacing-md);
-    font-size: 1rem;
-}
-
-.subject-preview {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    background: white;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--radius-md);
-    font-weight: 600;
-}
-
-.subject-preview i {
-    font-size: 1.25rem;
-}
-</style> -->
-
 <script>
-// Live preview update
 document.addEventListener('DOMContentLoaded', function() {
     const nameInput = document.getElementById('name');
     const iconInput = document.getElementById('icon');
@@ -144,7 +110,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const name = nameInput.value || 'Subject Name';
         const icon = iconInput.value || 'book';
         const color = colorInput.value || '#6366f1';
-        
         preview.innerHTML = `
             <i class="fas fa-${icon}" style="color: ${color};"></i>
             <span>${name}</span>

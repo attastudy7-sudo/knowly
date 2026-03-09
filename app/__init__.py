@@ -8,6 +8,9 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import json
+import mistune
+
 
 # Initialize extensions (no app yet)
 db = SQLAlchemy()
@@ -64,7 +67,7 @@ def create_app(config_class=Config):
     limiter = Limiter(
         app=app,
         key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"]
+        default_limits=["200 per day", "500 per hour"]
     )
 
     # ── Cloudinary ────────────────────────────────────────────────────────────
@@ -150,6 +153,13 @@ def create_app(config_class=Config):
     from app import routes
     app.register_blueprint(routes.bp)
 
+    from app.internal import routes as internal_routes
+    app.register_blueprint(internal_routes.bp)
+
+    from app.past_papers import routes as past_papers_routes
+    app.register_blueprint(past_papers_routes.bp)
+
+
     # ── Database ──────────────────────────────────────────────────────────────
     with app.app_context():
         try:
@@ -165,6 +175,9 @@ def create_app(config_class=Config):
             return json.loads(value)
         except (json.JSONDecodeError, TypeError):
             return {}
+    
+    app.jinja_env.filters['markdown'] = mistune.html
+    app.jinja_env.filters['fromjson'] = json.loads
     
     register_error_handlers(app)
     register_template_context(app)

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Saved Posts — knowly{% endblock %}
+
+{% block content %}
+<div class="home-wrap">
+
+  <div class="hs-head" style="margin-bottom:1.25rem">
+    <div class="hs-head-left">
+      <i class="fas fa-bookmark" style="color:#2563eb"></i>
+      <div>
+        <h2>Saved Posts</h2>
+        <p>{{ bookmarks.total }} saved resource{% if bookmarks.total != 1 %}s{% endif %}</p>
+      </div>
+    </div>
+    <a href="{{ url_for('main.index') }}" class="hs-see-all">
+      <i class="fas fa-arrow-left"></i> Home
+    </a>
+  </div>
+
+  {% if bookmarks.items %}
+  <div class="home-posts">
+    {% for bookmark in bookmarks.items %}
+    {% set post = bookmark.post %}
+    <div class="hpost-card fade-in" style="--sa:{{ post.subject.color if post.subject else 'var(--primary)' }}">
+      <div class="hpost-meta-row">
+        {% if post.subject %}
+        <span class="hpost-subject" style="color:{{ post.subject.color }}">
+          <i class="fas fa-{{ post.subject.icon }}"></i> {{ post.subject.name }}
+        </span>
+        {% endif %}
+        <span class="hpost-type" style="background:{{ post.content_type_color }}18;color:{{ post.content_type_color }}">
+          <i class="fas fa-{{ post.content_type_icon }}"></i> {{ post.content_type_label }}
+        </span>
+      </div>
+      {# ── Content meta chips ── #}
+        {% if post.content_type == 'quiz' %}
+          {% set qm = post.quiz_card_meta %}
+          {% if qm %}
+            {% if qm.questions %}<span class="meta-chip meta-chip-quiz"><i class="fas fa-list-ol"></i> {{ qm.questions }}q</span>{% endif %}
+            {% if qm.marks %}<span class="meta-chip meta-chip-quiz"><i class="fas fa-star"></i> {{ qm.marks }}pts</span>{% endif %}
+            {% if qm.duration %}<span class="meta-chip meta-chip-quiz"><i class="fas fa-clock"></i> {{ qm.duration }}</span>{% endif %}
+          {% endif %}
+        {% elif post.content_type == 'notes' %}
+          {% set nm = post.notes_card_meta %}
+          {% if nm and nm.read_time %}<span class="meta-chip meta-chip-notes"><i class="fas fa-book-open"></i> {{ nm.read_time }}</span>{% endif %}
+        {% elif post.content_type == 'cheatsheet' %}
+          {% set cm = post.cheatsheet_card_meta %}
+          {% if cm %}
+            {% if cm.formula_count %}<span class="meta-chip meta-chip-sheet"><i class="fas fa-square-root-alt"></i> {{ cm.formula_count }} formula{{ 's' if cm.formula_count != 1 }}</span>{% endif %}
+            {% if cm.definition_count %}<span class="meta-chip meta-chip-sheet"><i class="fas fa-book"></i> {{ cm.definition_count }} def{{ 's' if cm.definition_count != 1 }}</span>{% endif %}
+          {% endif %}
+        {% endif %}
+      <a href="{{ url_for('posts.view', post_id=post.id) }}" class="hpost-link">
+        <h3 class="hpost-title">{{ post.title }}</h3>
+        {% if post.description %}
+        <p class="hpost-desc">{{ post.description[:100] }}{% if post.description|length > 100 %}…{% endif %}</p>
+        {% endif %}
+      </a>
+
+      {% if post.has_document and post.document %}
+      <div class="hpost-doc">
+        <i class="fas fa-file-{{ post.document.file_type }}"></i>
+        <span>{{ post.document.original_filename }}</span>
+        {% if post.document.is_paid %}
+        <span class="hpost-price">GHS {{ "%.2f"|format(post.document.price) }}</span>
+        {% else %}
+        <span class="hpost-free">Free</span>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div class="hpost-footer">
+        <a href="{{ url_for('users.profile', username=post.author.username) }}" class="hpost-author">
+          <img src="{{ post.author.profile_picture_url }}" alt="{{ post.author.username }}" class="hpost-avatar">
+          <span>{{ post.author.full_name or post.author.username }}</span>
+        </a>
+        <div class="hpost-actions">
+          <span class="hpa-btn">
+            <i class="fas fa-heart"></i>
+            <span>{{ post.like_count() }}</span>
+          </span>
+          <button class="hpa-btn bookmark-btn bookmarked"
+                  data-post-id="{{ post.id }}"
+                  onclick="toggleBookmark(this)"
+                  style="color:#2563eb;margin-left:auto">
+            <i class="fas fa-bookmark"></i>
+          </button>
+          <button class="hpa-btn" onclick="sharePost(this,'{{ url_for('posts.view', post_id=post.id, _external=True) }}')">
+            <i class="fas fa-link"></i>
+          </button>
+        </div>
+      </div>
+
+<div class="ks-saved-on">
+        <i class="fas fa-clock"></i> Saved {{ bookmark.created_at.strftime('%b %d, %Y') }}
+      </div>
+          {% endfor %}
+  </div>
+
+  {% if bookmarks.has_next %}
+  <div class="lm-wrap">
+    <a href="{{ url_for('users.bookmarks', page=bookmarks.next_num) }}" class="lm-btn">
+      Load more <i class="fas fa-chevron-down"></i>
+    </a>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="feed-empty">
+    <i class="fas fa-bookmark"></i>
+    <p>No saved posts yet. Tap <i class="fas fa-bookmark"></i> on any post to save it here.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+async function toggleBookmark(btn) {
+  if (btn.disabled) return;
+  btn.disabled = true;
+  const postId = btn.dataset.postId;
+  const icon = btn.querySelector('i');
+  try {
+    const res = await fetch(`/posts/${postId}/bookmark`, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+      }
+    });
+    if (!res.ok) throw new Error();
+    // Remove card from page since it's now unbookmarked
+    const card = btn.closest('.hpost-card');
+    if (card) {
+      card.style.transition = 'opacity .3s, transform .3s';
+      card.style.opacity = '0';
+      card.style.transform = 'translateX(10px)';
+      setTimeout(() => card.remove(), 300);
+    }
+  } catch(e) {
+    btn.disabled = false;
+  }
+}
+
+function sharePost(btn, url) {
+  navigator.clipboard.writeText(url).then(() => {
+    const icon = btn.querySelector('i');
+    icon.className = 'fas fa-check';
+    btn.style.color = '#2563eb';
+    setTimeout(() => { icon.className = 'fas fa-link'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+{% endblock %}

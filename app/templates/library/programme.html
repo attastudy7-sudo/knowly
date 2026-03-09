@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}{{ programme.name }} — Library{% endblock %}
+
+{% block content %}
+<div class="lib-wrap">
+
+  {# ── BREADCRUMB ── #}
+  <nav class="lib-breadcrumb">
+    <a href="{{ url_for('main.library') }}"><i class="fas fa-layer-group"></i> Library</a>
+    <i class="fas fa-chevron-right lib-bc-sep"></i>
+    <span>{{ programme.name }}</span>
+  </nav>
+
+  {# ── PROGRAMME HEADER ── #}
+  <div class="lib-header" style="--ph:{{ programme.color }}">
+    <div class="lib-header-left">
+      <div class="lib-header-icon" style="background:{{ programme.color }}25;border-color:{{ programme.color }}40;color:{{ programme.color }}">
+        <i class="fas fa-{{ programme.icon }}"></i>
+      </div>
+      <div>
+        <h1 class="lib-title">{{ programme.name }}</h1>
+        {% if programme.description %}
+        <p class="lib-subtitle">{{ programme.description[:100] }}{% if programme.description|length > 100 %}…{% endif %}</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="lib-header-stats">
+      <div class="lib-stat">
+        <span class="lib-stat-val">{{ subjects|length }}</span>
+        <span class="lib-stat-lbl">Courses</span>
+      </div>
+    </div>
+  </div>
+
+{# ── COURSES ── #}
+  <section class="lib-section">
+    <div class="lib-section-panel">
+      <div class="lib-section-head">
+        <div class="lib-section-head-left">
+          <div class="lib-section-icon" style="background:rgba(16,185,129,.12);color:#10b981">
+            <i class="fas fa-book"></i>
+          </div>
+          <div>
+            <h2>Courses in this Programme</h2>
+            <p>{{ subjects|length }} subject{% if subjects|length != 1 %}s{% endif %} available</p>
+          </div>
+        </div>
+      </div>
+      {% if subjects %}
+      <div class="course-list">
+        {% for s in subjects %}
+        <a href="{{ url_for('main.library_subject', slug=s.slug) }}" class="course-row" style="--sc:{{ s.color }}">
+          <div class="course-icon" style="background:{{ s.color }}1a;color:{{ s.color }}">
+            <i class="fas fa-{{ s.icon }}"></i>
+          </div>
+          <div class="course-body">
+            <span class="course-name">{{ s.name }}</span>
+            <div class="course-badges">
+              <span class="course-count">{{ s.post_count }} resources</span>
+              {% if counts_by_subject[s.id].notes > 0 %}
+              <span class="ct-pill ct-notes">{{ counts_by_subject[s.id].notes }} notes</span>
+              {% endif %}
+              {% if counts_by_subject[s.id].cheatsheets > 0 %}
+              <span class="ct-pill ct-cheat">{{ counts_by_subject[s.id].cheatsheets }} cheat</span>
+              {% endif %}
+              {% if counts_by_subject[s.id].quizzes > 0 %}
+              <span class="ct-pill ct-quiz">{{ counts_by_subject[s.id].quizzes }} quiz</span>
+              {% endif %}
+            </div>
+          </div>
+          <i class="fas fa-chevron-right course-chevron"></i>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="lib-empty">
+        <i class="fas fa-book-open"></i>
+        <p>No courses available in this programme yet.</p>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+</div>
+
+<style>
+/* ── LAYOUT ── */
+.lib-wrap { max-width: 1160px; margin: 0 auto; padding: 1.5rem 1.25rem 5.5rem; }
+@media (min-width: 1024px) { .lib-wrap { padding: 2rem 2rem 3rem; } }
+
+/* ── BREADCRUMB ── */
+.lib-breadcrumb { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.25rem; font-size: .78rem; font-weight: 600; color: var(--text-muted, #64748b); overflow: hidden; }
+.lib-breadcrumb a { color: #2563eb; text-decoration: none; display: inline-flex; align-items: center; gap: .35rem; transition: color .15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1; }
+.lib-breadcrumb a:first-child { flex-shrink: 0; }
+.lib-breadcrumb a:hover { color: #60a5fa; }
+.lib-breadcrumb span { color: var(--text-secondary, #94a3b8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 2; }
+.lib-bc-sep { flex-shrink: 0; font-size: .55rem; }
+
+/* ── HEADER ── */
+.lib-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap;
+  padding: 1.5rem;
+  background: color-mix(in srgb, var(--ph, #6366f1) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ph, #6366f1) 20%, transparent);
+  border-left: 4px solid var(--ph, #6366f1);
+  border-radius: 22px; margin-bottom: 1.5rem;
+}
+.lib-header-left { display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0; }
+.lib-header-icon { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 1px solid; }
+.lib-title { font-family: 'Nunito', sans-serif; font-size: clamp(1.2rem, 2.5vw, 1.75rem); font-weight: 800; color: var(--text-primary); letter-spacing: -.03em; margin: 0 0 .2rem; line-height: 1.1; }
+.lib-subtitle { font-size: .82rem; color: var(--text-muted); margin: 0; line-height: 1.5; }
+.lib-header-stats { display: flex; align-items: center; gap: .875rem; background: color-mix(in srgb, var(--ph, #6366f1) 12%, transparent); border: 1px solid color-mix(in srgb, var(--ph, #6366f1) 25%, transparent); border-radius: 12px; padding: .6rem .875rem; flex-shrink: 0; }
+.lib-stat { display: flex; flex-direction: column; align-items: center; }
+.lib-stat-val { font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 900; color: var(--text-primary); line-height: 1; }
+.lib-stat-lbl { font-size: .58rem; color: var(--text-muted); font-weight: 600; margin-top: .1rem; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+
+/* ── SECTION PANEL ── */
+.lib-section { margin-bottom: 1.5rem; }
+.lib-section-panel { background: var(--bg-card, #1a1d27); border: 1px solid var(--border, #2e3244); border-radius: 20px; overflow: hidden; }
+
+.lib-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.1rem .875rem;
+  border-bottom: 1px solid var(--border-light, rgba(255,255,255,.05));
+}
+.lib-section-head-left { display: flex; align-items: center; gap: .65rem; }
+.lib-section-icon { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .85rem; }
+.lib-section-head h2 { font-family: 'Nunito', sans-serif; font-size: .95rem; font-weight: 800; color: var(--text-primary, #f1f5f9); letter-spacing: -.02em; margin: 0 0 .05rem; }
+.lib-section-head p  { font-size: .72rem; color: var(--text-muted, #64748b); margin: 0; }
+
+/* ── COURSE LIST ── */
+.course-list { display: flex; flex-direction: column; }
+.course-row {
+  display: flex; align-items: center; gap: .75rem; padding: .75rem 1.1rem;
+  text-decoration: none; border-bottom: 1px solid var(--border-light, rgba(255,255,255,.04));
+  transition: background .14s;
+}
+.course-row:last-child { border-bottom: none; }
+.course-row:hover { background: var(--bg-hover, rgba(255,255,255,.04)); }
+.course-icon { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .82rem; }
+.course-body { flex: 1; min-width: 0; }
+.course-name { display: block; font-family: 'Nunito', sans-serif; font-size: .875rem; font-weight: 700; color: var(--text-primary, #f1f5f9); letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: .2rem; }
+.course-badges { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem; }
+.course-count { font-size: .7rem; color: var(--text-muted, #64748b); font-weight: 500; }
+.course-chevron { font-size: .6rem; color: var(--text-muted, #64748b); flex-shrink: 0; transition: transform .18s, color .18s; }
+.course-row:hover .course-chevron { transform: translateX(2px); color: var(--sc, #2563eb); }
+
+/* Content type pills */
+.ct-pill { display: inline-flex; align-items: center; padding: .1rem .38rem; border-radius: 4px; font-size: .62rem; font-weight: 700; }
+.ct-notes { background: rgba(16,185,129,.14); color: #10b981; }
+.ct-cheat { background: rgba(245,158,11,.14);  color: #f59e0b; }
+.ct-quiz  { background: rgba(139,92,246,.14);  color: #8b5cf6; }
+
+/* ── EMPTY ── */
+.lib-empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted, #64748b); font-size: .875rem; }
+.lib-empty i { font-size: 2rem; opacity: .2; display: block; margin-bottom: .6rem; }
+
+/* ── ANIMATIONS ── */
+.course-row { animation: fadeUp .2s ease-out both; }
+.course-row:nth-child(2) { animation-delay: .04s; }
+.course-row:nth-child(3) { animation-delay: .08s; }
+.course-row:nth-child(4) { animation-delay: .12s; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── MOBILE ── */
+@media (max-width: 480px) {
+  .lib-wrap { padding: 1rem .875rem 5.5rem; }
+  .lib-header { padding: 1.25rem 1rem; border-radius: 18px; }
+  .lib-header-stats { display: none; }
+  .lib-title { font-size: 1.2rem; }
+}
+</style>
+{% endblock %}

@@ -1,520 +1,172 @@
 {% extends "base.html" %}
-
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ user.username }}'s Followers — Knowly{% endblock %}
 
 {% block content %}
-<div class="followers-container">
-    <!-- Enhanced Header -->
-    <div class="followers-header">
-        <div class="header-content">
-            <div class="header-icon-wrapper">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="header-text">
-                <h1>{{ user.username }}'s Followers</h1>
-                <p class="header-subtitle">
-                    <i class="fas fa-user-friends"></i>
-                    {% if followers.items %}
-                        {{ followers.total }} follower{{ 's' if followers.total != 1 else '' }}
-                    {% else %}
-                        No followers yet
-                    {% endif %}
-                </p>
-            </div>
-        </div>
-        <a href="{{ url_for('users.profile', username=user.username) }}" class="back-link">
-            <i class="fas fa-arrow-left"></i>
-            <span>Back to Profile</span>
+<div class="uf-wrap">
+
+  {# ── BACK ── #}
+  <a href="{{ url_for('users.profile', username=user.username) }}" class="uf-back">
+    <i class="fas fa-arrow-left"></i> {{ user.username }}
+  </a>
+
+  {# ── HEADER ── #}
+  <div class="uf-header">
+    <div class="uf-header-icon">
+      <i class="fas fa-users"></i>
+    </div>
+    <div>
+      <h1 class="uf-title">Followers</h1>
+      <p class="uf-subtitle">
+        {% if followers.total %}{{ followers.total }} follower{{ 's' if followers.total != 1 }}{% else %}No followers yet{% endif %}
+      </p>
+    </div>
+  </div>
+
+  {# ── LIST ── #}
+  {% if followers.items %}
+  <div class="lib-section-panel">
+    {% for u in followers.items %}
+    <div class="uf-row">
+      <a href="{{ url_for('users.profile', username=u.username) }}" class="uf-avatar-wrap">
+        <img src="{{ u.profile_picture_url }}" alt="{{ u.username }}" class="uf-avatar"
+             onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
+      </a>
+      <div class="uf-info">
+        <a href="{{ url_for('users.profile', username=u.username) }}" class="uf-name">
+          {{ u.full_name or u.username }}
         </a>
-    </div>
-    
-    {% if followers.items %}
-    <div class="users-grid">
-        {% for follower in followers.items %}
-        <div class="user-card">
-            <a href="{{ url_for('users.profile', username=follower.username) }}" class="user-avatar-link">
-                <img src="{{ follower.profile_picture_url }}" 
-                     alt="{{ follower.username }}"
-                     class="user-avatar"
-                     onerror="this.src='{{ url_for('static', filename='uploads/profiles/default.jpg') }}'">
-            </a>
-            <div class="user-info">
-                <a href="{{ url_for('users.profile', username=follower.username) }}" class="user-name">
-                    {{ follower.full_name or follower.username }}
-                </a>
-                <p class="user-username">@{{ follower.username }}</p>
-                {% if follower.bio %}
-                    <p class="user-bio">{{ follower.bio[:100] }}{% if follower.bio|length > 100 %}...{% endif %}</p>
-                {% endif %}
-                <div class="user-stats">
-                    <span>
-                        <i class="fas fa-book"></i>
-                        {{ follower.posts.count() }} posts
-                    </span>
-                    <span>
-                        <i class="fas fa-users"></i>
-                        {{ follower.followers_count() }} followers
-                    </span>
-                </div>
-            </div>
-            {% if current_user.is_authenticated and current_user.id != follower.id %}
-            <div class="user-actions">
-                {% if current_user.is_following(follower) %}
-                <form action="{{ url_for('users.unfollow', username=follower.username) }}" method="post">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-secondary">
-                        <i class="fas fa-user-minus"></i>
-                        Unfollow
-                    </button>
-                </form>
-                {% else %}
-                <form action="{{ url_for('users.follow', username=follower.username) }}" method="post">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-user-plus"></i>
-                        Follow
-                    </button>
-                </form>
-                {% endif %}
-            </div>
-            {% endif %}
+        <span class="uf-username">@{{ u.username }}</span>
+        {% if u.bio %}
+        <span class="uf-bio">{{ u.bio[:80] }}{% if u.bio|length > 80 %}…{% endif %}</span>
+        {% endif %}
+        <div class="uf-stats">
+          <span><i class="fas fa-file-alt"></i> {{ u.posts.count() }}</span>
+          <span><i class="fas fa-users"></i> {{ u.followers_count() }}</span>
         </div>
-        {% endfor %}
-    </div>
-    
-    <!-- Pagination -->
-    {% if followers.has_prev or followers.has_next %}
-    <div class="pagination">
-        {% if followers.has_prev %}
-            <a href="{{ url_for('users.followers', username=user.username, page=followers.prev_num) }}" class="page-btn">
-                <i class="fas fa-chevron-left"></i>
-                <span>Previous</span>
-            </a>
+      </div>
+      {% if current_user.is_authenticated and current_user.id != u.id %}
+      <div class="uf-action">
+        {% if current_user.is_following(u) %}
+        <form action="{{ url_for('users.unfollow', username=u.username) }}" method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="uf-btn uf-btn-secondary">
+            <i class="fas fa-user-minus"></i><span class="uf-btn-label"> Unfollow</span>
+          </button>
+        </form>
+        {% else %}
+        <form action="{{ url_for('users.follow', username=u.username) }}" method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="uf-btn uf-btn-primary">
+            <i class="fas fa-user-plus"></i><span class="uf-btn-label"> Follow</span>
+          </button>
+        </form>
         {% endif %}
-        
-        <span class="page-info">Page {{ followers.page }} of {{ followers.pages }}</span>
-        
-        {% if followers.has_next %}
-            <a href="{{ url_for('users.followers', username=user.username, page=followers.next_num) }}" class="page-btn">
-                <span>Next</span>
-                <i class="fas fa-chevron-right"></i>
-            </a>
-        {% endif %}
+      </div>
+      {% endif %}
     </div>
+    {% endfor %}
+  </div>
+
+  {# ── PAGINATION ── #}
+  {% if followers.has_prev or followers.has_next %}
+  <div class="uf-pagination">
+    {% if followers.has_prev %}
+    <a href="{{ url_for('users.followers', username=user.username, page=followers.prev_num) }}" class="uf-page-btn">
+      <i class="fas fa-chevron-left"></i> Previous
+    </a>
     {% endif %}
-    
-    {% else %}
-    <div class="empty-state">
-        <div class="empty-icon">
-            <i class="fas fa-user-slash"></i>
-        </div>
-        <h2>No followers yet</h2>
-        <p>{{ user.username }} doesn't have any followers yet.</p>
-        {% if current_user.is_authenticated and current_user.id != user.id %}
-            {% if not current_user.is_following(user) %}
-            <form action="{{ url_for('users.follow', username=user.username) }}" method="post" style="margin-top: 1.5rem;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-user-plus"></i>
-                    Be the first to follow
-                </button>
-            </form>
-            {% endif %}
-        {% endif %}
-    </div>
+    <span class="uf-page-info">{{ followers.page }} / {{ followers.pages }}</span>
+    {% if followers.has_next %}
+    <a href="{{ url_for('users.followers', username=user.username, page=followers.next_num) }}" class="uf-page-btn">
+      Next <i class="fas fa-chevron-right"></i>
+    </a>
     {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  {# ── EMPTY ── #}
+  <div class="uf-empty">
+    <i class="fas fa-user-slash uf-empty-icon"></i>
+    <h2>No followers yet</h2>
+    <p>{{ user.username }} doesn't have any followers yet.</p>
+    {% if current_user.is_authenticated and current_user.id != user.id and not current_user.is_following(user) %}
+    <form action="{{ url_for('users.follow', username=user.username) }}" method="post" style="margin-top:1.25rem">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="uf-btn uf-btn-primary">
+        <i class="fas fa-user-plus"></i> Be the first to follow
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+
 </div>
-
 <style>
-/* Followers Container */
-.followers-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: var(--spacing-lg) var(--spacing-md);
-}
+/* ── WRAP ── */
+.uf-wrap { max-width: 680px; margin: 0 auto; padding: 1.5rem 1.25rem 5.5rem; }
+@media (min-width: 1024px) { .uf-wrap { padding: 2rem 2rem 3rem; } }
 
-/* Enhanced Header - Matches Feed Header */
-.followers-header {
-    margin-bottom: 2rem;
-}
+/* ── BACK ── */
+.uf-back { display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 700; color: var(--text-muted); text-decoration: none; margin-bottom: 1.25rem; padding: .35rem .6rem; border-radius: 8px; transition: background .15s, color .15s; }
+.uf-back:hover { background: var(--bg-hover); color: var(--text-primary); }
+.uf-back i { font-size: .7rem; }
 
-.followers-header .header-content {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
-    border-radius: 20px;
-    border: 1px solid rgba(102, 126, 234, 0.15);
-    margin-bottom: 1rem;
-}
+/* ── HEADER ── */
+.uf-header { display: flex; align-items: center; gap: 1rem; padding: 1.25rem 1.5rem; border-radius: 20px; margin-bottom: 1.5rem; background: rgba(102,126,234,.08); border: 1px solid rgba(102,126,234,.18); border-left: 4px solid #667eea; }
+.uf-header-icon { width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(102,126,234,.15); border: 1px solid rgba(102,126,234,.3); color: #667eea; }
+.uf-title { font-family: 'Poppins', sans-serif; font-size: clamp(1.1rem, 2.5vw, 1.5rem); font-weight: 900; color: var(--text-primary); letter-spacing: -.03em; margin: 0 0 .2rem; line-height: 1.1; }
+.uf-subtitle { font-size: .8rem; color: var(--text-muted); margin: 0; }
 
-.followers-header .header-icon-wrapper {
-    width: 60px;
-    height: 60px;
-    background: #667eea;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.75rem;
-    color: white;
-    flex-shrink: 0;
-}
+/* ── PANEL ── */
+.lib-section-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; margin-bottom: 1.25rem; }
 
-.followers-header .header-text h1 {
-    margin: 0 0 0.25rem 0;
-    font-size: 1.75rem;
-    font-weight: 800;
-    color: var(--text-primary);
-}
+/* ── ROW ── */
+.uf-row { display: flex; align-items: center; gap: .875rem; padding: .875rem 1.1rem; border-bottom: 1px solid var(--border-light, rgba(255,255,255,.04)); transition: background .14s; }
+.uf-row:last-child { border-bottom: none; }
+.uf-row:hover { background: var(--bg-hover, rgba(255,255,255,.04)); }
 
-.header-subtitle {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-}
+/* ── AVATAR ── */
+.uf-avatar-wrap { flex-shrink: 0; }
+.uf-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); display: block; transition: border-color .18s; }
+.uf-row:hover .uf-avatar { border-color: #667eea; }
 
-.header-subtitle i {
-    color: #667eea;
-}
+/* ── INFO ── */
+.uf-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .1rem; }
+.uf-name { font-family: 'Poppins', sans-serif; font-size: .88rem; font-weight: 800; color: var(--text-primary); text-decoration: none; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .15s; }
+.uf-name:hover { color: #667eea; }
+.uf-username { font-size: .72rem; color: var(--text-muted); font-weight: 500; }
+.uf-bio { font-size: .72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: .1rem; }
+.uf-stats { display: flex; gap: .75rem; margin-top: .25rem; }
+.uf-stats span { display: inline-flex; align-items: center; gap: .25rem; font-size: .68rem; color: var(--text-muted); font-weight: 600; }
+.uf-stats i { font-size: .62rem; }
 
-/* Back Link */
-.back-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.625rem;
-    padding: 0.75rem 1.25rem;
-    background: var(--bg-card);
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
+/* ── ACTION ── */
+.uf-action { flex-shrink: 0; }
+.uf-action form { margin: 0; }
+.uf-btn { display: inline-flex; align-items: center; gap: .3rem; padding: .4rem .75rem; border-radius: 8px; font-size: .75rem; font-weight: 700; border: none; cursor: pointer; transition: all .18s; white-space: nowrap; }
+.uf-btn-primary { background: #667eea; color: white; }
+.uf-btn-primary:hover { background: #5a6fd6; transform: translateY(-1px); }
+.uf-btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); }
+.uf-btn-secondary:hover { background: var(--bg-hover); border-color: var(--text-muted); }
 
-.back-link:hover {
-    background: var(--bg-hover);
-    border-color: #667eea;
-    color: #667eea;
-    transform: translateX(-4px);
-}
+/* ── PAGINATION ── */
+.uf-pagination { display: flex; align-items: center; justify-content: center; gap: .75rem; margin-top: 1.25rem; }
+.uf-page-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .5rem 1rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); text-decoration: none; font-size: .8rem; font-weight: 700; transition: all .18s; }
+.uf-page-btn:hover { background: #667eea; border-color: #667eea; color: white; }
+.uf-page-info { font-size: .8rem; color: var(--text-muted); font-weight: 600; }
 
-.back-link i {
-    font-size: 1rem;
-}
+/* ── EMPTY ── */
+.uf-empty { text-align: center; padding: 3rem 1.5rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; }
+.uf-empty-icon { font-size: 2.5rem; color: var(--text-muted); display: block; margin-bottom: 1rem; }
+.uf-empty h2 { font-family: 'Poppins', sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin: 0 0 .4rem; }
+.uf-empty p { font-size: .85rem; color: var(--text-muted); margin: 0; }
 
-/* Users Grid */
-.users-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-/* User Card */
-.user-card {
-    background: var(--bg-card);
-    border-radius: 16px;
-    padding: 1.5rem;
-    border: 1px solid var(--border);
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.user-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-    border-color: rgba(102, 126, 234, 0.3);
-}
-
-.user-avatar-link {
-    display: flex;
-    justify-content: center;
-}
-
-.user-avatar {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid var(--border);
-    transition: all 0.3s ease;
-}
-
-.user-card:hover .user-avatar {
-    border-color: #667eea;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-/* User Info */
-.user-info {
-    text-align: center;
-    flex: 1;
-}
-
-.user-name {
-    display: block;
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    text-decoration: none;
-    margin-bottom: 0.25rem;
-    transition: color 0.3s ease;
-}
-
-.user-name:hover {
-    color: #667eea;
-}
-
-.user-username {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    margin: 0 0 0.75rem 0;
-}
-
-.user-bio {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    line-height: 1.5;
-    margin: 0 0 0.875rem 0;
-}
-
-/* User Stats */
-.user-stats {
-    display: flex;
-    justify-content: center;
-    gap: 1.25rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border);
-    margin-top: 0.75rem;
-}
-
-.user-stats span {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.user-stats i {
-    color: #667eea;
-    font-size: 0.875rem;
-}
-
-/* User Actions */
-.user-actions {
-    display: flex;
-    justify-content: center;
-}
-
-.user-actions form {
-    width: 100%;
-}
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.25rem;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 100%;
-}
-
-.btn i {
-    font-size: 0.95rem;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-}
-
-.btn-secondary {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 2px solid var(--border);
-}
-
-.btn-secondary:hover {
-    background: var(--bg-hover);
-    border-color: var(--text-muted);
-}
-
-/* Pagination */
-.pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    margin: 2rem 0;
-}
-
-.page-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: var(--bg-card);
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    color: var(--text-primary);
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.page-btn:hover {
-    background: #667eea;
-    border-color: #667eea;
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.page-btn i {
-    font-size: 0.875rem;
-}
-
-.page-info {
-    padding: 0.75rem 1.25rem;
-    color: var(--text-secondary);
-    font-weight: 600;
-    font-size: 0.95rem;
-}
-
-/* Enhanced Empty State */
-.empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
-    border-radius: 24px;
-    margin: 2rem 0;
-}
-
-.empty-icon {
-    width: 200px;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 2rem;
-}
-
-.empty-icon i {
-    font-size: 8rem;
-    color: rgb(180, 180, 180);
-}
-
-.empty-state h2 {
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--text-primary);
-    margin-bottom: 0.75rem;
-}
-
-.empty-state p {
-    font-size: 1.125rem;
-    color: var(--text-secondary);
-    margin: 0;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .followers-container {
-        padding: 1rem;
-    }
-
-    .followers-header .header-content {
-        padding: 1.25rem;
-        border-radius: 16px;
-        gap: 1rem;
-    }
-
-    .followers-header .header-icon-wrapper {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-    }
-
-    .followers-header .header-text h1 {
-        font-size: 1.375rem;
-    }
-
-    .header-subtitle {
-        font-size: 0.875rem;
-    }
-
-    .users-grid {
-        grid-template-columns: 1fr;
-        gap: 1.25rem;
-    }
-
-    .empty-icon {
-        width: 150px;
-        height: 150px;
-    }
-
-    .empty-icon i {
-        font-size: 6rem;
-    }
-
-    .empty-state h2 {
-        font-size: 1.5rem;
-    }
-
-    .empty-state p {
-        font-size: 1rem;
-    }
-}
-
+/* ── MOBILE ── */
 @media (max-width: 480px) {
-    .followers-header .header-content {
-        padding: 1rem;
-    }
-
-    .followers-header .header-icon-wrapper {
-        width: 45px;
-        height: 45px;
-        font-size: 1.375rem;
-    }
-
-    .followers-header .header-text h1 {
-        font-size: 1.25rem;
-    }
-
-    .back-link span {
-        display: none;
-    }
-
-    .page-btn span {
-        display: none;
-    }
-
-    .pagination {
-        gap: 0.75rem;
-    }
+  .uf-wrap { padding: 1rem .875rem 5.5rem; }
+  .uf-header { padding: 1rem 1.1rem; border-radius: 16px; }
+  .uf-btn-label { display: none; }
 }
 </style>
 {% endblock %}

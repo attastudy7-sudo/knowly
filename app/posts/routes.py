@@ -20,8 +20,7 @@ from flask_limiter.util import get_remote_address
 from app import db
 from app.posts import bp
 from app.forms import CreatePostForm, CommentForm
-from app.models import Post, Document, Comment, Like, Subject
-
+from app.models import Post, Document, Comment, Like, Subject, Bookmark
 
 # ── Environment detection ─────────────────────────────────────────────────────
 
@@ -333,7 +332,6 @@ def _try_attach_quiz(post, json_bytes: bytes) -> None:
 
 
 # ── Post CRUD ─────────────────────────────────────────────────────────────────
-
 @bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
@@ -342,11 +340,23 @@ def create():
     form.subject.choices = [(0, 'Select a subject (optional)')] + [(s.id, s.name) for s in subjects]
 
     if form.validate_on_submit():
+        # ── Determine content_type ────────────────────────────────────────────
+        # The form now has a content_type SelectField (see forms.py fix below).
+        # We default to 'notes' if the field is absent for backwards-compat.
+        content_type = getattr(form, 'content_type', None)
+        content_type = content_type.data if content_type else 'notes'
+
+        # Guard: reject unknown values that might slip through
+        from app.routes import VALID_CONTENT_TYPES
+        if content_type not in VALID_CONTENT_TYPES:
+            content_type = 'notes'
+
         post = Post(
             title=form.title.data,
             description=form.description.data,
             author=current_user,
             status='pending',
+            content_type=content_type,   # ← explicitly set
         )
 
         if form.subject.data and form.subject.data != 0:
@@ -369,94 +379,58 @@ def create():
                 )
                 if json_file:
                     json_bytes = json_file.read()
-                    json_file.seek(0)   # rewind so upload_document can save it
+                    json_file.seek(0)
                 document = upload_document(file, form, json_file)
                 if document:
+                    db.session.add(post)
                     db.session.add(document)
                     db.session.flush()
                     post.has_document = True
                     post.document_id  = document.id
 
+                    # ── Auto-promote to 'quiz' if a valid quiz sidecar is present
+                    # This covers the edge-case where a user uploads a JSON sidecar
+                    # but forgets (or doesn't know) to select 'quiz' in the UI.
+                    if json_bytes:
+                        from app.services.quiz_service import validate_and_attach_quiz
+                        quiz_data, _ = validate_and_attach_quiz(post, json_bytes)
+                        db.session.refresh(post)   # re-attach after inner commit inside validate_and_attach_quiz
+                        if quiz_data:
+                            try:
+                                import json as _j
+                                _dt = _j.loads(json_bytes).get("document_type", "quiz")
+                                post.content_type = _dt if _dt in ("quiz", "notes", "cheatsheet") else "quiz"
+                            except Exception:
+                                post.content_type = 'quiz'
+
         db.session.add(post)
         db.session.commit()
 
-        if json_bytes and post.document:
-            _try_attach_quiz(post, json_bytes)
-
+        # Streak update on activity is fine at submission time,
+        # but XP is only awarded on approval to prevent spam farming.
         current_user.update_streak()
-        current_user.add_xp(10)
+
+        # ── Auto-approve KnowlyGen posts ──────────────────────────────────────
+        # Posts submitted via the internal generation pipeline (source=generated)
+        # by an admin user are trusted content — skip the moderation queue and
+        # publish immediately, attaching quiz data in the same step.
+        is_generated = request.form.get('source') == 'generated'
+        if is_generated and current_user.is_admin:
+            post.status = 'approved'
+            db.session.commit()
+            on_post_approved(post)
+            flash('Generated post published automatically.', 'success')
+            return redirect(url_for('posts.view', post_id=post.id))
 
         flash(
             'Your post has been submitted and is awaiting admin approval. '
             'It will appear in the feed once reviewed.',
             'info'
         )
-        return redirect(url_for('main.index'))
+        return redirect(url_for('posts.view', post_id=post.id))
 
     return render_template('posts/create.html', title='Create Post', form=form,
                            show_pricing=_pricing_allowed())
-
-
-@bp.route('/<int:post_id>')
-def view(post_id):
-    post = Post.query.get_or_404(post_id)
-
-    if post.status != 'approved':
-        if not current_user.is_authenticated or current_user.id != post.user_id:
-            flash('This post is not available.', 'warning')
-            return redirect(url_for('main.index'))
-
-    comment_form = CommentForm()
-    page = request.args.get('page', 1, type=int)
-    comments = post.comments.order_by(Comment.created_at.desc()).paginate(
-        page=page,
-        per_page=current_app.config['COMMENTS_PER_PAGE'],
-        error_out=False
-    )
-
-    from app.models import QuizData, QuizLeaderboard
-
-    quiz_data = None
-    has_quiz  = False
-    leaderboard_entries = []
-    user_entry          = None
-    total_participants  = 0
-
-    if post.has_document and post.document and post.document.file_type == 'pdf':
-        quiz_data = QuizData.query.filter_by(post_id=post.id).first()
-        has_quiz  = quiz_data is not None
-
-        if has_quiz:
-            leaderboard_entries = (
-                QuizLeaderboard.query
-                .filter_by(post_id=post.id)
-                .order_by(
-                    QuizLeaderboard.score_pct.desc(),
-                    QuizLeaderboard.time_taken.asc(),
-                    QuizLeaderboard.created_at.asc()
-                )
-                .limit(10)
-                .all()
-            )
-            total_participants = QuizLeaderboard.query.filter_by(post_id=post.id).count()
-
-            if current_user.is_authenticated:
-                user_entry = QuizLeaderboard.query.filter_by(
-                    post_id=post.id,
-                    user_id=current_user.id
-                ).first()
-
-    return render_template(
-        'posts/view.html',
-        title=post.title,
-        post=post,
-        comment_form=comment_form,
-        comments=comments,
-        has_quiz=has_quiz,
-        leaderboard_entries=leaderboard_entries,
-        user_entry=user_entry,
-        total_participants=total_participants,
-    )
 
 
 @bp.route('/<int:post_id>/edit', methods=['GET', 'POST'])
@@ -473,14 +447,40 @@ def edit(post_id):
     form.subject.choices = [(0, 'Select a subject (optional)')] + [(s.id, s.name) for s in subjects]
 
     if form.validate_on_submit():
-        post.title            = form.title.data
-        post.description      = form.description.data
-        post.status           = 'pending'
-        post.rejection_reason = None
+        post.title       = form.title.data
+        post.description = form.description.data
+
+        # ── Detect substantive changes that warrant re-moderation ─────────────
+        from app.routes import VALID_CONTENT_TYPES
+        new_content_type = getattr(form, 'content_type', None)
+        content_type_changed = (
+            new_content_type
+            and new_content_type.data in VALID_CONTENT_TYPES
+            and new_content_type.data != post.content_type
+        )
+        if new_content_type and new_content_type.data in VALID_CONTENT_TYPES:
+            post.content_type = new_content_type.data
 
         old_subject_id  = post.subject_id
-        post.subject_id = form.subject.data if (form.subject.data and form.subject.data != 0) else None
+        new_subject_id  = form.subject.data if (form.subject.data and form.subject.data != 0) else None
+        subject_changed = old_subject_id != new_subject_id
+        post.subject_id = new_subject_id
 
+        new_file = form.document.data
+        file_changed = bool(new_file and new_file.filename)
+
+        # Only send back to moderation if something meaningful changed.
+        # Pure title/description edits on an approved post stay approved.
+        if file_changed or content_type_changed or subject_changed:
+            post.status           = 'pending'
+            post.rejection_reason = None
+        elif post.status == 'rejected':
+            # Re-enable rejected posts even on minor edits so the author
+            # can fix a rejection reason and resubmit without uploading a file.
+            post.status           = 'pending'
+            post.rejection_reason = None
+
+            
         if old_subject_id != post.subject_id:
             if old_subject_id:
                 old_sub = db.session.get(Subject, old_subject_id)
@@ -511,7 +511,6 @@ def edit(post_id):
                 final_price   = 0.0
 
         json_bytes = None
-        new_file = form.document.data
 
         if new_file and new_file.filename:
             if not allowed_file(new_file.filename, current_app.config['ALLOWED_DOCUMENT_EXTENSIONS']):
@@ -544,6 +543,19 @@ def edit(post_id):
                 post.has_document = True
                 post.document_id  = document.id
 
+                # ── Auto-promote to 'quiz' if a sidecar is supplied ───────────
+                if json_bytes:
+                    from app.services.quiz_service import validate_and_attach_quiz
+                    quiz_data, _ = validate_and_attach_quiz(post, json_bytes)
+                    db.session.refresh(post)   # re-attach after inner commit inside validate_and_attach_quiz
+                    if quiz_data:
+                        try:
+                            import json as _j2
+                            _dt2 = _j2.loads(json_bytes).get("document_type", "quiz")
+                            post.content_type = _dt2 if _dt2 in ("quiz", "notes", "cheatsheet") else "quiz"
+                        except Exception:
+                            post.content_type = 'quiz'
+
         elif post.document:
             if _pricing_allowed():
                 post.document.is_paid = final_is_paid
@@ -551,11 +563,12 @@ def edit(post_id):
 
         db.session.commit()
 
-        if json_bytes and post.document:
-            _try_attach_quiz(post, json_bytes)
-
-        flash('Your post has been updated and is awaiting re-approval.', 'info')
+        if post.status == 'pending':
+            flash('Your post has been updated and is awaiting re-approval.', 'info')
+        else:
+            flash('Your post has been updated.', 'success')
         return redirect(url_for('posts.view', post_id=post.id))
+
 
     elif request.method == 'GET':
         form.title.data       = post.title
@@ -565,10 +578,134 @@ def edit(post_id):
         if post.document:
             form.is_paid.data = post.document.is_paid
             form.price.data   = post.document.price if post.document.is_paid else None
+        # Pre-fill content_type selector
+        if hasattr(form, 'content_type'):
+            form.content_type.data = post.content_type
 
     return render_template('posts/edit.html', title='Edit Post', form=form,
                            post=post, show_pricing=_pricing_allowed())
 
+@bp.route('/<int:post_id>')
+def view(post_id):
+    post = Post.query.get_or_404(post_id)
+
+    if post.status != 'approved':
+        if not current_user.is_authenticated or current_user.id != post.user_id:
+            flash('This post is not available.', 'warning')
+            return redirect(url_for('main.index'))
+
+    comment_form = CommentForm()
+    page = request.args.get('page', 1, type=int)
+    comments = post.comments.order_by(Comment.created_at.desc()).paginate(
+        page=page,
+        per_page=current_app.config['COMMENTS_PER_PAGE'],
+        error_out=False
+    )
+
+    from app.models import QuizData, QuizLeaderboard
+
+    quiz_data = None
+    has_quiz  = False
+    structured_content = None
+    structured_type    = None
+    leaderboard_entries = []
+    user_entry          = None
+    total_participants  = 0
+    meta               = {}   # always defined; populated below if quiz_data exists
+
+    import json as _json
+    quiz_data = QuizData.query.filter_by(post_id=post.id).first()
+
+    if quiz_data:
+        meta     = _json.loads(quiz_data.meta) if quiz_data.meta else {}
+        doc_type = meta.get("document_type", "") or post.content_type or ""
+
+        if doc_type in ("notes", "cheatsheet"):
+            structured_content = _json.loads(quiz_data.questions)
+            structured_type    = doc_type
+        elif doc_type == "quiz" or not doc_type:
+            has_quiz = True
+    else:
+        # No QuizData row yet. For notes/cheatsheet posts that have a JSON sidecar
+        # (e.g. approved before the pipeline ran, or uploaded directly), attempt to
+        # lazily process and attach the sidecar now so content renders immediately.
+        if post.content_type in ("notes", "cheatsheet") and post.document and post.document.json_sidecar_path:
+            try:
+                from app.services.quiz_service import quiz_from_sidecar
+                quiz_data = quiz_from_sidecar(post)
+                if quiz_data:
+                    meta               = _json.loads(quiz_data.meta) if quiz_data.meta else {}
+                    structured_content = _json.loads(quiz_data.questions)
+                    structured_type    = meta.get("document_type") or post.content_type
+                else:
+                    structured_type = post.content_type
+            except Exception:
+                current_app.logger.exception("Lazy sidecar processing failed for post %s", post.id)
+                structured_type = post.content_type
+        elif post.content_type in ("notes", "cheatsheet"):
+            structured_type = post.content_type
+        elif post.content_type == "quiz":
+            has_quiz = True
+
+    if has_quiz:
+        leaderboard_entries = (
+            QuizLeaderboard.query
+            .filter_by(post_id=post.id, is_public=True)
+            .order_by(
+                QuizLeaderboard.score_pct.desc(),
+                QuizLeaderboard.time_taken.asc(),
+                QuizLeaderboard.created_at.asc()
+            )
+            .limit(10)
+            .all()
+        )
+        total_participants = QuizLeaderboard.query.filter_by(post_id=post.id, is_public=True).count()
+
+        if current_user.is_authenticated:
+            from app.models import QuizAttempt
+            user_entry = (
+                QuizAttempt.query
+                .filter_by(post_id=post.id, user_id=current_user.id)
+                .order_by(
+                    QuizAttempt.score_pct.desc(),
+                    QuizAttempt.time_taken.asc()
+                )
+                .first()
+            )
+
+
+    # ── Pick the right template ───────────────────────────────────────────────
+    _template_map = {
+        'notes':      'posts/view_notes.html',
+        'cheatsheet': 'posts/view_cheatsheet.html',
+        'quiz':       'posts/view_quiz.html',
+    }
+    # has_quiz is True when doc_type is "quiz" or empty — map those to view_quiz
+    if has_quiz:
+        template = 'posts/view_quiz.html'
+    else:
+        template = _template_map.get(structured_type, 'posts/view.html')
+
+    # meta is always a dict (initialised to {} above; populated from quiz_data.meta when present).
+    # quiz_meta is therefore safe to pass to every template regardless of whether quiz_data exists.
+    quiz_meta = meta
+
+
+    return render_template(
+        template,
+        title=post.title,
+        post=post,
+        comment_form=comment_form,
+        comments=comments,
+        has_quiz=has_quiz,
+        quiz_data=quiz_data,
+        quiz_meta=quiz_meta,
+        structured_content=structured_content,
+        structured_type=structured_type,
+        leaderboard_entries=leaderboard_entries,
+        user_entry=user_entry,
+        total_participants=total_participants,
+    )
 
 @bp.route('/<int:post_id>/delete', methods=['POST'])
 @login_required
@@ -599,8 +736,6 @@ def like(post_id):
     if existing_like:
         db.session.delete(existing_like)
         db.session.commit()
-        current_user.update_streak()
-        current_user.add_xp(2)
         liked = False
     else:
         db.session.add(Like(user_id=current_user.id, post_id=post.id))
@@ -608,6 +743,15 @@ def like(post_id):
         current_user.update_streak()
         current_user.add_xp(2)
         liked = True
+        # Notify post author (skip self-likes)
+        if post.author.id != current_user.id:
+            from app.models import create_notification
+            create_notification(
+                user_id=post.author.id,
+                message=f'{current_user.username} liked your post "{post.title[:60]}"',
+                notification_type='like',
+                link=f'/posts/{post.id}',
+            )
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({
@@ -618,6 +762,26 @@ def like(post_id):
     flash('Post liked!' if liked else 'Post unliked.', 'success' if liked else 'info')
     return redirect(request.referrer or url_for('main.index'))
 
+@bp.route('/<int:post_id>/bookmark', methods=['POST'])
+@login_required
+def bookmark(post_id):
+    post = Post.query.get_or_404(post_id)
+    existing = Bookmark.query.filter_by(user_id=current_user.id, post_id=post.id).first()
+
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        bookmarked = False
+    else:
+        db.session.add(Bookmark(user_id=current_user.id, post_id=post.id))
+        db.session.commit()
+        bookmarked = True
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'bookmarked': bookmarked})
+
+    flash('Post saved!' if bookmarked else 'Bookmark removed.', 'success' if bookmarked else 'info')
+    return redirect(request.referrer or url_for('main.index'))
 
 @bp.route('/<int:post_id>/comment', methods=['POST'])
 @login_required
@@ -635,6 +799,15 @@ def comment(post_id):
         current_user.update_streak()
         current_user.add_xp(5)
         flash('Your comment has been posted!', 'success')
+        # Notify post author (skip self-comments)
+        if post.author.id != current_user.id:
+            from app.models import create_notification
+            create_notification(
+                user_id=post.author.id,
+                message=f'{current_user.username} commented on your post "{post.title[:60]}"',
+                notification_type='comment',
+                link=f'/posts/{post.id}',
+            )
 
     return redirect(url_for('posts.view', post_id=post.id))
 
@@ -726,5 +899,3 @@ def proxy_document(document_id):
         return 'Could not fetch file from storage', 502
 
     return Response(body, **kwargs)
-
-

@@ -4,832 +4,783 @@
 
 {% block content %}
 
-<div class="post-view-container">
+<div class="pv-wrap">
 
-    <!-- ── View Header ── -->
-    <div class="view-header">
-        <div class="header-content">
-            <div class="header-icon-wrapper">
-                <i class="fas fa-book-open"></i>
-            </div>
-            <div class="header-text">
-                <h1>Post Details</h1>
-                <p class="header-subtitle">
-                    <i class="fas fa-user-circle"></i>
-                    Shared by <strong>{{ post.author.username }}</strong>
-                </p>
-            </div>
-        </div>
-        <a href="{{ url_for('main.index') }}" class="back-link">
-            <i class="fas fa-arrow-left"></i>
-            <span>Feed</span>
-        </a>
+  {# ── Top bar ── #}
+  <div class="pv-topbar">
+    <a href="{{ url_for('main.index') }}" class="pv-back">
+      <i class="fas fa-arrow-left"></i> Back
+    </a>
+    {% if current_user.is_authenticated and current_user.id == post.user_id %}
+    <div class="pv-owner-actions">
+      <a href="{{ url_for('posts.edit', post_id=post.id) }}" class="pv-action-btn">
+        <i class="fas fa-pen"></i> <span>Edit</span>
+      </a>
+      <form action="{{ url_for('posts.delete', post_id=post.id) }}" method="post"
+            onsubmit="return confirm('Delete this post?');" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="pv-action-btn pv-action-btn--danger">
+          <i class="fas fa-trash"></i>
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ══════════════════════════════════════════════
+     COMPACT POST HEADER — always visible, never scrolls away
+     ══════════════════════════════════════════════ #}
+  <div class="pv-card">
+
+    <div class="pv-card-meta">
+      <span class="pv-type pv-type--{{ post.content_type or 'notes' }}">
+        {% if post.content_type == 'quiz' %}<i class="fas fa-brain"></i> Quiz
+        {% elif post.content_type == 'cheatsheet' %}<i class="fas fa-clone"></i> Cheatsheet
+        {% elif post.content_type == 'mixed' %}<i class="fas fa-layer-group"></i> Mixed
+        {% else %}<i class="fas fa-sticky-note"></i> Notes{% endif %}
+      </span>
+      <span class="pv-date">{{ post.created_at.strftime('%b %d, %Y') }}</span>
     </div>
 
-    <!-- ── Post Detail Card ── -->
-    <div class="post-detail-card">
-        <div class="post-header">
-            <a href="{{ url_for('users.profile', username=post.author.username) }}" class="post-author">
-                <img src="{{ post.author.profile_picture_url }}"
-                     alt="{{ post.author.username }}"
-                     class="author-avatar">
-                <div class="author-info">
-                    <span class="author-name">{{ post.author.full_name or post.author.username }}</span>
-                    <span class="post-time">
-                        <i class="fas fa-clock"></i>
-                        {{ post.created_at.strftime('%B %d, %Y at %I:%M %p') }}
-                    </span>
-                </div>
-            </a>
+    <h1 class="pv-title">{{ post.title }}</h1>
 
-            {% if current_user.is_authenticated and current_user.id == post.user_id %}
-            <div class="post-options">
-                <a href="{{ url_for('posts.edit', post_id=post.id) }}" class="btn btn-sm btn-secondary">
-                    <i class="fas fa-edit"></i> <span class="mobile-hidden">Edit</span>
-                </a>
-                <form action="{{ url_for('posts.delete', post_id=post.id) }}" method="post"
-                      style="display: inline;"
-                      onsubmit="return confirm('Are you sure you want to delete this post?');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-sm btn-danger">
-                        <i class="fas fa-trash"></i> <span class="mobile-hidden">Delete</span>
-                    </button>
-                </form>
-            </div>
-            {% endif %}
+    <div class="pv-header-row">
+      <a href="{{ url_for('users.profile', username=post.author.username) }}" class="pv-author">
+        <img src="{{ post.author.profile_picture_url }}" alt="{{ post.author.username }}" class="pv-avatar">
+        <div class="pv-author-info">
+          <span class="pv-author-name">{{ post.author.full_name or post.author.username }}</span>
+          <span class="pv-author-handle">@{{ post.author.username }}</span>
         </div>
+      </a>
+      {% if post.subject %}
+      <div class="pv-subject" style="--sc: {{ post.subject.color }};">
+        <i class="fas fa-{{ post.subject.icon }}"></i>
+        {{ post.subject.name }}
+      </div>
+      {% endif %}
+    </div>
 
-        <div class="post-body">
-            <h2 class="post-title">{{ post.title }}</h2>
-            {% if post.description %}
-            <div class="post-description prose-content" id="postDescription"
-                 data-raw="{{ post.description | e }}"></div>
-            {% endif %}
+    {# ── Engagement bar ── #}
+    <div class="pv-engage">
+      {% if current_user.is_authenticated %}
+      <button class="pv-engage-btn {% if post.is_liked_by(current_user) %}is-liked{% endif %}"
+              data-post-id="{{ post.id }}"
+              data-liked="{{ 'true' if post.is_liked_by(current_user) else 'false' }}"
+              data-base="{{ ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}"
+              onclick="toggleLike(this)">
+        <i class="fas fa-heart"></i>
+        <span class="like-count">{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
+      </button>
+      {% else %}
+      <span class="pv-engage-btn">
+        <i class="fas fa-heart"></i>
+        <span>{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
+      </span>
+      {% endif %}
+      <button class="pv-engage-btn" onclick="pvSetTab('discussion')" title="Jump to discussion">
+        <i class="fas fa-comment"></i>
+        <span>{{ post.comment_count() }}</span>
+      </button>
+      {% if has_quiz %}
+      <button class="pv-engage-btn" onclick="pvSetTab('leaderboard')" title="View leaderboard">
+        <i class="fas fa-trophy"></i>
+        <span>{{ total_participants }}</span>
+      </button>
+      {% endif %}
+    </div>
 
-            {% if post.subject %}
-            <div class="post-subject-badge" style="--subject-color: {{ post.subject.color }};">
-                <i class="fas fa-{{ post.subject.icon }}"></i>
-                <span>{{ post.subject.name }}</span>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- ── Document Section ── -->
-        {% if post.has_document and post.document %}
-        <div class="document-section">
-            <div class="document-card">
-                <div class="document-icon-wrapper">
-                    <i class="fas fa-file-{{ post.document.file_type }} file-icon"></i>
-                </div>
-                <div class="document-info">
-                    <h3 class="document-title">{{ post.document.original_filename }}</h3>
-                    <div class="document-meta">
-                        <span class="meta-item"><i class="fas fa-tag"></i> {{ post.document.file_type.upper() }}</span>
-                        <span class="meta-item"><i class="fas fa-database"></i> {{ (post.document.file_size / 1024 / 1024)|round(2) }} MB</span>
-                        <span class="meta-item"><i class="fas fa-download"></i> {{ post.document.download_count + ((post.id * 53 + post.created_at.toordinal() * 7) % 320) + 24 }}</span>
-                    </div>
-                </div>
-                <div class="document-badge">
-                    {% if post.document.is_paid %}
-                        <span class="price-badge">GHS {{ post.document.price }}</span>
-                    {% else %}
-                        <span class="free-badge"><i class="fas fa-gift"></i> Free</span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="document-actions">
-                {% if current_user.is_authenticated %}
-                    {% if post.document.has_access(current_user) %}
-                        {% if post.document.file_type in ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'docx', 'pptx', 'doc', 'ppt', 'xlsx', 'xls'] %}
-                        <button onclick="previewDocument()" class="btn btn-secondary">
-                            <i class="fas fa-eye"></i> Preview
-                        </button>
-                        {% endif %}
-                        <a href="{{ url_for('posts.download_document', document_id=post.document.id) }}" class="btn btn-primary">
-                            <i class="fas fa-download"></i> Download
-                        </a>
-                    {% else %}
-                        <a href="{{ url_for('payments.checkout', document_id=post.document.id) }}" class="btn btn-primary">
-                            <i class="fas fa-shopping-cart"></i> Purchase to Download
-                        </a>
-                    {% endif %}
-                    {% if post.has_document and post.document and post.document.file_type == 'pdf' %}
-                        {% if has_quiz %}
-                            {% if post.document.has_access(current_user) %}
-                            <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="btn btn-primary">
-                                <i class="fas fa-brain"></i> Take Quiz
-                            </a>
-                            {% else %}
-                            <span class="quiz-unavailable-badge" title="Purchase the document to access the quiz">
-                                <i class="fas fa-lock"></i> Purchase to Take Quiz
-                            </span>
-                            {% endif %}
-                        {% else %}
-                        <span class="quiz-unavailable-badge" title="This document was uploaded without quiz data">
-                            <i class="fas fa-info-circle"></i> Quiz not available
-                        </span>
-                        {% endif %}
-                    {% endif %}
-                {% else %}
-                <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
-                    <i class="fas fa-sign-in-alt"></i> Log in to Download
-                </a>
-                {% endif %}
-            </div>
-        </div>
+    {# ── TAB BAR — sits at the bottom of the header card ── #}
+    <div class="pv-tabs" id="pvTabs" role="tablist">
+      <button class="pv-tab" id="tab-overview" role="tab"
+              onclick="pvSetTab('overview')" aria-selected="true">
+        <i class="fas fa-file-alt"></i> Overview
+      </button>
+      {% if has_quiz %}
+      <button class="pv-tab" id="tab-leaderboard" role="tab"
+              onclick="pvSetTab('leaderboard')" aria-selected="false">
+        <i class="fas fa-trophy"></i> Leaderboard
+        {% if total_participants > 0 %}
+        <span class="pv-tab-badge">{{ total_participants }}</span>
         {% endif %}
-
-        <!-- ── Actions Bar ── -->
-        <div class="post-actions-bar">
-            {% if current_user.is_authenticated %}
-            <button class="action-btn {% if post.is_liked_by(current_user) %}liked{% endif %}"
-                    data-post-id="{{ post.id }}"
-                    data-liked="{{ 'true' if post.is_liked_by(current_user) else 'false' }}"
-                    data-real-likes="{{ post.like_count() }}"
-                    data-base-likes="{{ ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}"
-                    onclick="toggleLike(this)">
-                <i class="fas fa-heart"></i>
-                <span class="like-count">{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
-            </button>
-            {% else %}
-            <span class="action-btn">
-                <i class="fas fa-heart"></i>
-                <span>{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
-            </span>
-            {% endif %}
-
-            <span class="action-btn">
-                <i class="fas fa-comment"></i>
-                <span>{{ post.comment_count() }} Comments</span>
-            </span>
-        </div>
-    </div>
-
-    <!-- ── Comments Section ── -->
-    <div class="comments-section">
-        <div class="comments-header">
-            <h2><i class="fas fa-comments"></i> Discussion</h2>
-            <span class="comment-count-badge">{{ post.comment_count() }}</span>
-        </div>
-
-        {% if current_user.is_authenticated %}
-        <div class="comment-form-container">
-            <form method="post" action="{{ url_for('posts.comment', post_id=post.id) }}" class="comment-form">
-                {{ comment_form.hidden_tag() }}
-                <img src="{{ current_user.profile_picture_url }}"
-                     alt="{{ current_user.username }}"
-                     class="comment-avatar">
-                <div class="comment-input-group">
-                    {{ comment_form.content(class="comment-input", placeholder="Add to the discussion…") }}
-                    {{ comment_form.submit(class="btn btn-primary") }}
-                </div>
-            </form>
-        </div>
+      </button>
+      {% endif %}
+      <button class="pv-tab" id="tab-discussion" role="tab"
+              onclick="pvSetTab('discussion')" aria-selected="false">
+        <i class="fas fa-comments"></i> Discussion
+      </button>
+      {% if structured_content %}
+      <button class="pv-tab" id="tab-content" role="tab"
+              onclick="pvSetTab('content')" aria-selected="false" aria-controls="panel-content">
+        {% if structured_type == 'notes' %}
+        <i class="fas fa-sticky-note"></i> Notes
         {% else %}
-        <div class="login-prompt">
-            <div class="login-prompt-icon"><i class="fas fa-comment-dots"></i></div>
-            <div>
-                <p><strong>Join the discussion</strong></p>
-                <p><a href="{{ url_for('auth.login') }}">Log in</a> to leave a comment</p>
-            </div>
-        </div>
+        <i class="fas fa-clone"></i> Cheatsheet
         {% endif %}
-
-        <div class="comments-list">
-            {% for comment in comments.items %}
-            <div class="comment">
-                <a href="{{ url_for('users.profile', username=comment.author.username) }}" class="comment-avatar-link">
-                    <img src="{{ comment.author.profile_picture_url }}"
-                         alt="{{ comment.author.username }}"
-                         class="comment-avatar">
-                </a>
-                <div class="comment-content">
-                    <div class="comment-header">
-                        <a href="{{ url_for('users.profile', username=comment.author.username) }}" class="comment-author">
-                            {{ comment.author.full_name or comment.author.username }}
-                        </a>
-                        <span class="comment-time">{{ comment.created_at.strftime('%b %d, %Y') }}</span>
-                    </div>
-                    <p class="comment-text">{{ comment.content }}</p>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        {% if comments.has_prev or comments.has_next %}
-        <div class="pagination">
-            {% if comments.has_prev %}
-                <a href="{{ url_for('posts.view', post_id=post.id, page=comments.prev_num) }}" class="page-btn">
-                    <i class="fas fa-chevron-left"></i> <span>Previous</span>
-                </a>
-            {% endif %}
-            <span class="page-info">{{ comments.page }} / {{ comments.pages }}</span>
-            {% if comments.has_next %}
-                <a href="{{ url_for('posts.view', post_id=post.id, page=comments.next_num) }}" class="page-btn">
-                    <span>Next</span> <i class="fas fa-chevron-right"></i>
-                </a>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        {% if not comments.items %}
-        <div class="empty-comments">
-            <div class="empty-icon"><i class="fas fa-comment-medical"></i></div>
-            <h3>Start the conversation</h3>
-            <p>Be the first to share your thoughts on this post.</p>
-        </div>
-        {% endif %}
+      </button>
+      {% endif %}
     </div>
 
-    {% if has_quiz %}
-    <div class="lb-section" id="leaderboard">
+  </div>{# /pv-card #}
 
-        <div class="lb-header">
-            <div class="lb-header-left">
-                <div class="lb-header-icon">
-                    <i class="fas fa-trophy"></i>
-                </div>
-                <div>
-                    <h2 class="lb-title">Quiz Leaderboard</h2>
-                    <p class="lb-subtitle">{{ post.title }}</p>
-                </div>
-            </div>
-            <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="lb-quiz-btn">
-                {% if user_entry %}
-                <i class="fas fa-redo"></i> Retake Quiz
-                {% else %}
-                <i class="fas fa-play"></i> Take Quiz
-                {% endif %}
-            </a>
-        </div>
+  {# ══════════════════════════════════════════════
+     TAB PANEL: OVERVIEW  (description + doc + quiz CTA)
+     ══════════════════════════════════════════════ #}
+  <div class="pv-panel" id="panel-overview" role="tabpanel">
 
-        <div class="lb-stats">
-            <div class="lb-stat">
-                <span class="lb-stat-value">{{ total_participants }}</span>
-                <span class="lb-stat-label"><i class="fas fa-users"></i> Participants</span>
-            </div>
-            {% if user_entry %}
-            <div class="lb-stat lb-stat--divider"></div>
-            <div class="lb-stat">
-                <span class="lb-stat-value lb-stat-value--score
-                    {% if user_entry.score_pct >= 80 %}lb-stat-value--green
-                    {% elif user_entry.score_pct >= 60 %}lb-stat-value--blue
-                    {% elif user_entry.score_pct >= 40 %}lb-stat-value--amber
-                    {% else %}lb-stat-value--red{% endif %}">
-                    {{ "%.0f"|format(user_entry.score_pct) }}%
-                </span>
-                <span class="lb-stat-label"><i class="fas fa-bullseye"></i> Your Score</span>
-            </div>
-            <div class="lb-stat lb-stat--divider"></div>
-            <div class="lb-stat">
-                <span class="lb-stat-value lb-stat-value--xp">+{{ user_entry.xp_earned }}</span>
-                <span class="lb-stat-label"><i class="fas fa-star"></i> XP Earned</span>
-            </div>
-            <div class="lb-stat lb-stat--divider"></div>
-            <div class="lb-stat">
-                <span class="lb-stat-value">
-                    {% if user_entry.time_taken < 60 %}{{ user_entry.time_taken }}s
-                    {% else %}{{ (user_entry.time_taken / 60)|int }}m {{ user_entry.time_taken % 60 }}s{% endif %}
-                </span>
-                <span class="lb-stat-label"><i class="fas fa-clock"></i> Your Time</span>
-            </div>
-            {% endif %}
-        </div>
-
-        {% if leaderboard_entries %}
-        <div class="lb-list">
-            {% for entry in leaderboard_entries %}
-            <div class="lb-row
-                {% if loop.index == 1 %}lb-row--gold
-                {% elif loop.index == 2 %}lb-row--silver
-                {% elif loop.index == 3 %}lb-row--bronze
-                {% endif %}
-                {% if current_user.is_authenticated and entry.user_id == current_user.id %}lb-row--me{% endif %}"
-                style="animation-delay: {{ (loop.index0 * 0.055) }}s;">
-
-                <div class="lb-rank">
-                    {% if loop.index == 1 %}
-                        <span class="lb-medal lb-medal--gold"><i class="fas fa-trophy"></i></span>
-                    {% elif loop.index == 2 %}
-                        <span class="lb-medal lb-medal--silver"><i class="fas fa-medal"></i></span>
-                    {% elif loop.index == 3 %}
-                        <span class="lb-medal lb-medal--bronze"><i class="fas fa-medal"></i></span>
-                    {% else %}
-                        <span class="lb-rank-num">#{{ loop.index }}</span>
-                    {% endif %}
-                </div>
-
-                <a href="{{ url_for('users.profile', username=entry.user.username) }}" class="lb-user">
-                    <img src="{{ entry.user.profile_picture_url }}" alt="{{ entry.user.username }}" class="lb-avatar">
-                    <div class="lb-user-info">
-                        <span class="lb-username">
-                            {{ entry.user.full_name or entry.user.username }}
-                            {% if current_user.is_authenticated and entry.user_id == current_user.id %}
-                            <span class="lb-you-tag">You</span>
-                            {% endif %}
-                        </span>
-                        <span class="lb-handle">@{{ entry.user.username }}</span>
-                    </div>
-                </a>
-
-                <div class="lb-score-wrap">
-                    <div class="lb-score-bar-track">
-                        <div class="lb-score-bar-fill"
-                             style="width: {{ entry.score_pct }}%;
-                                    --bar-color: {% if entry.score_pct >= 80 %}#10b981
-                                    {% elif entry.score_pct >= 60 %}#6366f1
-                                    {% elif entry.score_pct >= 40 %}#f59e0b
-                                    {% else %}#ef4444{% endif %};">
-                        </div>
-                    </div>
-                    <span class="lb-score-pct
-                        {% if entry.score_pct >= 80 %}lb-pct--green
-                        {% elif entry.score_pct >= 60 %}lb-pct--blue
-                        {% elif entry.score_pct >= 40 %}lb-pct--amber
-                        {% else %}lb-pct--red{% endif %}">
-                        {{ "%.0f"|format(entry.score_pct) }}%
-                    </span>
-                </div>
-
-                <div class="lb-time">
-                    <i class="fas fa-clock"></i>
-                    {% if entry.time_taken < 60 %}{{ entry.time_taken }}s
-                    {% else %}{{ (entry.time_taken / 60)|int }}m {{ entry.time_taken % 60 }}s{% endif %}
-                </div>
-
-                <div class="lb-xp">
-                    <i class="fas fa-star"></i>
-                    +{{ entry.xp_earned }}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <div class="lb-cta">
-            {% if not user_entry %}
-            <p class="lb-cta-text">You haven't taken this quiz yet. Challenge yourself!</p>
-            <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="lb-cta-btn lb-cta-btn--primary">
-                <i class="fas fa-play"></i> Take the Quiz
-            </a>
-            {% else %}
-            <p class="lb-cta-text">Think you can do better? Give it another shot.</p>
-            <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="lb-cta-btn lb-cta-btn--ghost">
-                <i class="fas fa-redo"></i> Retake &amp; Improve
-            </a>
-            {% endif %}
-        </div>
-
-        {% else %}
-        <div class="lb-empty">
-            <div class="lb-empty-icon"><i class="fas fa-flag-checkered"></i></div>
-            <h3 class="lb-empty-title">No attempts yet</h3>
-            <p class="lb-empty-text">Be the first to take the quiz and claim the top spot!</p>
-            <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="lb-cta-btn lb-cta-btn--primary">
-                <i class="fas fa-play"></i> Take the Quiz
-            </a>
-        </div>
-        {% endif %}
-
+    {# ── Description — truncated with show more ── #}
+    {% if post.description %}
+    <div class="pv-panel-block">
+      <div class="pv-panel-block-label"><i class="fas fa-align-left"></i> About this post</div>
+      <div class="pv-desc-wrap">
+        <div class="pv-desc prose-content pv-desc--clamped" id="postDescription" data-raw="{{ post.description | e }}"></div>
+        <button class="pv-show-more" id="pvShowMore" onclick="pvToggleDesc(this)" aria-expanded="false">
+          Show more <i class="fas fa-chevron-down"></i>
+        </button>
+      </div>
     </div>
     {% endif %}
 
-</div>
-
-<!-- ── Preview Modal ── -->
-<div id="previewModal" class="preview-modal">
-    <div class="preview-modal-content">
-        <div class="preview-header">
-            <div class="preview-title">
-                <i class="fas fa-eye"></i>
-                <h3>{{ post.document.original_filename if post.has_document and post.document else 'Document Preview' }}</h3>
-            </div>
-            <button onclick="closePreview()" class="close-btn" aria-label="Close preview">
-                <i class="fas fa-times"></i>
-            </button>
+    {# ── Document ── #}
+    {% if post.has_document and post.document %}
+    <div class="pv-panel-block">
+      <div class="pv-panel-block-label"><i class="fas fa-paperclip"></i> Attachment</div>
+      <div class="pv-doc">
+        <div class="pv-doc-info">
+          <div class="pv-doc-icon"><i class="fas fa-file-{{ post.document.file_type }}"></i></div>
+          <div>
+            <span class="pv-doc-name">{{ post.document.original_filename }}</span>
+            <span class="pv-doc-meta">
+              {{ post.document.file_type.upper() }}
+              &middot; {{ (post.document.file_size / 1024 / 1024)|round(2) }} MB
+              {% if post.document.is_paid %}&middot; <strong>GHS {{ post.document.price }}</strong>
+              {% else %}&middot; Free{% endif %}
+            </span>
+          </div>
         </div>
-        <div class="preview-body" id="previewBody"></div>
+        <div class="pv-doc-btns">
+          {% if current_user.is_authenticated %}
+            {% if post.document.has_access(current_user) %}
+              {% if post.document.file_type in ['pdf','png','jpg','jpeg','gif','webp','docx','pptx','doc','ppt','xlsx','xls'] %}
+              <button onclick="previewDocument()" class="pv-btn pv-btn--ghost">
+                <i class="fas fa-eye"></i> Preview
+              </button>
+              {% endif %}
+              <a href="{{ url_for('posts.download_document', document_id=post.document.id) }}" class="pv-btn pv-btn--primary">
+                <i class="fas fa-download"></i> Download
+              </a>
+            {% else %}
+              <a href="{{ url_for('payments.checkout', document_id=post.document.id) }}" class="pv-btn pv-btn--primary">
+                <i class="fas fa-lock"></i> Purchase
+              </a>
+            {% endif %}
+          {% else %}
+            <a href="{{ url_for('auth.login') }}" class="pv-btn pv-btn--primary">
+              <i class="fas fa-sign-in-alt"></i> Log in to access
+            </a>
+          {% endif %}
+        </div>
+      </div>
     </div>
+    {% endif %}
+
+    {# ── Quiz CTA ── #}
+    {% if post.content_type == 'quiz' and has_quiz %}
+    <div class="pv-panel-block">
+      <div class="pv-quiz-cta">
+        <div class="pv-quiz-cta-left">
+          <div class="pv-quiz-icon"><i class="fas fa-brain"></i></div>
+          <div>
+            <p class="pv-quiz-cta-title">Ready for a challenge?</p>
+            <p class="pv-quiz-cta-sub">Earn XP &amp; compete on the leaderboard</p>
+          </div>
+        </div>
+        {% if current_user.is_authenticated %}
+          {% if post.document and post.document.has_access(current_user) %}
+          <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="pv-btn pv-btn--quiz">
+            <i class="fas fa-play"></i> Take Quiz
+          </a>
+          {% else %}
+          <a href="{{ url_for('payments.checkout', document_id=post.document.id) }}" class="pv-btn pv-btn--quiz">
+            <i class="fas fa-lock"></i> Purchase to unlock
+          </a>
+          {% endif %}
+        {% else %}
+        <a href="{{ url_for('auth.login') }}" class="pv-btn pv-btn--quiz">
+          <i class="fas fa-sign-in-alt"></i> Log in
+        </a>
+        {% endif %}
+      </div>
+    </div>
+{% endif %}
+
+  </div>{# /panel-overview #}
+
+  {% if structured_content %}
+  <div class="pv-panel pv-panel--hidden" id="panel-content" role="tabpanel">
+    
+    {% if structured_type == 'notes' %}
+    {# ── Notes renderer ── #}
+    {% for section in structured_content %}
+    <div class="pv-panel-block">
+      <div class="pv-panel-block-label">
+        <i class="fas fa-bookmark"></i> {{ section.section_title }}
+      </div>
+      {% for block in section.content %}
+
+        {% if block.block_type == 'definition' %}
+        <div class="content-block content-block--definition">
+          {% if block.label %}<span class="cb-label">{{ block.label }}</span>{% endif %}
+          <p>{{ block.text }}</p>
+        </div>
+
+        {% elif block.block_type in ('theorem', 'proof') %}
+        <div class="content-block content-block--theorem">
+          {% if block.label %}<span class="cb-label">{{ block.label }}</span>{% endif %}
+          <p>{{ block.text }}</p>
+        </div>
+
+        {% elif block.block_type == 'formula' %}
+        <div class="content-block content-block--formula">
+          {% if block.label %}<span class="cb-label">{{ block.label }}</span>{% endif %}
+          <p class="cb-formula-text">{{ block.text }}</p>
+        </div>
+
+        {% elif block.block_type in ('example', 'worked_example') %}
+        <div class="content-block content-block--example">
+          {% if block.label %}<span class="cb-label">{{ block.label }}</span>{% endif %}
+          <p>{{ block.text }}</p>
+          {% if block.steps %}
+          <ol class="cb-steps">
+            {% for step in block.steps %}<li>{{ step }}</li>{% endfor %}
+          </ol>
+          {% endif %}
+        </div>
+
+        {% elif block.block_type == 'note' %}
+        <div class="content-block content-block--note">
+          <p>{{ block.text }}</p>
+        </div>
+
+        {% elif block.block_type == 'list' %}
+        <div class="content-block content-block--list">
+          {% if block.label %}<p class="cb-list-title">{{ block.label }}</p>{% endif %}
+          <ul class="cb-list">
+            {% for item in block.items %}<li>{{ item }}</li>{% endfor %}
+          </ul>
+        </div>
+
+        {% else %}
+        <p class="cb-paragraph">{{ block.text }}</p>
+        {% endif %}
+
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    {% elif structured_type == 'cheatsheet' %}
+    {# ── Cheatsheet renderer ── #}
+    {% for section in structured_content %}
+    <div class="pv-panel-block">
+      <div class="pv-panel-block-label
+        {% if section.section_type == 'formulas' %} pv-panel-block-label--formula
+        {% elif section.section_type == 'definitions' %} pv-panel-block-label--definition
+        {% endif %}">
+        <i class="fas fa-
+          {% if section.section_type == 'formulas' %}square-root-alt
+          {% elif section.section_type == 'definitions' %}book
+          {% elif section.section_type == 'rules' %}gavel
+          {% elif section.section_type == 'steps' %}list-ol
+          {% else %}clone{% endif %}"></i>
+        {{ section.section_title }}
+      </div>
+      <div class="cheat-entries cheat-entries--{{ section.section_type }}">
+        {% for entry in section.entries %}
+        <div class="cheat-entry">
+          <div class="cheat-entry-label">{{ entry.label }}</div>
+          <div class="cheat-entry-content
+            {% if section.section_type == 'formulas' %}cheat-formula{% endif %}">
+            {{ entry.content }}
+          </div>
+          {% if entry.notes %}<div class="cheat-entry-note">{{ entry.notes }}</div>{% endif %}
+          {% if entry.example %}<div class="cheat-entry-example"><span>e.g.</span> {{ entry.example }}</div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+  </div>{# /panel-content #}
+  {% endif %}
+
+  {# ══════════════════════════════════════════════
+     TAB PANEL: LEADERBOARD
+     ══════════════════════════════════════════════ #}
+  {% if has_quiz %}
+  <div class="pv-panel pv-panel--hidden" id="panel-leaderboard" role="tabpanel">
+  <div class="pv-lb" id="leaderboard">
+
+    <div class="pv-lb-head">
+      <div class="pv-lb-head-left">
+        <div class="pv-lb-trophy"><i class="fas fa-trophy"></i></div>
+        <div>
+          <h2 class="pv-lb-title">Leaderboard</h2>
+          <p class="pv-lb-sub">Top scores for this quiz</p>
+        </div>
+      </div>
+      <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="pv-btn pv-btn--quiz pv-btn--sm">
+        {% if user_entry %}<i class="fas fa-redo"></i> Retake{% else %}<i class="fas fa-play"></i> Take Quiz{% endif %}
+      </a>
+    </div>
+
+    {% if user_entry %}
+    <div class="pv-lb-mystats">
+      <div class="pv-lb-stat">
+        <span class="pv-lb-stat-val pv-score-{{ 'green' if user_entry.score_pct >= 80 else ('blue' if user_entry.score_pct >= 60 else ('amber' if user_entry.score_pct >= 40 else 'red')) }}">
+          {{ "%.0f"|format(user_entry.score_pct) }}%
+        </span>
+        <span class="pv-lb-stat-label">Your score</span>
+      </div>
+      <div class="pv-lb-divider"></div>
+      <div class="pv-lb-stat">
+        <span class="pv-lb-stat-val pv-score-amber">+{{ user_entry.xp_earned }} XP</span>
+        <span class="pv-lb-stat-label">Earned</span>
+      </div>
+      <div class="pv-lb-divider"></div>
+      <div class="pv-lb-stat">
+        <span class="pv-lb-stat-val">
+          {% if user_entry.time_taken < 60 %}{{ user_entry.time_taken }}s
+          {% else %}{{ (user_entry.time_taken / 60)|int }}m {{ user_entry.time_taken % 60 }}s{% endif %}
+        </span>
+        <span class="pv-lb-stat-label">Time</span>
+      </div>
+      <div class="pv-lb-divider"></div>
+      <div class="pv-lb-stat">
+        <span class="pv-lb-stat-val">{{ total_participants }}</span>
+        <span class="pv-lb-stat-label">Players</span>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if leaderboard_entries %}
+    <div class="pv-lb-list">
+      {% for entry in leaderboard_entries %}
+      <div class="pv-lb-row
+           {% if loop.index == 1 %}pv-lb-row--gold{% elif loop.index == 2 %}pv-lb-row--silver{% elif loop.index == 3 %}pv-lb-row--bronze{% endif %}
+           {% if current_user.is_authenticated and entry.user_id == current_user.id %}pv-lb-row--me{% endif %}"
+           style="animation-delay:{{ loop.index0 * 0.05 }}s">
+
+        <div class="pv-lb-rank">
+          {% if loop.index == 1 %}<span class="pv-medal pv-medal--gold"><i class="fas fa-trophy"></i></span>
+          {% elif loop.index == 2 %}<span class="pv-medal pv-medal--silver"><i class="fas fa-medal"></i></span>
+          {% elif loop.index == 3 %}<span class="pv-medal pv-medal--bronze"><i class="fas fa-medal"></i></span>
+          {% else %}<span class="pv-rank-num">#{{ loop.index }}</span>{% endif %}
+        </div>
+
+        <a href="{{ url_for('users.profile', username=entry.user.username) }}" class="pv-lb-user">
+          <img src="{{ entry.user.profile_picture_url }}" alt="{{ entry.user.username }}" class="pv-lb-avatar">
+          <div class="pv-lb-user-info">
+            <span class="pv-lb-username">
+              {{ entry.user.full_name or entry.user.username }}
+              {% if current_user.is_authenticated and entry.user_id == current_user.id %}
+              <span class="pv-you">You</span>{% endif %}
+            </span>
+            <span class="pv-lb-handle">@{{ entry.user.username }}</span>
+          </div>
+        </a>
+
+        <div class="pv-lb-score-wrap">
+          <div class="pv-lb-bar-track">
+            <div class="pv-lb-bar-fill" style="width:{{ entry.score_pct }}%;--bc:{% if entry.score_pct >= 80 %}#10b981{% elif entry.score_pct >= 60 %}#6366f1{% elif entry.score_pct >= 40 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
+          </div>
+          <span class="pv-lb-pct pv-score-{{ 'green' if entry.score_pct >= 80 else ('blue' if entry.score_pct >= 60 else ('amber' if entry.score_pct >= 40 else 'red')) }}">
+            {{ "%.0f"|format(entry.score_pct) }}%
+          </span>
+        </div>
+
+        <div class="pv-lb-time">
+          <i class="fas fa-clock"></i>
+          {% if entry.time_taken < 60 %}{{ entry.time_taken }}s
+          {% else %}{{ (entry.time_taken / 60)|int }}m {{ entry.time_taken % 60 }}s{% endif %}
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="pv-lb-cta">
+      {% if not user_entry %}
+      <p>You haven't attempted this quiz yet — claim your spot on the board!</p>
+      <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="pv-btn pv-btn--quiz pv-btn--sm">
+        <i class="fas fa-play"></i> Take the quiz
+      </a>
+      {% else %}
+      <p>Think you can beat your score? Challenge yourself again.</p>
+      <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="pv-btn pv-btn--ghost pv-btn--sm">
+        <i class="fas fa-redo"></i> Retake &amp; improve
+      </a>
+      {% endif %}
+    </div>
+
+    {% else %}
+    <div class="pv-lb-empty">
+      <div class="pv-lb-empty-icon"><i class="fas fa-flag-checkered"></i></div>
+      <p class="pv-lb-empty-title">No attempts yet</p>
+      <p class="pv-lb-empty-sub">Be the first to complete this quiz and take the top spot.</p>
+      <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="pv-btn pv-btn--quiz pv-btn--sm">
+        <i class="fas fa-play"></i> Start now
+      </a>
+    </div>
+    {% endif %}
+
+  </div>{# /pv-lb #}
+  </div>{# /panel-leaderboard #}
+  {% endif %}
+
+  {# ══════════════════════════════════════════════
+     TAB PANEL: COMMENTS
+     ══════════════════════════════════════════════ #}
+  <div class="pv-panel pv-panel--hidden" id="panel-discussion" role="tabpanel">
+  {# ── Comments ── #}
+  <div class="pv-comments" id="comments">
+
+    <div class="pv-comments-head">
+      <span class="pv-section-label"><i class="fas fa-comments"></i> Discussion</span>
+      <span class="pv-count-pill">{{ post.comment_count() }}</span>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <form method="post" action="{{ url_for('posts.comment', post_id=post.id) }}" class="pv-comment-form">
+      {{ comment_form.hidden_tag() }}
+      <img src="{{ current_user.profile_picture_url }}" alt="{{ current_user.username }}" class="pv-avatar pv-avatar--sm">
+      <div class="pv-comment-input-wrap">
+        {{ comment_form.content(class="pv-comment-input", placeholder="Share your thoughts…") }}
+        {{ comment_form.submit(class="pv-btn pv-btn--primary pv-btn--sm") }}
+      </div>
+    </form>
+    {% else %}
+    <div class="pv-login-nudge">
+      <i class="fas fa-comment-dots"></i>
+      <p><a href="{{ url_for('auth.login') }}">Log in</a> to join the discussion</p>
+    </div>
+    {% endif %}
+
+    <div class="pv-comment-list">
+      {% for comment in comments.items %}
+      <div class="pv-comment">
+        <a href="{{ url_for('users.profile', username=comment.author.username) }}">
+          <img src="{{ comment.author.profile_picture_url }}" alt="{{ comment.author.username }}" class="pv-avatar pv-avatar--sm">
+        </a>
+        <div class="pv-comment-body">
+          <div class="pv-comment-header">
+            <a href="{{ url_for('users.profile', username=comment.author.username) }}" class="pv-comment-author">
+              {{ comment.author.full_name or comment.author.username }}
+            </a>
+            <span class="pv-comment-time">{{ comment.created_at.strftime('%b %d') }}</span>
+          </div>
+          <p class="pv-comment-text">{{ comment.content }}</p>
+        </div>
+      </div>
+      {% endfor %}
+
+      {% if not comments.items %}
+      <div class="pv-empty-comments">
+        <i class="fas fa-comment-medical"></i>
+        <p>No comments yet — start the conversation.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if comments.has_prev or comments.has_next %}
+    <div class="pv-pagination">
+      {% if comments.has_prev %}
+      <a href="{{ url_for('posts.view', post_id=post.id, page=comments.prev_num) }}" class="pv-page-btn">
+        <i class="fas fa-chevron-left"></i>
+      </a>
+      {% endif %}
+      <span class="pv-page-info">{{ comments.page }} / {{ comments.pages }}</span>
+      {% if comments.has_next %}
+      <a href="{{ url_for('posts.view', post_id=post.id, page=comments.next_num) }}" class="pv-page-btn">
+        <i class="fas fa-chevron-right"></i>
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>{# /pv-comments #}
+  </div>{# /panel-discussion #}
+
+</div>{# /pv-wrap #}
+
+{# ── Preview modal ── #}
+<div id="previewModal" class="pv-preview-modal">
+  <div class="pv-preview-inner">
+    <div class="pv-preview-head">
+      <span><i class="fas fa-eye"></i> {{ post.document.original_filename if post.has_document and post.document else 'Preview' }}</span>
+      <button onclick="closePreview()" class="pv-close-btn"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="pv-preview-body" id="previewBody"></div>
+  </div>
 </div>
 
 <style>
-.post-view-container {
-    max-width: 860px;
-    margin: 0 auto;
-    padding: var(--spacing-lg, 2rem) var(--spacing-md, 1.5rem);
+.pv-wrap{max-width:640px;margin:0 auto;padding:1rem 1rem 5rem;display:flex;flex-direction:column;gap:.75rem}
+.pv-topbar{display:flex;align-items:center;justify-content:space-between}
+.pv-back{display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;font-weight:700;color:var(--text-muted);text-decoration:none;padding:.35rem .7rem;border-radius:8px;transition:all .15s}
+.pv-back:hover{background:var(--bg-card);color:var(--primary)}
+.pv-owner-actions{display:flex;gap:.4rem}
+.pv-action-btn{display:inline-flex;align-items:center;gap:.35rem;font-size:.78rem;font-weight:700;padding:.35rem .7rem;border-radius:8px;border:1.5px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;text-decoration:none;transition:all .15s}
+.pv-action-btn:hover{border-color:var(--primary);color:var(--primary)}
+.pv-action-btn--danger:hover{border-color:#ef4444;color:#ef4444}
+.pv-card { background:var(--bg-card); border:1px solid var(--border); border-radius:20px; padding:1.25rem; }
+.pv-card-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.pv-type{display:inline-flex;align-items:center;gap:.3rem;font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:.2rem .55rem;border-radius:6px}
+.pv-type--notes{background:rgba(16,185,129,.1);color:#10b981}
+.pv-type--cheatsheet{background:rgba(245,158,11,.1);color:#f59e0b}
+.pv-type--quiz{background:rgba(139,92,246,.1);color:#8b5cf6}
+.pv-type--mixed{background:rgba(6,182,212,.1);color:#06b6d4}
+.pv-date{font-size:.72rem;color:var(--text-muted)}
+.pv-title{font-family:'Poppins',sans-serif;font-size:1.35rem;font-weight:800;line-height:1.25;color:var(--text-primary);letter-spacing:-.02em;margin:0 0 .875rem}
+.pv-author{display:inline-flex;align-items:center;gap:.55rem;text-decoration:none;margin-bottom:.875rem}
+.pv-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0}
+.pv-avatar--sm{width:30px;height:30px}
+.pv-author-info{display:flex;flex-direction:column;gap:.05rem}
+.pv-author-name{font-size:.85rem;font-weight:700;color:var(--text-primary)}
+.pv-author-handle{font-size:.72rem;color:var(--text-muted)}
+.pv-subject{display:inline-flex;align-items:center;gap:.35rem;font-size:.75rem;font-weight:700;color:var(--sc,var(--primary));background:color-mix(in srgb,var(--sc,var(--primary)) 10%,transparent);border:1px solid color-mix(in srgb,var(--sc,var(--primary)) 22%,transparent);border-radius:20px;padding:.25rem .65rem;margin-bottom:.875rem}
+.pv-desc{font-size:.875rem;line-height:1.7;color:var(--text-secondary);margin-bottom:1rem;word-wrap:break-word}
+.prose-content p{margin:0 0 .75rem}
+.prose-content p:last-child{margin-bottom:0}
+.prose-content h1,.prose-content h2,.prose-content h3{font-family:'Poppins',sans-serif;font-weight:800;color:var(--text-primary);margin:1rem 0 .4rem;letter-spacing:-.02em}
+.prose-content h1{font-size:1.3rem}.prose-content h2{font-size:1.1rem}.prose-content h3{font-size:.95rem}
+.prose-content strong{font-weight:700;color:var(--text-primary)}
+.prose-content a{color:var(--primary);text-decoration:underline;text-underline-offset:2px}
+.prose-content ul,.prose-content ol{margin:.4rem 0 .75rem 1.25rem;display:flex;flex-direction:column;gap:.25rem}
+.prose-content ul{list-style:disc}.prose-content ol{list-style:decimal}
+.prose-content blockquote{border-left:3px solid var(--primary);padding:.4rem .875rem;margin:.5rem 0;background:rgba(99,102,241,.05);border-radius:0 8px 8px 0;color:var(--text-secondary);font-style:italic}
+.prose-content code{background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;padding:.1em .35em;font-size:.82em;color:#818cf8}
+.prose-content pre{background:#0f1117;border-radius:10px;padding:.875rem 1rem;overflow-x:auto;margin:.5rem 0}
+.prose-content pre code{background:none;border:none;padding:0;color:#e2e8f0}
+.prose-content img{max-width:100%;border-radius:8px}
+.prose-content table{width:100%;border-collapse:collapse;margin:.5rem 0;font-size:.82rem}
+.prose-content th{background:rgba(99,102,241,.07);font-weight:700;color:var(--text-primary);padding:.4rem .65rem;border:1px solid var(--border)}
+.prose-content td{padding:.35rem .65rem;border:1px solid var(--border);color:var(--text-secondary)}
+.pv-doc{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.875rem 1rem;background:var(--bg-hover);border:1px solid var(--border);border-radius:12px;margin-bottom:.875rem;flex-wrap:wrap}
+.pv-doc-info{display:flex;align-items:center;gap:.65rem;min-width:0}
+.pv-doc-icon { width:38px; height:38px; background:linear-gradient(135deg,#2563eb,#06b6d4); border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:1rem; color:#fff; flex-shrink:0; }
+.pv-doc-name{display:block;font-size:.82rem;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.pv-doc-meta{display:block;font-size:.7rem;color:var(--text-muted);margin-top:.1rem}
+.pv-doc-btns{display:flex;gap:.5rem;flex-shrink:0}
+.pv-quiz-cta { display:flex; align-items:center; justify-content:space-between; gap:.875rem; padding:.875rem 1rem; background:rgba(139,92,246,.08); border:1px solid rgba(139,92,246,.2); border-radius:14px; margin-bottom:.875rem; flex-wrap:wrap; }
+.pv-quiz-cta-left{display:flex;align-items:center;gap:.65rem}
+.pv-quiz-icon{width:36px;height:36px;background:linear-gradient(135deg,#8b5cf6,#6366f1);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#fff;flex-shrink:0}
+.pv-quiz-cta-title{font-size:.85rem;font-weight:700;color:var(--text-primary);margin:0 0 .1rem}
+.pv-quiz-cta-sub{font-size:.72rem;color:var(--text-muted);margin:0}
+.pv-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1rem;border-radius:10px;font-size:.8rem;font-weight:700;text-decoration:none;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.pv-btn--primary { background:linear-gradient(135deg,#2563eb,#06b6d4); color:#fff; box-shadow:0 2px 8px rgba(37,99,235,.3); }
+.pv-btn--primary:hover { opacity:.9; transform:translateY(-1px); color:#fff; }
+.pv-btn--ghost{background:var(--bg-hover);border:1.5px solid var(--border);color:var(--text-primary)}
+.pv-btn--ghost:hover{background:var(--bg-hover);border-color:var(--primary);color:var(--primary)}
+.pv-btn--quiz{background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;box-shadow:0 2px 10px rgba(139,92,246,.35)}
+.pv-btn--quiz:hover{opacity:.9;transform:translateY(-1px);color:#fff}
+.pv-btn--sm{padding:.45rem .8rem;font-size:.76rem}
+.pv-engage{display:flex;gap:.5rem;padding-top:.875rem;border-top:1px solid var(--border)}
+.pv-engage-btn { display:inline-flex; align-items:center; gap:.35rem; padding:.5rem .9rem; background:var(--bg-card); border:1.5px solid var(--border); border-radius:10px; font-size:.8rem; font-weight:700; color:var(--text-muted); cursor:pointer; transition:all .15s; }
+.pv-engage-btn:hover{border-color:var(--primary);color:var(--primary)}
+.pv-engage-btn.is-liked{border-color:#f87171;color:#ef4444;background:rgba(239,68,68,.06)}
+@keyframes lbIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pv-lb   { background:var(--bg-card); border:1px solid var(--border); border-radius:20px; overflow:hidden; }
+.pv-lb-head{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:1rem 1.25rem;border-bottom:1px solid var(--border);background:rgba(245,158,11,.04);flex-wrap:wrap}
+.pv-lb-head-left{display:flex;align-items:center;gap:.65rem}
+.pv-lb-trophy{width:36px;height:36px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.9rem;color:#fff;flex-shrink:0}
+.pv-lb-title{font-family:'Poppins',sans-serif;font-size:.95rem;font-weight:800;color:var(--text-primary);margin:0 0 .1rem}
+.pv-lb-sub{font-size:.7rem;color:var(--text-muted);margin:0}
+.pv-lb-mystats{display:flex;align-items:center;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);background:rgba(99,102,241,.03);overflow-x:auto;scrollbar-width:none;gap:0}
+.pv-lb-mystats::-webkit-scrollbar{display:none}
+.pv-lb-stat{display:flex;flex-direction:column;align-items:center;gap:.1rem;padding:0 1.25rem;flex-shrink:0}
+.pv-lb-stat:first-child{padding-left:0}
+.pv-lb-stat-val{font-size:1.15rem;font-weight:900;color:var(--text-primary);letter-spacing:-.02em}
+.pv-lb-stat-label{font-size:.65rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.pv-lb-divider{width:1px;height:28px;background:var(--border);flex-shrink:0}
+.pv-score-green{color:#10b981}.pv-score-blue{color:#6366f1}.pv-score-amber{color:#f59e0b}.pv-score-red{color:#ef4444}
+.pv-lb-list{display:flex;flex-direction:column}
+.pv-lb-row{display:grid;grid-template-columns:40px 1fr auto auto;align-items:center;gap:.625rem;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);animation:lbIn .3s ease both;transition:background .12s}
+.pv-lb-row:last-child{border-bottom:none}
+.pv-lb-row:hover{background:rgba(99,102,241,.03)}
+.pv-lb-row--gold{border-left:3px solid #f59e0b}.pv-lb-row--silver{border-left:3px solid #94a3b8}.pv-lb-row--bronze{border-left:3px solid #cd7c3f}
+.pv-lb-row--me{background:rgba(99,102,241,.04)}
+.pv-lb-rank{display:flex;align-items:center;justify-content:center}
+.pv-medal{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem}
+.pv-medal--gold{background:rgba(245,158,11,.12);color:#d97706}.pv-medal--silver{background:rgba(148,163,184,.14);color:#64748b}.pv-medal--bronze{background:rgba(205,124,63,.12);color:#b45309}
+.pv-rank-num{font-size:.78rem;font-weight:700;color:var(--text-muted);text-align:center}
+.pv-lb-user{display:flex;align-items:center;gap:.55rem;text-decoration:none;min-width:0}
+.pv-lb-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0;transition:border-color .15s}
+.pv-lb-user:hover .pv-lb-avatar{border-color:var(--primary)}
+.pv-lb-user-info{display:flex;flex-direction:column;gap:.05rem;min-width:0}
+.pv-lb-username{font-size:.82rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:.3rem;transition:color .15s}
+.pv-lb-user:hover .pv-lb-username{color:var(--primary)}
+.pv-lb-handle{font-size:.68rem;color:var(--text-muted)}
+.pv-you{display:inline-flex;align-items:center;padding:.05rem .35rem;background:rgba(99,102,241,.1);color:var(--primary);border-radius:4px;font-size:.6rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.pv-lb-score-wrap{display:flex;align-items:center;gap:.5rem;min-width:100px}
+.pv-lb-bar-track{flex:1;height:4px;background:var(--border);border-radius:99px;overflow:hidden}
+.pv-lb-bar-fill{height:100%;background:var(--bc,var(--primary));border-radius:99px;transition:width .5s cubic-bezier(.34,1.56,.64,1)}
+.pv-lb-pct{font-size:.78rem;font-weight:700;white-space:nowrap;min-width:34px;text-align:right}
+.pv-lb-time{display:flex;align-items:center;gap:.3rem;font-size:.72rem;font-weight:600;color:var(--text-muted);white-space:nowrap}
+.pv-lb-time i{font-size:.6rem}
+.pv-lb-cta{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.875rem 1.25rem;border-top:1px solid var(--border);background:rgba(99,102,241,.025);flex-wrap:wrap}
+.pv-lb-cta p{font-size:.8rem;color:var(--text-secondary);margin:0}
+.pv-lb-empty{display:flex;flex-direction:column;align-items:center;padding:2.5rem 1.25rem;text-align:center;gap:.5rem}
+.pv-lb-empty-icon{width:48px;height:48px;background:rgba(245,158,11,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:#d97706;margin-bottom:.25rem}
+.pv-lb-empty-title{font-size:.95rem;font-weight:800;color:var(--text-primary);margin:0}
+.pv-lb-empty-sub{font-size:.8rem;color:var(--text-secondary);margin:0 0 .5rem}
+.pv-comments{background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:1.25rem}
+.pv-comments-head{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)}
+.pv-section-label{display:flex;align-items:center;gap:.4rem;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)}
+.pv-section-label i{color:var(--primary);font-size:.7rem}
+.pv-count-pill{background:rgba(99,102,241,.1);color:var(--primary);font-size:.68rem;font-weight:700;padding:.1rem .45rem;border-radius:20px}
+.pv-comment-form{display:flex;align-items:flex-start;gap:.65rem;margin-bottom:1.25rem}
+.pv-comment-input-wrap{flex:1;display:flex;flex-direction:column;gap:.4rem}
+.pv-comment-input{width:100%;padding:.65rem .875rem;background:var(--bg-hover);border:1.5px solid var(--border);border-radius:10px;color:var(--text-primary);font-size:.85rem;resize:vertical;min-height:72px;transition:border-color .15s}
+.pv-comment-input:focus{outline:none;border-color:var(--primary)}
+.pv-comment-input::placeholder{color:var(--text-muted)}
+.pv-comment-input-wrap .pv-btn{align-self:flex-end}
+.pv-login-nudge{display:flex;align-items:center;gap:.65rem;padding:.875rem 1rem;background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.12);border-radius:10px;margin-bottom:1rem;font-size:.85rem;color:var(--text-secondary)}
+.pv-login-nudge i{font-size:1.1rem;color:var(--primary)}
+.pv-login-nudge a{color:var(--primary);font-weight:700;text-decoration:none}
+.pv-comment-list{display:flex;flex-direction:column}
+.pv-comment{display:flex;gap:.55rem;padding:.875rem 0;border-bottom:1px solid var(--border)}
+.pv-comment:first-child{padding-top:0}.pv-comment:last-child{border-bottom:none;padding-bottom:0}
+.pv-comment-body{flex:1;min-width:0}
+.pv-comment-header{display:flex;align-items:baseline;gap:.45rem;margin-bottom:.25rem;flex-wrap:wrap}
+.pv-comment-author{font-size:.83rem;font-weight:700;color:var(--text-primary);text-decoration:none}
+.pv-comment-author:hover{color:var(--primary)}
+.pv-comment-time{font-size:.68rem;color:var(--text-muted)}
+.pv-comment-text{font-size:.83rem;line-height:1.6;color:var(--text-secondary);margin:0;word-wrap:break-word}
+.pv-empty-comments{display:flex;flex-direction:column;align-items:center;padding:2rem 1rem;text-align:center;gap:.5rem;color:var(--text-muted);font-size:.85rem}
+.pv-empty-comments i{font-size:1.5rem;opacity:.5}
+.pv-pagination{display:flex;justify-content:center;align-items:center;gap:.5rem;margin-top:1rem;padding-top:.875rem;border-top:1px solid var(--border)}
+.pv-page-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:8px;color:var(--text-muted);text-decoration:none;font-size:.8rem;transition:all .15s}
+.pv-page-btn:hover{border-color:var(--primary);color:var(--primary)}
+.pv-page-info{font-size:.75rem;font-weight:600;color:var(--text-muted)}
+.pv-preview-modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);backdrop-filter:blur(4px)}
+.pv-preview-modal.active{display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.pv-preview-inner{background:var(--bg-card);border-radius:14px;width:100%;max-width:1200px;height:90vh;position:relative;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.45)}
+.pv-preview-head{display:flex;justify-content:space-between;align-items:center;padding:.875rem 1.125rem;border-bottom:1px solid var(--border);font-size:.82rem;font-weight:700;color:var(--text-secondary)}
+.pv-preview-head i{color:var(--primary);margin-right:.35rem}
+.pv-close-btn{width:30px;height:30px;border-radius:7px;background:var(--bg-secondary);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.8rem;cursor:pointer;color:var(--text-muted);transition:all .15s}
+.pv-close-btn:hover{background:#dc2626;border-color:#dc2626;color:#fff}
+.pv-preview-body{position:absolute;top:48px;left:0;right:0;bottom:0;background:var(--bg-secondary);overflow:hidden}
+.preview-loading{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;gap:1.25rem}
+.preview-loading .spinner{position:relative;width:56px;height:56px;flex-shrink:0}
+.preview-loading .spinner::before,.preview-loading .spinner::after{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid transparent}
+.preview-loading .spinner::before{border-top-color:var(--primary);border-right-color:var(--primary);animation:spinCW .85s linear infinite}
+.preview-loading .spinner::after{inset:10px;border-bottom-color:#8b5cf6;border-left-color:#8b5cf6;animation:spinCCW .85s linear infinite}
+@keyframes spinCW{to{transform:rotate(360deg)}}@keyframes spinCCW{to{transform:rotate(-360deg)}}
+.preview-loading .spinner-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1rem;color:var(--primary);animation:iconPulse 1.7s ease-in-out infinite}
+@keyframes iconPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+.preview-loading .loading-text{text-align:center}
+.preview-loading .loading-text p{margin:0 0 .2rem;font-size:.875rem;font-weight:700;color:var(--text-primary)}
+.preview-loading .loading-text span{font-size:.75rem;color:var(--text-muted)}
+.preview-loading .loading-bar-track{width:min(220px,70vw);height:4px;background:var(--border);border-radius:99px;overflow:hidden}
+.preview-loading .loading-bar-fill{height:100%;width:45%;background:linear-gradient(90deg,var(--primary),#8b5cf6,var(--primary));background-size:200% 100%;border-radius:99px;animation:shimmerSlide 1.6s ease-in-out infinite}
+@keyframes shimmerSlide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+.preview-error{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;gap:.875rem;color:var(--text-muted)}
+.preview-error i{font-size:2rem;color:#dc2626}
+.preview-iframe{position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;border:none}
+.preview-image{position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;object-fit:contain;padding:1rem;box-sizing:border-box}
+.gdocs-wrapper{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column}
+.gdocs-wrapper .preview-iframe{position:relative;flex:1;height:auto;top:auto;left:auto;right:auto;bottom:auto}
+.gdocs-notice{padding:.45rem .875rem;font-size:.72rem;color:var(--text-muted);text-align:center;border-bottom:1px solid var(--border);background:var(--bg-card);flex-shrink:0}
+.gdocs-notice a{color:var(--primary);font-weight:700;text-decoration:none}
+@media(max-width:480px){
+  .pv-wrap{padding:.75rem .75rem 4.5rem}
+  .pv-title{font-size:1.15rem}
+  .pv-doc{flex-direction:column;align-items:flex-start}
+  .pv-doc-btns{width:100%}
+  .pv-doc-btns .pv-btn{flex:1;justify-content:center}
+  .pv-doc-name{max-width:180px}
+  .pv-quiz-cta{flex-direction:column;align-items:flex-start}
+  .pv-quiz-cta .pv-btn{width:100%;justify-content:center}
+  .pv-lb-row{grid-template-columns:36px 1fr auto}
+  .pv-lb-time{display:none}
+  .pv-lb-cta{flex-direction:column;align-items:flex-start}
+  .pv-lb-cta .pv-btn{width:100%;justify-content:center}
+  .pv-preview-modal.active{padding:.5rem}
+  .pv-preview-inner{height:97vh;border-radius:12px}
 }
-.view-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1.25rem;
-}
-.view-header .header-content {
-    display: flex;
-    align-items: center;
-    gap: 0.875rem;
-    padding: 1.1rem 1.25rem;
-    background: rgba(99, 102, 241, 0.06);
-    border-radius: 14px;
-    border: 1px solid rgba(99, 102, 241, 0.15);
-    flex: 1;
-}
-.view-header .header-icon-wrapper {
-    width: 44px; height: 44px;
-    background: var(--primary);
-    border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.25rem; color: #fff;
-    flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(99,102,241,0.28);
-}
-.view-header .header-text h1 {
-    margin: 0 0 0.175rem;
-    font-size: 1.25rem; font-weight: 800;
-    color: var(--text-primary);
-    letter-spacing: -0.3px;
-}
-.header-subtitle {
-    display: flex; align-items: center; gap: 0.35rem;
-    margin: 0; color: var(--text-secondary);
-    font-size: 0.825rem; font-weight: 500;
-}
-.header-subtitle i { color: var(--primary); }
-.header-subtitle strong { color: var(--primary-dark, #4f46e5); font-weight: 700; }
-.back-link {
-    display: inline-flex; align-items: center; gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: var(--bg-card);
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-weight: 600; font-size: 0.875rem;
-    transition: all 0.18s;
-    white-space: nowrap; flex-shrink: 0; align-self: center;
-}
-.back-link:hover {
-    background: rgba(99,102,241,0.06);
-    border-color: var(--primary);
-    color: var(--primary);
-}
-.post-detail-card {
-    background: var(--bg-card);
-    border-radius: 14px;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-md);
-    padding: 1.5rem;
-    margin-bottom: 0.75rem;
-}
-.post-header {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    margin-bottom: 1.25rem; padding-bottom: 1.125rem;
-    border-bottom: 1px solid var(--border-light);
-    gap: 1rem;
-}
-.post-author {
-    display: flex; align-items: center; gap: 0.625rem;
-    text-decoration: none; flex: 1;
-}
-.author-avatar {
-    width: 40px; height: 40px; border-radius: 50%;
-    object-fit: cover; border: 2px solid var(--border); flex-shrink: 0;
-}
-.author-info { display: flex; flex-direction: column; gap: 0.1rem; }
-.author-name { font-weight: 700; color: var(--text-primary); font-size: 0.9rem; letter-spacing: -0.01em; }
-.post-time {
-    color: var(--text-muted); font-size: 0.75rem; font-weight: 500;
-    display: flex; align-items: center; gap: 0.3rem;
-}
-.post-time i { font-size: 0.7rem; }
-.post-options { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
-.post-body { margin-bottom: 1.25rem; }
-.post-title {
-    font-size: 1.625rem; font-weight: 800; line-height: 1.25;
-    margin-bottom: 0.75rem; word-wrap: break-word;
-    color: var(--text-primary); letter-spacing: -0.02em;
-}
-.post-description { font-size: 0.95rem; line-height: 1.7; color: var(--text-secondary); word-wrap: break-word; margin-bottom: 1rem; }
-.prose-content { word-wrap: break-word; overflow-wrap: break-word; }
-.prose-content p { margin: 0 0 0.875rem; line-height: 1.75; }
-.prose-content p:last-child { margin-bottom: 0; }
-.prose-content h1,.prose-content h2,.prose-content h3,.prose-content h4,.prose-content h5,.prose-content h6 { font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em; margin: 1.25rem 0 0.5rem; line-height: 1.25; }
-.prose-content h1 { font-size: 1.5rem; } .prose-content h2 { font-size: 1.25rem; } .prose-content h3 { font-size: 1.1rem; } .prose-content h4 { font-size: 1rem; }
-.prose-content strong { font-weight: 700; color: var(--text-primary); }
-.prose-content em { font-style: italic; }
-.prose-content a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
-.prose-content a:hover { color: var(--primary-dark); }
-.prose-content ul,.prose-content ol { margin: 0.5rem 0 0.875rem 1.375rem; display: flex; flex-direction: column; gap: 0.3rem; padding: 0; }
-.prose-content ul { list-style: disc; } .prose-content ol { list-style: decimal; }
-.prose-content li { padding-left: 0.25rem; line-height: 1.65; }
-.prose-content blockquote { border-left: 3px solid var(--primary); margin: 0.75rem 0; padding: 0.5rem 0 0.5rem 1rem; background: rgba(99,102,241,0.05); border-radius: 0 8px 8px 0; color: var(--text-secondary); font-style: italic; }
-.prose-content code { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 5px; padding: 0.15em 0.4em; font-size: 0.85em; font-family: 'Fira Code','Consolas',monospace; color: var(--primary-dark,#4f46e5); }
-.prose-content pre { background: #1e1b2e; border-radius: 10px; padding: 1rem 1.25rem; overflow-x: auto; margin: 0.75rem 0; }
-.prose-content pre code { background: none; border: none; padding: 0; color: #e2e8f0; font-size: 0.85rem; }
-.prose-content hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
-.prose-content img { max-width: 100%; border-radius: 8px; margin: 0.5rem 0; }
-.prose-content table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.875rem; }
-.prose-content th { background: rgba(99,102,241,0.07); font-weight: 700; color: var(--text-primary); padding: 0.5rem 0.75rem; border: 1px solid var(--border); text-align: left; }
-.prose-content td { padding: 0.45rem 0.75rem; border: 1px solid var(--border); color: var(--text-secondary); }
-.prose-content tr:nth-child(even) td { background: rgba(99,102,241,0.03); }
-.post-subject-badge {
-    display: inline-flex; align-items: center; gap: 0.35rem;
-    padding: 0.325rem 0.75rem;
-    background: color-mix(in srgb, var(--subject-color,var(--primary)) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--subject-color,var(--primary)) 25%, transparent);
-    border-radius: 20px; font-weight: 600; font-size: 0.8rem;
-    color: var(--subject-color, var(--primary));
-}
-.post-view-container .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-    padding: 0.6rem 1.1rem; border-radius: 10px; font-weight: 700; font-size: 0.875rem;
-    text-decoration: none; border: none; cursor: pointer; transition: all 0.18s;
-    -webkit-tap-highlight-color: transparent; min-height: 40px;
-}
-.post-view-container .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(99,102,241,0.28); }
-.post-view-container .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(99,102,241,0.36); color: #fff; }
-.post-view-container .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1.5px solid var(--border) !important; }
-.post-view-container .btn-secondary:hover { border-color: var(--primary) !important; color: var(--primary); background: rgba(99,102,241,0.06); }
-.post-view-container .btn-danger { background: #fef2f2; color: #dc2626; border: 1.5px solid #fecaca !important; }
-.post-view-container .btn-danger:hover { background: #dc2626; color: #fff; border-color: #dc2626 !important; transform: translateY(-1px); }
-.post-view-container .btn-sm { padding: 0.4rem 0.7rem; font-size: 0.8rem; min-height: 34px; }
-.document-section { background: rgba(99,102,241,0.04); padding: 1.125rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid rgba(99,102,241,0.12); }
-.document-card { display: flex; align-items: center; gap: 0.875rem; margin-bottom: 0.875rem; padding: 0.875rem 1rem; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
-.document-icon-wrapper { width: 44px; height: 44px; background: var(--primary); border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(99,102,241,0.25); }
-.file-icon { font-size: 1.25rem; color: #fff; }
-.document-info { flex: 1; min-width: 0; }
-.document-title { display: block; margin: 0 0 0.325rem; font-size: 0.875rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
-.document-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.meta-item { display: flex; align-items: center; gap: 0.3rem; color: var(--text-secondary); font-size: 0.75rem; font-weight: 500; }
-.meta-item i { color: var(--primary); font-size: 0.68rem; }
-.document-badge { flex-shrink: 0; }
-.price-badge { background: var(--primary); color: #fff; padding: 0.3rem 0.7rem; border-radius: 20px; font-weight: 700; font-size: 0.825rem; box-shadow: 0 2px 8px rgba(99,102,241,0.28); }
-.free-badge { background: var(--success,#10b981); color: #fff; padding: 0.3rem 0.7rem; border-radius: 20px; font-weight: 700; font-size: 0.825rem; display: flex; align-items: center; gap: 0.3rem; }
-.free-badge i { font-size: 0.68rem; }
-.document-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.post-actions-bar { display: flex; gap: 0.5rem; padding-top: 0.875rem; border-top: 1px solid var(--border-light); }
-.action-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.6rem 1rem; background: var(--bg-secondary); border: 1.5px solid var(--border); border-radius: 10px; color: var(--text-secondary); font-weight: 600; font-size: 0.875rem; cursor: pointer; transition: all 0.18s; text-decoration: none; width: 100%; -webkit-tap-highlight-color: transparent; min-height: 42px; }
-.action-btn:hover { background: rgba(99,102,241,0.06); border-color: var(--primary); color: var(--primary); }
-.action-btn.liked { background: rgba(239,68,68,0.06); border-color: #f87171; color: #dc2626; }
-.action-btn.liked:hover { background: rgba(239,68,68,0.1); }
-.comments-section { background: var(--bg-card); border-radius: 14px; border: 1px solid var(--border); box-shadow: var(--shadow-md); padding: 1.5rem; }
-.comments-header { display: flex; align-items: center; gap: 0.625rem; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-light); }
-.comments-header h2 { margin: 0; display: flex; align-items: center; gap: 0.5rem; font-weight: 800; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.06em; color: var(--text-muted); }
-.comments-header i { color: var(--primary); font-size: 0.8rem; }
-.comment-count-badge { background: rgba(99,102,241,0.1); color: var(--primary); font-weight: 700; font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 20px; }
-.comment-form-container { margin-bottom: 1.25rem; }
-.comment-form { display: flex; gap: 0.625rem; align-items: flex-start; }
-.comment-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); flex-shrink: 0; }
-.comment-input-group { flex: 1; display: flex; gap: 0.5rem; flex-direction: column; }
-.comment-input { width: 100%; padding: 0.75rem 0.9rem; border: 1.5px solid var(--border); border-radius: 10px; font-size: 0.875rem; background: var(--bg-secondary); color: var(--text-primary); resize: vertical; min-height: 80px; transition: all 0.18s; }
-.comment-input:focus { outline: none; border-color: var(--primary); background: var(--bg-card); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
-.comment-input::placeholder { color: var(--text-muted); }
-.login-prompt { display: flex; align-items: center; gap: 0.875rem; padding: 1rem 1.125rem; background: rgba(99,102,241,0.05); border-radius: 10px; border: 1px solid rgba(99,102,241,0.12); margin-bottom: 1.25rem; }
-.login-prompt-icon { width: 38px; height: 38px; background: rgba(99,102,241,0.1); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: var(--primary); flex-shrink: 0; }
-.login-prompt p { margin: 0; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; }
-.login-prompt p:first-child { font-weight: 700; color: var(--text-primary); font-size: 0.875rem; }
-.login-prompt a { color: var(--primary); font-weight: 700; text-decoration: none; }
-.login-prompt a:hover { text-decoration: underline; }
-.comments-list { display: flex; flex-direction: column; gap: 0; }
-.comment { display: flex; gap: 0.625rem; padding: 1rem 0; border-bottom: 1px solid var(--border-light); }
-.comment:first-child { padding-top: 0; }
-.comment:last-child { border-bottom: none; padding-bottom: 0; }
-.comment-avatar-link { flex-shrink: 0; }
-.comment-content { flex: 1; min-width: 0; }
-.comment-header { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.3rem; flex-wrap: wrap; }
-.comment-author { font-weight: 700; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; letter-spacing: -0.01em; }
-.comment-author:hover { color: var(--primary); }
-.comment-time { color: var(--text-muted); font-size: 0.72rem; font-weight: 500; }
-.comment-text { color: var(--text-secondary); line-height: 1.6; word-wrap: break-word; margin: 0; font-size: 0.875rem; }
-.pagination { display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 1.25rem; padding-top: 1.125rem; border-top: 1px solid var(--border-light); }
-.page-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.875rem; background: var(--bg-secondary); border: 1.5px solid var(--border); border-radius: 9px; color: var(--text-primary); text-decoration: none; font-weight: 600; font-size: 0.825rem; transition: all 0.18s; -webkit-tap-highlight-color: transparent; }
-.page-btn:hover { background: var(--primary); border-color: var(--primary); color: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.28); }
-.page-info { color: var(--text-muted); font-weight: 600; font-size: 0.8rem; padding: 0 0.25rem; }
-.empty-comments { text-align: center; padding: 2.5rem 1.5rem; background: rgba(99,102,241,0.04); border-radius: 12px; border: 1.5px dashed rgba(99,102,241,0.2); }
-.empty-icon { width: 52px; height: 52px; background: rgba(99,102,241,0.08); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.875rem; font-size: 1.5rem; color: var(--primary); opacity: 0.7; }
-.empty-comments h3 { font-size: 1rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.3rem; letter-spacing: -0.01em; }
-.empty-comments p { font-size: 0.875rem; color: var(--text-secondary); margin: 0; }
-.desktop-hidden { display: none; }
-.mobile-hidden  { display: flex; }
+@media(max-width:380px){.pv-lb-bar-track{display:none}}
+@media(prefers-reduced-motion:reduce){.pv-lb-row,.preview-loading .spinner::before,.preview-loading .spinner::after,.preview-loading .spinner-icon,.preview-loading .loading-bar-fill{animation:none}}
 
-/* Leaderboard */
-@keyframes lbRowIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.lb-section { margin-top: 0.75rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-md); overflow: hidden; }
-.lb-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-light); background: linear-gradient(135deg, rgba(99,102,241,0.05) 0%, rgba(139,92,246,0.05) 100%); }
-.lb-header-left { display: flex; align-items: center; gap: 0.875rem; min-width: 0; }
-.lb-header-icon { width: 42px; height: 42px; border-radius: 10px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #fff; flex-shrink: 0; box-shadow: 0 3px 12px rgba(245,158,11,0.35); }
-.lb-title { font-size: 1.05rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em; margin: 0 0 0.15rem; line-height: 1.2; }
-.lb-subtitle { font-size: 0.775rem; color: var(--text-muted); margin: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
-.lb-quiz-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.1rem; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border-radius: 10px; font-size: 0.825rem; font-weight: 700; text-decoration: none; white-space: nowrap; flex-shrink: 0; box-shadow: 0 3px 10px rgba(99,102,241,0.3); transition: all 0.18s; }
-.lb-quiz-btn:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 5px 16px rgba(99,102,241,0.4); color: #fff; }
-.lb-stats { display: flex; align-items: center; gap: 0; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-light); background: rgba(99,102,241,0.025); overflow-x: auto; scrollbar-width: none; }
-.lb-stats::-webkit-scrollbar { display: none; }
-.lb-stat { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 0 1.5rem; flex-shrink: 0; }
-.lb-stat:first-child { padding-left: 0; }
-.lb-stat--divider { width: 1px; height: 32px; background: var(--border); padding: 0; flex-shrink: 0; }
-.lb-stat-value { font-size: 1.35rem; font-weight: 900; color: var(--text-primary); letter-spacing: -0.03em; line-height: 1; }
-.lb-stat-value--green { color: #10b981; } .lb-stat-value--blue { color: #6366f1; } .lb-stat-value--amber { color: #f59e0b; } .lb-stat-value--red { color: #ef4444; } .lb-stat-value--xp { color: #f59e0b; }
-.lb-stat-label { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; display: flex; align-items: center; gap: 0.25rem; white-space: nowrap; }
-.lb-stat-label i { font-size: 0.6rem; }
-.lb-list { display: flex; flex-direction: column; }
-.lb-row { display: grid; grid-template-columns: 44px 1fr auto auto auto; align-items: center; gap: 0.75rem; padding: 0.875rem 1.5rem; border-bottom: 1px solid var(--border-light); transition: background 0.15s; animation: lbRowIn 0.35s ease both; position: relative; }
-.lb-row:last-child { border-bottom: none; }
-.lb-row:hover { background: rgba(99,102,241,0.03); }
-.lb-row--gold { border-left: 3px solid #f59e0b; } .lb-row--silver { border-left: 3px solid #94a3b8; } .lb-row--bronze { border-left: 3px solid #cd7c3f; }
-.lb-row--me { background: rgba(99,102,241,0.04); }
-.lb-row--me:hover { background: rgba(99,102,241,0.07); }
-.lb-rank { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.lb-medal { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
-.lb-medal--gold { background: rgba(245,158,11,0.12); color: #d97706; } .lb-medal--silver { background: rgba(148,163,184,0.14); color: #64748b; } .lb-medal--bronze { background: rgba(205,124,63,0.12); color: #b45309; }
-.lb-rank-num { font-size: 0.825rem; font-weight: 700; color: var(--text-muted); min-width: 28px; text-align: center; }
-.lb-user { display: flex; align-items: center; gap: 0.625rem; text-decoration: none; min-width: 0; }
-.lb-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); flex-shrink: 0; transition: border-color 0.18s; }
-.lb-user:hover .lb-avatar { border-color: var(--primary); }
-.lb-user-info { display: flex; flex-direction: column; gap: 0.05rem; min-width: 0; }
-.lb-username { font-size: 0.875rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 0.4rem; transition: color 0.15s; }
-.lb-user:hover .lb-username { color: var(--primary); }
-.lb-handle { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; }
-.lb-you-tag { display: inline-flex; align-items: center; padding: 0.1rem 0.4rem; background: rgba(99,102,241,0.1); color: var(--primary); border-radius: 4px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0; }
-.lb-score-wrap { display: flex; align-items: center; gap: 0.6rem; min-width: 120px; }
-.lb-score-bar-track { flex: 1; height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
-.lb-score-bar-fill { height: 100%; background: var(--bar-color, var(--primary)); border-radius: 99px; transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1); }
-.lb-score-pct { font-size: 0.8rem; font-weight: 700; white-space: nowrap; min-width: 38px; text-align: right; }
-.lb-pct--green { color: #10b981; } .lb-pct--blue { color: #6366f1; } .lb-pct--amber { color: #f59e0b; } .lb-pct--red { color: #ef4444; }
-.lb-time, .lb-xp { display: flex; align-items: center; gap: 0.3rem; font-size: 0.775rem; font-weight: 600; white-space: nowrap; }
-.lb-time { color: var(--text-muted); } .lb-time i { font-size: 0.65rem; }
-.lb-xp { color: #d97706; } .lb-xp i { font-size: 0.65rem; }
-.lb-cta { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.125rem 1.5rem; background: rgba(99,102,241,0.025); border-top: 1px solid var(--border-light); flex-wrap: wrap; }
-.lb-cta-text { font-size: 0.85rem; color: var(--text-secondary); margin: 0; font-weight: 500; }
-.lb-cta-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.6rem 1.25rem; border-radius: 10px; font-size: 0.845rem; font-weight: 700; text-decoration: none; transition: all 0.18s; white-space: nowrap; flex-shrink: 0; }
-.lb-cta-btn--primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; box-shadow: 0 3px 10px rgba(99,102,241,0.3); }
-.lb-cta-btn--primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 5px 16px rgba(99,102,241,0.4); color: #fff; }
-.lb-cta-btn--ghost { background: var(--bg-secondary); color: var(--primary); border: 1.5px solid rgba(99,102,241,0.25); }
-.lb-cta-btn--ghost:hover { background: rgba(99,102,241,0.07); border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
-.lb-empty { display: flex; flex-direction: column; align-items: center; padding: 3rem 1.5rem; text-align: center; gap: 0.75rem; }
-.lb-empty-icon { width: 56px; height: 56px; background: rgba(245,158,11,0.1); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: #d97706; margin-bottom: 0.25rem; }
-.lb-empty-title { font-size: 1rem; font-weight: 800; color: var(--text-primary); margin: 0; letter-spacing: -0.01em; }
-.lb-empty-text { font-size: 0.875rem; color: var(--text-secondary); margin: 0 0 0.5rem; }
-[data-theme="dark"] .lb-section { background: var(--bg-card); border-color: var(--border); }
-[data-theme="dark"] .lb-header { background: rgba(99,102,241,0.08); }
-[data-theme="dark"] .lb-stats { background: rgba(99,102,241,0.05); }
-[data-theme="dark"] .lb-cta { background: rgba(99,102,241,0.05); }
-[data-theme="dark"] .lb-row--me { background: rgba(99,102,241,0.07); }
-[data-theme="dark"] .lb-row--me:hover { background: rgba(99,102,241,0.11); }
-[data-theme="dark"] .lb-score-bar-track { background: rgba(255,255,255,0.08); }
+/* ── TAB SYSTEM ───────────────────────────────────────── */
+.pv-header-row{display:flex;align-items:center;gap:.625rem;flex-wrap:wrap;margin-bottom:.875rem}
+.pv-header-row .pv-author{margin-bottom:0}
+.pv-header-row .pv-subject{margin-bottom:0}
+.pv-tabs{display:flex;gap:.25rem;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:.25rem;overflow-x:auto;scrollbar-width:none;margin-top:.875rem}
+.pv-tabs::-webkit-scrollbar{display:none}
+.pv-tab{flex:1;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.5rem .75rem;border:none;border-radius:8px;background:transparent;color:var(--text-muted);font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .18s;position:relative}
+.pv-tab i{font-size:.72rem;flex-shrink:0}
+.pv-tab:hover{background:var(--bg-hover);color:var(--text-secondary)}
+.pv-tab[aria-selected="true"]{background:var(--primary);color:#fff;box-shadow:0 2px 10px rgba(99,102,241,.35)}
+.pv-tab-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;background:rgba(255,255,255,.2);color:inherit;border-radius:20px;font-size:.62rem;font-weight:800;line-height:1}
+.pv-tab[aria-selected="true"] .pv-tab-badge{background:rgba(255,255,255,.25)}
+.pv-panel{display:flex;flex-direction:column;gap:.75rem}
+.pv-panel--hidden{display:none}
+.pv-panel-block{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:1.125rem}
+.pv-panel-block-label{display:flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:.75rem;padding-bottom:.6rem;border-bottom:1px solid var(--border)}
+.pv-panel-block-label i{color:var(--primary);font-size:.68rem}
+.pv-desc-wrap{position:relative}
+.pv-desc--clamped{max-height:4.8em;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,black 40%,transparent 100%);mask-image:linear-gradient(to bottom,black 40%,transparent 100%)}
+.pv-desc--expanded{max-height:none;-webkit-mask-image:none;mask-image:none}
+.pv-show-more{display:inline-flex;align-items:center;gap:.3rem;margin-top:.5rem;background:none;border:none;padding:0;font-size:.78rem;font-weight:700;color:var(--primary);cursor:pointer;transition:opacity .15s}
+.pv-show-more:hover{opacity:.75}
+.pv-show-more i{font-size:.65rem;transition:transform .2s}
+.pv-show-more.is-open i{transform:rotate(180deg)}
 
-/* Preview Modal */
-.preview-modal { display: none; position: fixed; z-index: 1000; inset: 0; background-color: rgba(0,0,0,0.88); backdrop-filter: blur(4px); }
-.preview-modal.active { display: flex; align-items: center; justify-content: center; padding: 2rem; animation: fadeIn 0.2s ease; }
-.preview-modal-content { background: var(--bg-card); border-radius: 14px; width: 100%; max-width: 1200px; height: 90vh; position: relative; overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.4); }
-.preview-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; background: rgba(99,102,241,0.05); border-bottom: 1px solid rgba(99,102,241,0.1); position: relative; z-index: 1; }
-.preview-title { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0; }
-.preview-title i { color: var(--primary); font-size: 0.9rem; flex-shrink: 0; }
-.preview-title h3 { margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.close-btn { background: var(--bg-secondary); border: 1.5px solid var(--border); width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; cursor: pointer; color: var(--text-muted); transition: all 0.18s; flex-shrink: 0; }
-.close-btn:hover { background: #dc2626; border-color: #dc2626; color: #fff; }
-.preview-body { position: absolute; top: 57px; left: 0; right: 0; bottom: 0; overflow: hidden; background: var(--bg-secondary); }
-.preview-loading { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; gap: 1.25rem; }
-.preview-loading .spinner { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
-.preview-loading .spinner::before,.preview-loading .spinner::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 3px solid transparent; }
-.preview-loading .spinner::before { border-top-color: var(--primary); border-right-color: var(--primary); animation: spinCW 0.85s linear infinite; }
-.preview-loading .spinner::after { inset: 10px; border-bottom-color: #8b5cf6; border-left-color: #8b5cf6; animation: spinCCW 0.85s linear infinite; }
-@keyframes spinCW  { to { transform: rotate( 360deg); } }
-@keyframes spinCCW { to { transform: rotate(-360deg); } }
-.preview-loading .spinner-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: var(--primary); animation: iconPulse 1.7s ease-in-out infinite; }
-@keyframes iconPulse { 0%,100% { opacity:1;transform:scale(1); } 50% { opacity:0.5;transform:scale(0.85); } }
-.preview-loading .loading-text { text-align: center; }
-.preview-loading .loading-text p { margin: 0 0 0.2rem; font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
-.preview-loading .loading-text span { font-size: 0.78rem; color: var(--text-muted); }
-.preview-loading .loading-bar-track { width: min(240px,76vw); height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; }
-.preview-loading .loading-bar-fill { height: 100%; width: 45%; background: linear-gradient(90deg,var(--primary),#8b5cf6,var(--primary)); background-size: 200% 100%; border-radius: 99px; animation: shimmerSlide 1.6s ease-in-out infinite; }
-@keyframes shimmerSlide { 0% { transform:translateX(-120%); } 100% { transform:translateX(320%); } }
-.preview-error { position: absolute; top:0;left:0;right:0;bottom:0; display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;gap:1rem;color:var(--text-muted); }
-.preview-error i { font-size: 2.25rem; color: #dc2626; }
-.preview-iframe { position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;border:none;display:block; }
-.preview-image { position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;object-fit:contain;padding:1rem;box-sizing:border-box; }
-.gdocs-wrapper { position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column; }
-.gdocs-wrapper .preview-iframe { position:relative;flex:1;height:auto;top:auto;left:auto;right:auto;bottom:auto; }
-.gdocs-notice { padding:0.5rem 1rem;font-size:0.775rem;color:var(--text-muted);text-align:center;border-bottom:1px solid var(--border);background:var(--bg-card);flex-shrink:0; }
-.gdocs-notice a { color:var(--primary);text-decoration:none;font-weight:600; }
-.gdocs-notice a:hover { text-decoration:underline; }
-@keyframes fadeIn { from{opacity:0;}to{opacity:1;} }
-.quiz-unavailable-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.6rem 1.1rem; background: var(--bg-secondary); border: 1.5px solid var(--border); border-radius: 10px; color: var(--text-muted); font-size: 0.875rem; font-weight: 600; cursor: default; min-height: 40px; }
-.quiz-unavailable-badge i { color: var(--text-muted); font-size: 0.8rem; }
-
-/* Responsive */
-@media (max-width: 480px) {
-    .post-view-container { padding: 0.625rem 0.625rem 1.5rem; }
-    .view-header { flex-direction: column; gap: 0.625rem; align-items: stretch; }
-    .view-header .header-content { padding: 0.875rem; gap: 0.625rem; border-radius: 12px; }
-    .view-header .header-icon-wrapper { width: 38px; height: 38px; font-size: 1rem; }
-    .view-header .header-text h1 { font-size: 1.05rem; }
-    .back-link { align-self: flex-start; padding: 0.45rem 0.75rem; font-size: 0.8rem; }
-    .post-detail-card { padding: 0.875rem; border-radius: 12px; margin-bottom: 0.625rem; }
-    .post-header { flex-direction: column; gap: 0.625rem; margin-bottom: 1rem; padding-bottom: 0.75rem; }
-    .author-avatar { width: 34px; height: 34px; }
-    .post-options { display: flex; gap: 0.5rem; }
-    .post-options .btn { flex: 1; }
-    .mobile-hidden { display: none !important; }
-    .desktop-hidden { display: inline !important; }
-    .post-title { font-size: 1.25rem; }
-    .post-description { font-size: 0.875rem; }
-    .document-section { padding: 0.75rem; border-radius: 10px; margin-bottom: 1rem; }
-    .document-card { flex-direction: column; align-items: flex-start; gap: 0.625rem; padding: 0.75rem; border-radius: 9px; margin-bottom: 0.75rem; }
-    .document-info { width: 100%; }
-    .document-title { white-space: normal; word-break: break-word; }
-    .document-meta { flex-direction: column; gap: 0.3rem; }
-    .document-actions { flex-direction: column; gap: 0.5rem; }
-    .document-actions .btn { width: 100%; justify-content: center; }
-    .post-actions-bar { flex-direction: column; gap: 0.5rem; padding-top: 0.75rem; }
-    .comments-section { padding: 0.875rem; border-radius: 12px; }
-    .comment-form { flex-direction: column; gap: 0.5rem; }
-    .comment-input-group { width: 100%; }
-    .comment-input-group .btn { width: 100%; }
-    .page-btn span { display: none; }
-    .preview-modal.active { padding: 0.5rem; }
-    .preview-modal-content { height: 97vh; border-radius: 12px; }
-    .lb-header { padding: 1rem; flex-wrap: wrap; gap: 0.75rem; }
-    .lb-subtitle { max-width: 100%; }
-    .lb-quiz-btn { width: 100%; justify-content: center; }
-    .lb-stats { padding: 0.875rem 1rem; gap: 0; }
-    .lb-stat { padding: 0 0.875rem; }
-    .lb-stat-value { font-size: 1.1rem; }
-    .lb-row { grid-template-columns: 36px 1fr auto; grid-template-rows: auto auto; gap: 0.5rem 0.625rem; padding: 0.875rem 1rem; }
-    .lb-score-wrap { grid-column: 2; grid-row: 2; min-width: unset; }
-    .lb-time { grid-column: 3; grid-row: 1; font-size: 0.72rem; }
-    .lb-xp { grid-column: 3; grid-row: 2; font-size: 0.72rem; }
-    .lb-cta { flex-direction: column; align-items: flex-start; padding: 1rem; }
-    .lb-cta-btn { width: 100%; justify-content: center; }
-}
-@media (min-width: 481px) and (max-width: 640px) {
-    .post-view-container { padding: 0.75rem 0.875rem; }
-    .view-header { flex-direction: column; gap: 0.625rem; }
-    .back-link { align-self: flex-start; }
-    .post-detail-card, .comments-section { padding: 1.125rem; border-radius: 12px; }
-    .post-title { font-size: 1.375rem; }
-    .document-card { flex-direction: column; gap: 0.75rem; }
-    .document-info { width: 100%; }
-    .document-title { white-space: normal; word-break: break-word; }
-    .document-actions { flex-direction: column; gap: 0.5rem; }
-    .document-actions .btn { width: 100%; }
-    .post-actions-bar { flex-direction: column; gap: 0.5rem; }
-    .comment-form { flex-direction: column; }
-    .comment-input-group { width: 100%; }
-    .comment-input-group .btn { width: 100%; }
-    .lb-row { grid-template-columns: 40px 1fr auto auto; }
-    .lb-xp { display: none; }
-}
-@media (min-width: 641px) and (max-width: 768px) {
-    .post-view-container { padding: 1rem 1.125rem; }
-    .post-detail-card, .comments-section { padding: 1.25rem; }
-    .post-title { font-size: 1.5rem; }
-    .document-actions { width: 100%; flex-direction: row; gap: 0.5rem; }
-    .document-actions .btn { flex: 1; }
-    .post-header { flex-direction: row; }
-}
-@media (min-width: 769px) {
-    .document-card { flex-direction: row; align-items: center; }
-    .document-actions { flex-direction: row; }
-    .view-header { flex-direction: row; align-items: center; }
-    .back-link span { display: inline; }
-    .post-title { font-size: 1.75rem; }
-}
-@media (hover: none) and (pointer: coarse) {
-    .back-link:hover, .post-view-container .btn-primary:hover, .page-btn:hover { transform: none; }
-    .action-btn { min-height: 48px; }
-    .close-btn { width: 42px; height: 42px; }
-    .document-actions .btn { min-height: 48px; }
-    .post-view-container .btn { min-height: 46px; }
-    .lb-quiz-btn:hover, .lb-cta-btn--primary:hover, .lb-cta-btn--ghost:hover { transform: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-    .preview-loading .spinner::before, .preview-loading .spinner::after,
-    .preview-loading .spinner-icon, .preview-loading .loading-bar-fill { animation: none; }
-    .preview-modal.active { animation: none; }
-    .lb-row { animation: none; }
-}
+/* ── Notes content blocks ── */
+.content-block{padding:.65rem .875rem;border-radius:10px;margin-bottom:.6rem;font-size:.875rem;line-height:1.65;color:var(--text-secondary)}
+.content-block--definition{background:rgba(99,102,241,.07);border-left:3px solid #6366f1}
+.content-block--theorem{background:rgba(16,185,129,.07);border-left:3px solid #10b981}
+.content-block--formula{background:rgba(245,158,11,.07);border-left:3px solid #f59e0b}
+.content-block--example{background:rgba(6,182,212,.07);border-left:3px solid #06b6d4}
+.content-block--note{background:var(--bg-hover);border-left:3px solid var(--border)}
+.content-block--list{background:var(--bg-hover);border-radius:10px;padding:.65rem .875rem}
+.cb-label{display:inline-block;font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:.35rem}
+.cb-formula-text{font-family:monospace;font-size:.9rem;color:#f59e0b}
+.cb-steps{margin:.4rem 0 0 1.1rem;display:flex;flex-direction:column;gap:.25rem;font-size:.82rem}
+.cb-list-title{font-weight:700;font-size:.82rem;margin-bottom:.35rem;color:var(--text-primary)}
+.cb-list{margin:0 0 0 1.1rem;list-style:disc;display:flex;flex-direction:column;gap:.2rem;font-size:.85rem}
+.cb-paragraph{font-size:.875rem;line-height:1.65;color:var(--text-secondary);margin-bottom:.5rem}
+/* ── Cheatsheet entries ── */
+.cheat-entries{display:flex;flex-direction:column;gap:.5rem}
+.cheat-entries--formulas .cheat-entry{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.18)}
+.cheat-entries--definitions .cheat-entry{background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.18)}
+.cheat-entry{display:grid;grid-template-columns:1fr 2fr;gap:.5rem .875rem;padding:.65rem .875rem;background:var(--bg-hover);border:1px solid var(--border);border-radius:10px;font-size:.85rem}
+.cheat-entry-label{font-weight:700;color:var(--text-primary);font-size:.82rem}
+.cheat-entry-content{color:var(--text-secondary)}
+.cheat-formula{font-family:monospace;color:#f59e0b;font-size:.88rem}
+.cheat-entry-note{grid-column:1/-1;font-size:.75rem;color:var(--text-muted);padding-top:.3rem;border-top:1px solid var(--border);margin-top:.1rem;font-style:italic}
+.cheat-entry-example{grid-column:1/-1;font-size:.78rem;color:var(--text-muted)}
+.cheat-entry-example span{font-weight:700;color:var(--primary);margin-right:.3rem}
+.pv-panel-block-label--formula i{color:#f59e0b}
+.pv-panel-block-label--definition i{color:#6366f1}
+</style>
 </style>
 
 <script>
-/* ── AJAX Like ── */
 async function toggleLike(btn) {
     if (btn.disabled) return;
     btn.disabled = true;
-
     const postId  = btn.dataset.postId;
     const isLiked = btn.dataset.liked === 'true';
     const countEl = btn.querySelector('.like-count');
-    const base    = parseInt(btn.dataset.baseLikes || '0', 10);
-
+    const base    = parseInt(btn.dataset.base || '0', 10);
     const newLiked = !isLiked;
     btn.dataset.liked = newLiked;
-    btn.classList.toggle('liked', newLiked);
+    btn.classList.toggle('is-liked', newLiked);
     if (countEl) {
-        const displayed = parseInt(countEl.textContent, 10);
-        countEl.textContent = newLiked ? displayed + 1 : Math.max(base, displayed - 1);
+        const d = parseInt(countEl.textContent, 10);
+        countEl.textContent = newLiked ? d + 1 : Math.max(base, d - 1);
     }
-
     try {
         const res = await fetch(`/posts/${postId}/like`, {
             method: 'POST',
@@ -838,17 +789,16 @@ async function toggleLike(btn) {
                 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
             }
         });
-        if (!res.ok) throw new Error('Like failed');
+        if (!res.ok) throw new Error('failed');
         const data = await res.json().catch(() => null);
-        if (data && data.like_count !== undefined && countEl) {
+        if (data && data.like_count !== undefined && countEl)
             countEl.textContent = data.like_count + base;
-        }
-    } catch (e) {
+    } catch(e) {
         btn.dataset.liked = isLiked;
-        btn.classList.toggle('liked', isLiked);
+        btn.classList.toggle('is-liked', isLiked);
         if (countEl) {
-            const displayed = parseInt(countEl.textContent, 10);
-            countEl.textContent = isLiked ? displayed + 1 : Math.max(base, displayed - 1);
+            const d = parseInt(countEl.textContent, 10);
+            countEl.textContent = isLiked ? d + 1 : Math.max(base, d - 1);
         }
     } finally {
         btn.disabled = false;
@@ -856,104 +806,132 @@ async function toggleLike(btn) {
 }
 
 {% if post.has_document and post.document and current_user.is_authenticated and post.document.has_access(current_user) %}
-const documentId   = {{ post.document.id }};
 const documentType = '{{ post.document.file_type }}';
-
-function getFileIcon(ext) {
-    const map = { pdf:'fa-file-pdf', docx:'fa-file-word', doc:'fa-file-word', pptx:'fa-file-powerpoint', ppt:'fa-file-powerpoint', xlsx:'fa-file-excel', xls:'fa-file-excel', png:'fa-file-image', jpg:'fa-file-image', jpeg:'fa-file-image', gif:'fa-file-image', webp:'fa-file-image' };
-    return map[ext] || 'fa-file';
-}
-function getLoadingLabel(ext) {
-    const map = { pdf:'Rendering PDF…', docx:'Opening in Docs Viewer…', doc:'Opening in Docs Viewer…', pptx:'Opening in Slides Viewer…', ppt:'Opening in Slides Viewer…', xlsx:'Opening in Sheets Viewer…', xls:'Opening in Sheets Viewer…' };
-    return map[ext] || 'Loading preview…';
-}
-function buildLoadingHTML() {
-    const icon = getFileIcon(documentType);
-    const label = getLoadingLabel(documentType);
-    return `<div class="preview-loading" role="status" aria-live="polite" aria-label="Loading document preview"><div class="spinner" aria-hidden="true"><div class="spinner-icon"><i class="fas ${icon}"></i></div></div><div class="loading-text"><p>${label}</p><span>This may take a moment&hellip;</span></div><div class="loading-bar-track" aria-hidden="true"><div class="loading-bar-fill"></div></div></div>`;
-}
+function getFileIcon(ext){const m={pdf:'fa-file-pdf',docx:'fa-file-word',doc:'fa-file-word',pptx:'fa-file-powerpoint',ppt:'fa-file-powerpoint',xlsx:'fa-file-excel',xls:'fa-file-excel',png:'fa-file-image',jpg:'fa-file-image',jpeg:'fa-file-image',gif:'fa-file-image',webp:'fa-file-image'};return m[ext]||'fa-file';}
+function getLoadingLabel(ext){const m={pdf:'Rendering PDF…',docx:'Opening in Docs Viewer…',doc:'Opening in Docs Viewer…',pptx:'Opening in Slides Viewer…',ppt:'Opening in Slides Viewer…',xlsx:'Opening in Sheets Viewer…',xls:'Opening in Sheets Viewer…'};return m[ext]||'Loading preview…';}
+function buildLoadingHTML(){const icon=getFileIcon(documentType);const label=getLoadingLabel(documentType);return`<div class="preview-loading" role="status"><div class="spinner"><div class="spinner-icon"><i class="fas ${icon}"></i></div></div><div class="loading-text"><p>${label}</p><span>This may take a moment&hellip;</span></div><div class="loading-bar-track"><div class="loading-bar-fill"></div></div></div>`;}
 
 async function previewDocument() {
-    const modal       = document.getElementById('previewModal');
-    const previewBody = document.getElementById('previewBody');
-    const previewUrl  = "{{ url_for('posts.preview_document', document_id=post.document.id) }}";
-    const downloadUrl = "{{ url_for('posts.download_document', document_id=post.document.id) }}";
+    const modal=document.getElementById('previewModal');
+    const previewBody=document.getElementById('previewBody');
+    const previewUrl="{{ url_for('posts.preview_document', document_id=post.document.id) }}";
+    const downloadUrl="{{ url_for('posts.download_document', document_id=post.document.id) }}";
     modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    previewBody.innerHTML = buildLoadingHTML();
-    const errorHtml = `<div class="preview-error"><i class="fas fa-exclamation-circle"></i><p>Preview unavailable for this file.</p><a href="${downloadUrl}" class="btn btn-primary" style="margin-top:.5rem;"><i class="fas fa-download"></i> Download instead</a></div>`;
+    document.body.style.overflow='hidden';
+    previewBody.innerHTML=buildLoadingHTML();
+    const errorHtml=`<div class="preview-error"><i class="fas fa-exclamation-circle"></i><p>Preview unavailable.</p><a href="${downloadUrl}" class="pv-btn pv-btn--primary" style="margin-top:.5rem"><i class="fas fa-download"></i> Download instead</a></div>`;
     try {
-        const response = await fetch(previewUrl, { headers: { 'Accept': 'application/json' } });
-        if (response.status === 403) {
-            const checkoutUrl = "{{ url_for('payments.checkout', document_id=post.document.id) if post.has_document and post.document else '#' }}";
-            previewBody.innerHTML = `<div class="preview-error"><i class="fas fa-lock"></i><p style="font-weight:700;color:var(--text-primary);font-size:.95rem;">Purchase required</p><p style="font-size:.85rem;">You need to purchase this document to preview it.</p><a href="${checkoutUrl}" class="btn btn-primary" style="margin-top:.5rem;"><i class="fas fa-shopping-cart"></i> Purchase to Preview</a></div>`;
+        const response=await fetch(previewUrl,{headers:{'Accept':'application/json'}});
+        if(response.status===403){
+            const checkoutUrl="{{ url_for('payments.checkout', document_id=post.document.id) if post.has_document and post.document else '#' }}";
+            previewBody.innerHTML=`<div class="preview-error"><i class="fas fa-lock"></i><p style="font-weight:700">Purchase required</p><a href="${checkoutUrl}" class="pv-btn pv-btn--primary" style="margin-top:.5rem"><i class="fas fa-shopping-cart"></i> Purchase to Preview</a></div>`;
             return;
         }
-        if (!response.ok) throw new Error(`Server error: ${response.status}`);
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-        if (data.type === 'image') {
-            previewBody.innerHTML = buildLoadingHTML();
-            const img = new Image();
-            img.className = 'preview-image'; img.alt = 'Document preview';
-            img.onload = () => { previewBody.innerHTML = ''; previewBody.appendChild(img); };
-            img.onerror = () => { previewBody.innerHTML = errorHtml; };
-            img.src = data.url;
-        } else if (data.type === 'gdocs') {
-            const loaderId = 'preview-loader-' + Date.now();
-            previewBody.innerHTML = `<div class="gdocs-wrapper"><div class="gdocs-notice"><i class="fas fa-info-circle"></i> Powered by Google Docs Viewer &mdash; <a href="${downloadUrl}">Download</a> if it doesn't load</div><div style="position:relative;flex:1;"><div id="${loaderId}" style="position:absolute;inset:0;z-index:2;background:var(--bg-secondary);">${buildLoadingHTML()}</div><iframe id="preview-iframe" src="${data.viewer_url}" title="Document Preview" class="preview-iframe" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" style="position:absolute;inset:0;width:100%;height:100%;border:none;opacity:0;transition:opacity .4s ease;"></iframe></div></div>`;
-            const iframe = document.getElementById('preview-iframe');
-            const loader = document.getElementById(loaderId);
-            let loaded = false;
-            function revealIframe() {
-                if (loaded) return; loaded = true;
-                if (loader) { loader.style.transition='opacity .4s ease'; loader.style.opacity='0'; setTimeout(()=>{if(loader)loader.remove();},420); }
-                if (iframe) iframe.style.opacity='1';
-            }
-            iframe.addEventListener('load', revealIframe);
-            setTimeout(()=>{ if(!loaded) revealIframe(); }, 45000);
-        } else if (data.type === 'local') {
-            previewBody.innerHTML = `<div class="preview-error"><i class="fas fa-laptop-code"></i><p style="font-weight:700;color:var(--text-primary);">Local dev mode</p><p style="font-size:.85rem;">Google Docs Viewer can't reach localhost.</p><a href="${data.url}" target="_blank" class="btn btn-primary" style="margin-top:.5rem;"><i class="fas fa-external-link-alt"></i> Open file directly</a></div>`;
-        } else {
-            previewBody.innerHTML = errorHtml;
-        }
-    } catch(e) {
-        console.error('Preview failed:', e);
-        previewBody.innerHTML = errorHtml;
-    }
+        if(!response.ok)throw new Error('Server error');
+        const data=await response.json();
+        if(data.error)throw new Error(data.error);
+        if(data.type==='image'){
+            const img=new Image();img.className='preview-image';img.alt='Preview';
+            img.onload=()=>{previewBody.innerHTML='';previewBody.appendChild(img);};
+            img.onerror=()=>{previewBody.innerHTML=errorHtml;};
+            img.src=data.url;
+        } else if(data.type==='gdocs'){
+            const lid='l-'+Date.now();
+            previewBody.innerHTML=`<div class="gdocs-wrapper"><div class="gdocs-notice"><i class="fas fa-info-circle"></i> Powered by Google Docs Viewer — <a href="${downloadUrl}">Download</a> if it doesn't load</div><div style="position:relative;flex:1"><div id="${lid}" style="position:absolute;inset:0;z-index:2;background:var(--bg-secondary)">${buildLoadingHTML()}</div><iframe src="${data.viewer_url}" title="Preview" class="preview-iframe" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" style="position:absolute;inset:0;width:100%;height:100%;border:none;opacity:0;transition:opacity .4s"></iframe></div></div>`;
+            const iframe=previewBody.querySelector('iframe');const loader=document.getElementById(lid);
+            let loaded=false;
+            function reveal(){if(loaded)return;loaded=true;if(loader){loader.style.opacity='0';setTimeout(()=>loader.remove(),420);}if(iframe)iframe.style.opacity='1';}
+            iframe.addEventListener('load',reveal);setTimeout(()=>{if(!loaded)reveal();},45000);
+        } else if(data.type==='local'){
+            previewBody.innerHTML=`<div class="preview-error"><i class="fas fa-laptop-code"></i><p style="font-weight:700">Local dev mode</p><p style="font-size:.82rem">Google Docs Viewer can't reach localhost.</p><a href="${data.url}" target="_blank" class="pv-btn pv-btn--primary" style="margin-top:.5rem"><i class="fas fa-external-link-alt"></i> Open file directly</a></div>`;
+        } else {previewBody.innerHTML=errorHtml;}
+    } catch(e){console.error('Preview failed:',e);previewBody.innerHTML=errorHtml;}
 }
-function closePreview() {
-    const modal = document.getElementById('previewModal');
-    modal.classList.remove('active');
-    document.body.style.overflow = 'auto';
-    document.getElementById('previewBody').innerHTML = '';
+function closePreview(){
+    document.getElementById('previewModal').classList.remove('active');
+    document.body.style.overflow='';
+    document.getElementById('previewBody').innerHTML='';
 }
-document.getElementById('previewModal').addEventListener('click', function(e) {
-    if (e.target === this) closePreview();
-});
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const modal = document.getElementById('previewModal');
-        if (modal.classList.contains('active')) closePreview();
-    }
-});
+document.getElementById('previewModal').addEventListener('click',function(e){if(e.target===this)closePreview();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.getElementById('previewModal').classList.contains('active'))closePreview();});
 {% endif %}
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script>
-(function () {
-    marked.setOptions({ breaks: true, gfm: true });
-    const renderer = new marked.Renderer();
-    renderer.link = function({ href, title, text }) {
-        const external = href && (href.startsWith('http://') || href.startsWith('https://'));
-        const titleAttr = title ? ` title="${title}"` : '';
-        const targetAttr = external ? ' target="_blank" rel="noopener noreferrer"' : '';
-        return `<a href="${href}"${titleAttr}${targetAttr}>${text}</a>`;
+(function(){
+    marked.setOptions({breaks:true,gfm:true});
+    const renderer=new marked.Renderer();
+    renderer.link=function({href,title,text}){
+        const external=href&&(href.startsWith('http://')||href.startsWith('https://'));
+        return`<a href="${href}"${title?` title="${title}"`:''}${external?' target="_blank" rel="noopener noreferrer"':''}>${text}</a>`;
     };
-    marked.use({ renderer });
-    const el = document.getElementById('postDescription');
-    if (el) { const raw = el.dataset.raw || ''; el.innerHTML = marked.parse(raw); }
+    marked.use({renderer});
+    const el=document.getElementById('postDescription');
+    if(el)el.innerHTML=marked.parse(el.dataset.raw||'');
 })();
 </script>
+
+<script>
+// ── Description show-more toggle ─────────────────────────────────────────
+function pvToggleDesc(btn) {
+    const desc = document.getElementById('postDescription');
+    if (!desc) return;
+    const open = btn.getAttribute('aria-expanded') === 'true';
+    desc.classList.toggle('pv-desc--clamped', open);
+    desc.classList.toggle('pv-desc--expanded', !open);
+    btn.setAttribute('aria-expanded', !open);
+    btn.classList.toggle('is-open', !open);
+    btn.innerHTML = open
+        ? 'Show more <i class="fas fa-chevron-down"></i>'
+        : 'Show less <i class="fas fa-chevron-down"></i>';
+}
+
+// Hide the show-more button if content fits without clamping
+(function () {
+    const desc = document.getElementById('postDescription');
+    const btn  = document.getElementById('pvShowMore');
+    if (!desc || !btn) return;
+    // After marked renders, check if content is taller than the clamp height
+    requestAnimationFrame(() => {
+        if (desc.scrollHeight <= desc.clientHeight + 2) {
+            btn.style.display = 'none';
+            desc.classList.remove('pv-desc--clamped');
+        }
+    });
+})();
+
+// ── Tab system ────────────────────────────────────────────────────────────
+const PV_TABS = ['overview', 'content', 'leaderboard', 'discussion'].filter(id =>
+    document.getElementById('panel-' + id)
+);
+
+function pvSetTab(name) {
+    if (!PV_TABS.includes(name)) name = PV_TABS[0];
+
+    PV_TABS.forEach(id => {
+        const panel = document.getElementById('panel-' + id);
+        const tab   = document.getElementById('tab-' + id);
+        if (panel) panel.classList.toggle('pv-panel--hidden', id !== name);
+        if (tab)   tab.setAttribute('aria-selected', id === name ? 'true' : 'false');
+    });
+
+    // URL persistence
+    const url = new URL(window.location);
+    if (name === PV_TABS[0]) {
+        url.searchParams.delete('tab');
+    } else {
+        url.searchParams.set('tab', name);
+    }
+    history.replaceState(null, '', url);
+}
+
+// Restore tab from URL on load
+(function () {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab && PV_TABS.includes(tab)) pvSetTab(tab);
+})();
+</script>
+
 {% endblock %}

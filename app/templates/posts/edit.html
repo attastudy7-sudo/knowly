@@ -4,7 +4,7 @@
 {% block content %}
 <div class="ep-wrap">
 
-  <!-- Page Header -->
+  <!-- ── PAGE HEADER ── -->
   <div class="ep-header">
     <a href="{{ url_for('posts.view', post_id=post.id) }}" class="ep-back">
       <i class="fas fa-arrow-left"></i>
@@ -21,125 +21,137 @@
     </div>
   </div>
 
-  <!-- Form -->
+  <!-- ── FORM ── -->
   <form method="post" enctype="multipart/form-data" id="epForm">
     {{ form.hidden_tag() }}
 
     <div class="ep-layout">
 
-      <!-- MAIN COLUMN -->
+      <!-- ── MAIN COLUMN ── -->
       <div class="ep-main">
 
         <!-- Title -->
         <div class="ep-card ep-card--anim" style="--i:1">
-          <div class="ep-card-label">
-            <i class="fas fa-heading"></i>
-            Post Title <span class="ep-req">*</span>
+          <div class="ep-card-head">
+            <div class="ep-card-icon ep-card-icon--blue"><i class="fas fa-heading"></i></div>
+            <div class="ep-card-head-text">
+              <h3>Post Title <span class="ep-req">*</span></h3>
+              <p>Give your post a clear, searchable name</p>
+            </div>
           </div>
-          {{ form.title(
-            class="ep-input ep-input--title",
-            placeholder="Give your post a clear, searchable title…",
-            autocomplete="off"
-          ) }}
-          {% if form.title.errors %}
-            <p class="ep-err"><i class="fas fa-exclamation-circle"></i> {{ form.title.errors[0] }}</p>
-          {% endif %}
+          <div class="ep-card-body">
+            {{ form.title(
+              class="ep-input ep-input--title",
+              placeholder="e.g. Introduction to Organic Chemistry…",
+              autocomplete="off"
+            ) }}
+            {% if form.title.errors %}
+              <p class="ep-err"><i class="fas fa-exclamation-circle"></i> {{ form.title.errors[0] }}</p>
+            {% endif %}
+          </div>
         </div>
 
         <!-- Description -->
         <div class="ep-card ep-card--anim" style="--i:2">
-          <div class="ep-card-label-row">
-            <div class="ep-card-label">
-              <i class="fas fa-align-left"></i>
-              Description
-              <span class="ep-opt">Optional</span>
+          <div class="ep-card-head">
+            <div class="ep-card-icon ep-card-icon--purple"><i class="fas fa-align-left"></i></div>
+            <div class="ep-card-head-text">
+              <h3>Description <span class="ep-opt">Optional</span></h3>
+              <p>Markdown supported — headers, lists, code</p>
             </div>
-            <div class="ep-tabs" role="tablist">
-              <button type="button" class="ep-tab ep-tab--active" id="epTabWrite" onclick="epSetTab('write')">
-                <i class="fas fa-pen"></i> Write
-              </button>
-              <button type="button" class="ep-tab" id="epTabPreview" onclick="epSetTab('preview')">
-                <i class="fas fa-eye"></i> Preview
-              </button>
-            </div>
-          </div>
-
-          <!-- Toolbar -->
-          <div class="ep-toolbar" id="epToolbar">
-            <button type="button" class="ep-tb" data-md="bold"   title="Bold"><i class="fas fa-bold"></i></button>
-            <button type="button" class="ep-tb" data-md="italic" title="Italic"><i class="fas fa-italic"></i></button>
-            <button type="button" class="ep-tb" data-md="strike" title="Strikethrough"><i class="fas fa-strikethrough"></i></button>
-            <span class="ep-tb-sep"></span>
-            <button type="button" class="ep-tb" data-md="h2"    title="Heading"><i class="fas fa-heading"></i></button>
-            <button type="button" class="ep-tb" data-md="quote" title="Quote"><i class="fas fa-quote-left"></i></button>
-            <button type="button" class="ep-tb" data-md="code"  title="Code"><i class="fas fa-code"></i></button>
-            <span class="ep-tb-sep"></span>
-            <button type="button" class="ep-tb" data-md="ul"   title="Bullet list"><i class="fas fa-list-ul"></i></button>
-            <button type="button" class="ep-tb" data-md="ol"   title="Numbered list"><i class="fas fa-list-ol"></i></button>
-            <button type="button" class="ep-tb" data-md="link" title="Link"><i class="fas fa-link"></i></button>
-            <span class="ep-char-counter" id="epCounter" aria-live="polite">
-              <span id="epCharNum">0</span><span class="ep-counter-max">/5000</span>
-            </span>
-          </div>
-
-          {{ form.description(
-            id="epTextarea",
-            class="ep-textarea",
-            placeholder="Describe what you're sharing…"
-          ) }}
-
-          <div class="ep-preview ep-prose" id="epPreview" hidden>
-            <div class="ep-preview-empty">
-              <i class="fas fa-feather-pointed"></i>
-              <span>Preview appears as you write…</span>
+            <div class="ep-card-head-right">
+              <div class="ep-tabs" role="tablist">
+                <button type="button" class="ep-tab ep-tab--active" id="epTabWrite" onclick="epSetTab('write')">
+                  <i class="fas fa-pen"></i> Write
+                </button>
+                <button type="button" class="ep-tab" id="epTabPreview" onclick="epSetTab('preview')">
+                  <i class="fas fa-eye"></i> Preview
+                </button>
+              </div>
             </div>
           </div>
-
-          <div class="ep-editor-foot">
-            <i class="fab fa-markdown"></i> Markdown supported
+          <div class="ep-card-body">
+            <div class="ep-toolbar" id="epToolbar">
+              <button type="button" class="ep-tb" data-md="bold"   title="Bold"><i class="fas fa-bold"></i></button>
+              <button type="button" class="ep-tb" data-md="italic" title="Italic"><i class="fas fa-italic"></i></button>
+              <button type="button" class="ep-tb" data-md="strike" title="Strikethrough"><i class="fas fa-strikethrough"></i></button>
+              <span class="ep-tb-sep"></span>
+              <button type="button" class="ep-tb" data-md="h2"    title="Heading"><i class="fas fa-heading"></i></button>
+              <button type="button" class="ep-tb" data-md="quote" title="Quote"><i class="fas fa-quote-left"></i></button>
+              <button type="button" class="ep-tb" data-md="code"  title="Code"><i class="fas fa-code"></i></button>
+              <span class="ep-tb-sep"></span>
+              <button type="button" class="ep-tb" data-md="ul"   title="Bullet list"><i class="fas fa-list-ul"></i></button>
+              <button type="button" class="ep-tb" data-md="ol"   title="Numbered list"><i class="fas fa-list-ol"></i></button>
+              <button type="button" class="ep-tb" data-md="link" title="Link"><i class="fas fa-link"></i></button>
+              <span class="ep-char-counter" id="epCounter" aria-live="polite">
+                <span id="epCharNum">0</span><span class="ep-counter-max">/5000</span>
+              </span>
+            </div>
+            {{ form.description(
+              id="epTextarea",
+              class="ep-textarea",
+              placeholder="Describe what you're sharing…"
+            ) }}
+            <div class="ep-preview ep-prose" id="epPreview" hidden>
+              <div class="ep-preview-empty">
+                <i class="fas fa-feather-pointed"></i>
+                <span>Preview appears as you write…</span>
+              </div>
+            </div>
+            <div class="ep-editor-foot">
+              <i class="fab fa-markdown"></i> Markdown supported
+            </div>
           </div>
         </div>
 
       </div><!-- /ep-main -->
 
-      <!-- SIDEBAR -->
+      <!-- ── SIDEBAR ── -->
       <aside class="ep-sidebar">
 
         <!-- Subject -->
         <div class="ep-card ep-card--anim" style="--i:3">
-          <div class="ep-card-label">
-            <i class="fas fa-tag"></i>
-            Subject
-            <span class="ep-opt">Optional</span>
+          <div class="ep-card-head">
+            <div class="ep-card-icon ep-card-icon--green"><i class="fas fa-tag"></i></div>
+            <div class="ep-card-head-text">
+              <h3>Subject <span class="ep-opt">Optional</span></h3>
+              <p>Categorise for better discovery</p>
+            </div>
           </div>
-          {{ form.subject(class="ep-input ep-select", id=form.subject.id) }}
-          {% if form.subject.errors %}
-            <p class="ep-err"><i class="fas fa-exclamation-circle"></i> {{ form.subject.errors[0] }}</p>
-          {% endif %}
-          <p class="ep-hint">Categorize for better discovery</p>
+          <div class="ep-card-body">
+            {{ form.subject(class="ep-input ep-select", id=form.subject.id) }}
+            {% if form.subject.errors %}
+              <p class="ep-err"><i class="fas fa-exclamation-circle"></i> {{ form.subject.errors[0] }}</p>
+            {% endif %}
+          </div>
         </div>
 
         <!-- Current file -->
         {% if post.has_document and post.document %}
         <div class="ep-card ep-card--anim" style="--i:4">
-          <div class="ep-card-label">
-            <i class="fas fa-file-alt"></i>
-            Current File
-          </div>
-          <div class="ep-doc-row">
-            <div class="ep-doc-thumb">
-              <i class="fas fa-file-{{ post.document.file_type }}"></i>
+          <div class="ep-card-head">
+            <div class="ep-card-icon ep-card-icon--teal"><i class="fas fa-file-alt"></i></div>
+            <div class="ep-card-head-text">
+              <h3>Current File</h3>
+              <p>Attached to this post</p>
             </div>
-            <div class="ep-doc-info">
-              <span class="ep-doc-name" title="{{ post.document.original_filename }}">{{ post.document.original_filename }}</span>
-              <div class="ep-doc-meta">
-                <span class="ep-doc-type">{{ post.document.file_type.upper() }}</span>
-                <span class="ep-doc-size">{{ (post.document.file_size / 1048576)|round(1) }} MB</span>
-                {% if post.document.is_paid %}
-                  <span class="ep-badge ep-badge--paid">GHS {{ "%.2f"|format(post.document.price) }}</span>
-                {% else %}
-                  <span class="ep-badge ep-badge--free">Free</span>
-                {% endif %}
+          </div>
+          <div class="ep-card-body">
+            <div class="ep-doc-row">
+              <div class="ep-doc-thumb">
+                <i class="fas fa-file-{{ post.document.file_type }}"></i>
+              </div>
+              <div class="ep-doc-info">
+                <span class="ep-doc-name" title="{{ post.document.original_filename }}">{{ post.document.original_filename }}</span>
+                <div class="ep-doc-meta">
+                  <span class="ep-doc-type">{{ post.document.file_type.upper() }}</span>
+                  <span class="ep-doc-size">{{ (post.document.file_size / 1048576)|round(1) }} MB</span>
+                  {% if post.document.is_paid %}
+                    <span class="ep-badge ep-badge--paid">GHS {{ "%.2f"|format(post.document.price) }}</span>
+                  {% else %}
+                    <span class="ep-badge ep-badge--free">Free</span>
+                  {% endif %}
+                </div>
               </div>
             </div>
           </div>
@@ -148,60 +160,64 @@
 
         <!-- Replace / upload file -->
         <div class="ep-card ep-card--anim" style="--i:{{ '5' if post.has_document and post.document else '4' }}">
-          <div class="ep-card-label">
-            <i class="fas fa-cloud-arrow-up"></i>
-            {% if post.has_document and post.document %}Replace File{% else %}Upload File{% endif %}
-            <span class="ep-opt">Optional</span>
-          </div>
-          <div class="ep-dropzone" id="epDropZone"
-            ondragover="epDrag(event, true)"
-            ondragleave="epDrag(event, false)"
-            ondrop="epDrop(event)">
-            {{ form.document(id="epFileInput", class="ep-drop-input", onchange="epHandleFile(this)") }}
-            <label for="epFileInput" class="ep-drop-label">
-              <div class="ep-drop-icon" id="epDropIcon">
-                <i class="fas fa-cloud-arrow-up"></i>
-              </div>
-              <span class="ep-drop-name" id="epDropName">
-                {% if post.has_document and post.document %}Click to replace current file{% else %}Drop file or click to browse{% endif %}
-              </span>
-              <span class="ep-drop-types" id="epDropTypes">PDF · DOCX · PPTX · TXT · max 5 MB</span>
-            </label>
-            <button type="button" class="ep-drop-rm" id="epFileRm"
-              onclick="epClearFile()" style="display:none;" aria-label="Remove file">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          {% if form.document.errors %}
-            <p class="ep-err"><i class="fas fa-exclamation-circle"></i> {{ form.document.errors[0] }}</p>
-          {% endif %}
-
-          <!-- JSON sidecar -->
-          <div id="epSidecarSection" style="display:none;">
-            <div class="ep-sidecar-label">
-              <i class="fas fa-brain"></i> Quiz Sidecar
-              <span class="ep-opt">Optional</span>
+          <div class="ep-card-head">
+            <div class="ep-card-icon ep-card-icon--cyan"><i class="fas fa-cloud-arrow-up"></i></div>
+            <div class="ep-card-head-text">
+              <h3>{% if post.has_document and post.document %}Replace File{% else %}Upload File{% endif %} <span class="ep-opt">Optional</span></h3>
+              <p>PDF · DOCX · PPTX · TXT — max 5 MB</p>
             </div>
-            <div class="ep-dropzone ep-dropzone--sm" id="epJsonZone"
-              ondragover="epDragJson(event, true)"
-              ondragleave="epDragJson(event, false)"
-              ondrop="epDropJson(event)">
-              {% if form.json_sidecar is defined %}
-                {{ form.json_sidecar(id="epJsonInput", class="ep-drop-input", onchange="epHandleJson(this)") }}
-              {% else %}
-                <input type="file" name="json_sidecar" accept=".json" id="epJsonInput" class="ep-drop-input" onchange="epHandleJson(this)">
-              {% endif %}
-              <label for="epJsonInput" class="ep-drop-label">
-                <div class="ep-drop-icon ep-drop-icon--sm ep-drop-icon--cyan" id="epJsonIcon">
-                  <i class="fas fa-file-code"></i>
+          </div>
+          <div class="ep-card-body">
+            <div class="ep-dropzone" id="epDropZone"
+              ondragover="epDrag(event, true)"
+              ondragleave="epDrag(event, false)"
+              ondrop="epDrop(event)">
+              {{ form.document(id="epFileInput", class="ep-drop-input", onchange="epHandleFile(this)") }}
+              <label for="epFileInput" class="ep-drop-label">
+                <div class="ep-drop-icon" id="epDropIcon">
+                  <i class="fas fa-cloud-arrow-up"></i>
                 </div>
-                <span class="ep-drop-name" id="epJsonName">Attach .json quiz file</span>
-                <span class="ep-drop-types">Pre-built questions for this PDF</span>
+                <span class="ep-drop-name" id="epDropName">
+                  {% if post.has_document and post.document %}Click to replace current file{% else %}Drop file or click to browse{% endif %}
+                </span>
+                <span class="ep-drop-types" id="epDropTypes">PDF · DOCX · PPTX · TXT · max 5 MB</span>
               </label>
-              <button type="button" class="ep-drop-rm" id="epJsonRm"
-                onclick="epClearJson()" style="display:none;" aria-label="Remove JSON">
+              <button type="button" class="ep-drop-rm" id="epFileRm"
+                onclick="epClearFile()" style="display:none;" aria-label="Remove file">
                 <i class="fas fa-times"></i>
               </button>
+            </div>
+            {% if form.document.errors %}
+              <p class="ep-err"><i class="fas fa-exclamation-circle"></i> {{ form.document.errors[0] }}</p>
+            {% endif %}
+
+            <!-- JSON sidecar -->
+            <div id="epSidecarSection" style="display:none;">
+              <div class="ep-sidecar-label">
+                <i class="fas fa-brain"></i> Quiz Sidecar
+                <span class="ep-opt">Optional</span>
+              </div>
+              <div class="ep-dropzone ep-dropzone--sm" id="epJsonZone"
+                ondragover="epDragJson(event, true)"
+                ondragleave="epDragJson(event, false)"
+                ondrop="epDropJson(event)">
+                {% if form.json_sidecar is defined %}
+                  {{ form.json_sidecar(id="epJsonInput", class="ep-drop-input", onchange="epHandleJson(this)") }}
+                {% else %}
+                  <input type="file" name="json_sidecar" accept=".json" id="epJsonInput" class="ep-drop-input" onchange="epHandleJson(this)">
+                {% endif %}
+                <label for="epJsonInput" class="ep-drop-label">
+                  <div class="ep-drop-icon ep-drop-icon--sm ep-drop-icon--cyan" id="epJsonIcon">
+                    <i class="fas fa-file-code"></i>
+                  </div>
+                  <span class="ep-drop-name" id="epJsonName">Attach .json quiz file</span>
+                  <span class="ep-drop-types">Pre-built questions for this PDF</span>
+                </label>
+                <button type="button" class="ep-drop-rm" id="epJsonRm"
+                  onclick="epClearJson()" style="display:none;" aria-label="Remove JSON">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -209,29 +225,35 @@
         <!-- Pricing (admin only) -->
         {% if show_pricing %}
         <div class="ep-card ep-card--anim" style="--i:6">
-          <div class="ep-card-label-row">
-            <div class="ep-card-label">
-              <i class="fas fa-coins"></i>
-              Pricing
+          <div class="ep-card-head">
+            <div class="ep-card-icon ep-card-icon--amber"><i class="fas fa-coins"></i></div>
+            <div class="ep-card-head-text">
+              <h3>Pricing</h3>
+              <p>Free or paid access</p>
             </div>
-            <div class="ep-toggle-wrap">
-              {{ form.is_paid(id="is_paid", class="ep-toggle-inp") }}
-              <label for="is_paid" class="ep-toggle"></label>
+            <div class="ep-card-head-right">
+              <div class="ep-toggle-wrap">
+                {{ form.is_paid(id="is_paid", class="ep-toggle-inp") }}
+                <label for="is_paid" class="ep-toggle"></label>
+              </div>
             </div>
           </div>
-          <div id="epPriceBody"
-            style="display:{% if post.document and post.document.is_paid %}block{% else %}none{% endif %};margin-top:.75rem;">
-            <div class="ep-price-row">
-              <span class="ep-price-ccy">GHS</span>
-              {{ form.price(class="ep-input ep-price-inp", placeholder="0.00") }}
+          <div id="epPriceBody" style="display:{% if post.document and post.document.is_paid %}block{% else %}none{% endif %};">
+            <div class="ep-card-body" style="padding-top:.5rem;">
+              <div class="ep-price-row">
+                <span class="ep-price-ccy">GHS</span>
+                {{ form.price(class="ep-input ep-price-inp", placeholder="0.00") }}
+              </div>
+              {% if form.price.errors %}
+                <p class="ep-err"><i class="fas fa-exclamation-circle"></i> {{ form.price.errors[0] }}</p>
+              {% endif %}
             </div>
-            {% if form.price.errors %}
-              <p class="ep-err"><i class="fas fa-exclamation-circle"></i> {{ form.price.errors[0] }}</p>
-            {% endif %}
           </div>
-          <p class="ep-hint" id="epPriceHint">
-            {% if post.document and post.document.is_paid %}Set document price in GHS{% else %}Free for everyone{% endif %}
-          </p>
+          <div class="ep-card-body" style="padding-top:0;">
+            <p class="ep-hint" id="epPriceHint">
+              {% if post.document and post.document.is_paid %}Set document price in GHS{% else %}Free for everyone{% endif %}
+            </p>
+          </div>
         </div>
         {% endif %}
 
@@ -246,11 +268,7 @@
           <a href="{{ url_for('posts.view', post_id=post.id) }}" class="ep-btn-ghost">
             <i class="fas fa-times"></i> Cancel
           </a>
-          {{ form.submit(
-            value="Save Changes",
-            class="ep-btn-primary",
-            id="epSubmitDesk"
-          ) }}
+          {{ form.submit(value="Save Changes", class="ep-btn-primary", id="epSubmitDesk") }}
         </div>
 
       </aside>
@@ -270,53 +288,65 @@
 </div>
 
 <style>
+/* ══ EDIT PAGE — scoped to .ep-wrap ══ */
+
 .ep-wrap { max-width: 840px; margin: 0 auto; padding: 1.5rem 1rem 5.5rem; }
+@keyframes epFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.ep-card--anim { opacity: 0; animation: epFadeUp .35s cubic-bezier(.22,1,.36,1) both; animation-delay: calc(var(--i,1) * 50ms); }
 
-@keyframes epFadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.ep-card--anim {
-  opacity: 0;
-  animation: epFadeUp .38s cubic-bezier(.22,1,.36,1) both;
-  animation-delay: calc(var(--i, 1) * 55ms);
-}
-
-.ep-back { display: inline-flex; align-items: center; gap: .45rem; color: var(--text-muted); font-size: .82rem; font-weight: 600; text-decoration: none; margin-bottom: 1.25rem; transition: color .15s ease; }
-.ep-back:hover { color: #f59e0b; }
+/* ══ BACK ══ */
+.ep-back { display: inline-flex; align-items: center; gap: .45rem; color: var(--text-muted); font-size: .82rem; font-weight: 600; text-decoration: none; margin-bottom: 1.25rem; transition: color .15s; }
+.ep-back:hover { color: var(--primary, #6366f1); }
 .ep-back i { font-size: .8rem; }
 
-.ep-header { margin-bottom: 1.5rem; }
-.ep-header-content { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.2); border-radius: 14px; }
-.ep-header-icon { width: 44px; height: 44px; flex-shrink: 0; background: #f59e0b; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #fff; }
-.ep-title { margin: 0 0 .2rem; font-size: 1.2rem; font-weight: 800; color: var(--text-primary); }
-.ep-subtitle { margin: 0; font-size: .82rem; color: var(--text-secondary); }
+/* ══ HEADER ══ */
+.ep-header { margin-bottom: 1.25rem; }
+.ep-header-content { display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: rgba(99,102,241,.06); border: 1px solid rgba(99,102,241,.15); border-radius: 20px; }
+.ep-header-icon { width: 44px; height: 44px; flex-shrink: 0; background: linear-gradient(135deg, #2563eb, #06b6d4); border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,.3); }
+.ep-title { font-family: 'Poppins', sans-serif; margin: 0 0 .2rem; font-size: 1.15rem; font-weight: 900; color: var(--text-primary); letter-spacing: -.02em; }
+.ep-subtitle { margin: 0; font-size: .78rem; color: var(--text-muted); }
 
-.ep-layout { display: grid; grid-template-columns: 1fr 260px; gap: 1.25rem; align-items: start; }
-.ep-main   { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+/* ══ LAYOUT ══ */
+.ep-layout { display: grid; grid-template-columns: 1fr 260px; gap: 1rem; align-items: start; }
+.ep-main { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
 .ep-sidebar { display: flex; flex-direction: column; gap: 1rem; position: sticky; top: 76px; }
 
-.ep-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
+/* ══ PANEL CARDS — match .home-panel ══ */
+.ep-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
 
-.ep-card-label { display: flex; align-items: center; gap: .45rem; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); }
-.ep-card-label i { color: #f59e0b; font-size: .75rem; }
-.ep-card-label-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
-.ep-req { color: #f87171; font-size: 1rem; font-weight: 400; }
-.ep-opt { margin-left: .25rem; font-size: .64rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); background: var(--bg-hover, rgba(0,0,0,.04)); padding: .1rem .4rem; border-radius: 20px; }
+/* ══ PANEL HEAD — match .panel-head ══ */
+.ep-card-head { display: flex; align-items: center; gap: .65rem; padding: .875rem 1.1rem; border-bottom: 1px solid var(--border-light, rgba(255,255,255,.05)); }
+.ep-card-head-right { margin-left: auto; display: flex; align-items: center; gap: .65rem; }
+.ep-card-icon { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .85rem; }
+.ep-card-icon--blue   { background: rgba(37,99,235,.12);  color: #2563eb; }
+.ep-card-icon--purple { background: rgba(99,102,241,.12); color: #6366f1; }
+.ep-card-icon--green  { background: rgba(5,150,105,.12);  color: #059669; }
+.ep-card-icon--cyan   { background: rgba(6,182,212,.12);  color: #06b6d4; }
+.ep-card-icon--amber  { background: rgba(245,158,11,.12); color: #f59e0b; }
+.ep-card-icon--teal   { background: rgba(20,184,166,.12); color: #14b8a6; }
+.ep-card-head-text h3 { font-family: 'Poppins', sans-serif; font-size: .9rem; font-weight: 800; color: var(--text-primary); letter-spacing: -.02em; margin: 0 0 .05rem; }
+.ep-card-head-text p  { font-size: .72rem; color: var(--text-muted); margin: 0; }
 
-.ep-input { width: 100%; padding: .7rem .9rem; background: var(--bg-card); color: var(--text-primary); border: 1.5px solid var(--border); border-radius: 10px; font-size: .95rem; font-family: inherit; outline: none; transition: border-color .18s ease, box-shadow .18s ease; box-sizing: border-box; }
-.ep-input:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.12); }
-.ep-input--title { font-size: 1.1rem; font-weight: 600; padding: .8rem 1rem; }
+/* ══ CARD BODY ══ */
+.ep-card-body { padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .75rem; }
+
+/* ══ INPUTS ══ */
+.ep-input { width: 100%; padding: .7rem .9rem; background: var(--bg-hover); color: var(--text-primary); border: 1.5px solid var(--border); border-radius: 10px; font-size: .95rem; font-family: inherit; outline: none; transition: border-color .18s, box-shadow .18s; box-sizing: border-box; }
+.ep-input:focus { border-color: var(--primary, #6366f1); box-shadow: 0 0 0 3px rgba(99,102,241,.12); background: var(--bg-card); }
+.ep-input--title { font-size: 1.05rem; font-weight: 600; padding: .8rem 1rem; }
 .ep-select { appearance: none; cursor: pointer; padding-right: 2.5rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .9rem center; }
+[data-theme="dark"] .ep-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); }
 
-.ep-tabs { display: flex; background: var(--bg-hover, rgba(0,0,0,.04)); border-radius: 8px; padding: 3px; gap: 2px; }
-.ep-tab { padding: .28rem .7rem; border-radius: 6px; border: none; background: transparent; font-size: .76rem; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: .3rem; transition: all .15s ease; }
+/* ══ TABS ══ */
+.ep-tabs { display: flex; background: var(--bg-hover); border-radius: 8px; padding: 3px; gap: 2px; }
+.ep-tab { padding: .28rem .7rem; border-radius: 6px; border: none; background: transparent; font-size: .76rem; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: .3rem; transition: all .15s; }
 .ep-tab i { font-size: .65rem; }
-.ep-tab--active { background: var(--bg-card); color: #f59e0b; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+.ep-tab--active { background: var(--bg-card); color: var(--primary, #6366f1); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
 
-.ep-toolbar { display: flex; align-items: center; gap: .15rem; padding: .4rem .6rem; background: var(--bg-hover, rgba(0,0,0,.035)); border: 1px solid var(--border); border-radius: 10px; flex-wrap: wrap; }
-.ep-tb { width: 28px; height: 28px; border-radius: 6px; border: none; background: transparent; color: var(--text-muted); font-size: .72rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .13s, color .13s, transform .13s; }
-.ep-tb:hover { background: var(--bg-card); color: #f59e0b; transform: scale(1.1); }
+/* ══ TOOLBAR ══ */
+.ep-toolbar { display: flex; align-items: center; gap: .15rem; padding: .4rem .6rem; background: var(--bg-hover); border: 1px solid var(--border-light, rgba(255,255,255,.05)); border-radius: 10px; flex-wrap: wrap; }
+.ep-tb { width: 28px; height: 28px; border-radius: 6px; border: none; background: transparent; color: var(--text-muted); font-size: .72rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .13s; }
+.ep-tb:hover { background: var(--bg-card); color: var(--primary, #6366f1); transform: scale(1.1); }
 .ep-tb:active { transform: scale(.95); }
 .ep-tb-sep { width: 1px; height: 16px; background: var(--border); margin: 0 .25rem; flex-shrink: 0; }
 .ep-char-counter { margin-left: auto; font-size: .69rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -324,71 +354,72 @@
 .ep-char-counter.ep--over { color: #ef4444; }
 .ep-counter-max { opacity: .6; }
 
-.ep-textarea { display: block; width: 100%; min-height: 260px; padding: .875rem 1rem; border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg-card); color: var(--text-primary); font-size: .9rem; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; resize: vertical; outline: none; line-height: 1.8; transition: border-color .18s ease, box-shadow .18s ease; box-sizing: border-box; }
-.ep-textarea:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.1); }
+/* ══ TEXTAREA / PREVIEW ══ */
+.ep-textarea { display: block; width: 100%; min-height: 240px; padding: .875rem 1rem; border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg-hover); color: var(--text-primary); font-size: .875rem; font-family: 'Cascadia Code','Fira Code','Consolas',monospace; resize: vertical; outline: none; line-height: 1.8; transition: border-color .18s, box-shadow .18s; box-sizing: border-box; }
+.ep-textarea:focus { border-color: var(--primary, #6366f1); box-shadow: 0 0 0 3px rgba(99,102,241,.1); background: var(--bg-card); }
 .ep-textarea::placeholder { font-family: inherit; color: var(--text-muted); font-style: italic; }
-
 .ep-preview { min-height: 200px; padding: .875rem 1rem; border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg-card); }
 .ep-preview[hidden] { display: none; }
 .ep-preview-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; min-height: 180px; color: var(--text-muted); font-style: italic; font-size: .875rem; }
-.ep-preview-empty i { font-size: 2rem; opacity: .15; }
+.ep-preview-empty i { font-size: 1.75rem; opacity: .15; }
+.ep-editor-foot { display: flex; align-items: center; gap: .35rem; font-size: .69rem; font-weight: 600; color: var(--text-muted); }
+.ep-editor-foot i { color: var(--primary, #6366f1); }
 
-.ep-prose { font-size: .9rem; line-height: 1.8; color: var(--text-secondary); word-wrap: break-word; }
+/* ══ PROSE ══ */
+.ep-prose { font-size: .875rem; line-height: 1.8; color: var(--text-secondary); word-wrap: break-word; }
 .ep-prose p { margin: 0 0 .75rem; } .ep-prose p:last-child { margin: 0; }
-.ep-prose h2 { font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: .875rem 0 .35rem; }
+.ep-prose h2 { font-family: 'Poppins', sans-serif; font-size: 1.05rem; font-weight: 800; color: var(--text-primary); margin: .875rem 0 .35rem; letter-spacing: -.02em; }
 .ep-prose strong { font-weight: 700; color: var(--text-primary); }
-.ep-prose em { font-style: italic; }
-.ep-prose a { color: #f59e0b; }
-.ep-prose ul, .ep-prose ol { margin: .35rem 0 .75rem 1.25rem; }
-.ep-prose blockquote { border-left: 3px solid #f59e0b; margin: .6rem 0; padding: .4rem .875rem; background: rgba(245,158,11,.05); border-radius: 0 8px 8px 0; color: var(--text-secondary); font-style: italic; }
-.ep-prose code { background: var(--bg-hover, rgba(0,0,0,.06)); border: 1px solid var(--border); border-radius: 4px; padding: .1em .4em; font-size: .84em; color: #f59e0b; }
+.ep-prose a { color: var(--primary, #6366f1); text-decoration: underline; text-underline-offset: 3px; }
+.ep-prose blockquote { border-left: 3px solid var(--primary, #6366f1); margin: .6rem 0; padding: .4rem .875rem; background: rgba(99,102,241,.05); border-radius: 0 8px 8px 0; color: var(--text-secondary); font-style: italic; }
+.ep-prose code { background: var(--bg-hover); border: 1px solid var(--border); border-radius: 4px; padding: .1em .4em; font-size: .84em; color: var(--primary, #6366f1); }
 .ep-prose pre { background: #16131f; border-radius: 8px; padding: .875rem 1rem; overflow-x: auto; margin: .6rem 0; }
 .ep-prose pre code { background: none; border: none; padding: 0; color: #e2e8f0; }
 .ep-prose hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
 
-.ep-editor-foot { display: flex; align-items: center; gap: .35rem; font-size: .69rem; font-weight: 600; color: var(--text-muted); padding-top: .25rem; }
-.ep-editor-foot i { color: #f59e0b; }
-
+/* ══ DOC ROW ══ */
 .ep-doc-row { display: flex; align-items: center; gap: .75rem; }
-.ep-doc-thumb { width: 38px; height: 38px; border-radius: 10px; background: rgba(20,184,166,.12); color: #14b8a6; display: flex; align-items: center; justify-content: center; font-size: .95rem; flex-shrink: 0; }
+.ep-doc-thumb { width: 38px; height: 38px; border-radius: 10px; background: rgba(37,99,235,.12); color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: .95rem; flex-shrink: 0; }
 .ep-doc-info { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
 .ep-doc-name { font-size: .82rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ep-doc-meta { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
-.ep-doc-type { font-size: .68rem; font-weight: 700; color: var(--text-muted); background: var(--bg-hover, rgba(0,0,0,.06)); padding: .1rem .4rem; border-radius: 4px; }
+.ep-doc-type { font-size: .68rem; font-weight: 700; color: var(--text-muted); background: var(--bg-hover); padding: .1rem .4rem; border-radius: 4px; }
 .ep-doc-size { font-size: .7rem; color: var(--text-muted); }
 .ep-badge { font-size: .68rem; font-weight: 700; color: #fff; padding: .1rem .4rem; border-radius: 4px; }
 .ep-badge--paid { background: #f59e0b; }
 .ep-badge--free { background: #10b981; }
 
-.ep-dropzone { position: relative; border: 2px dashed var(--border); border-radius: 10px; cursor: pointer; transition: border-color .18s, background .18s; }
-.ep-dropzone:hover, .ep-dropzone.ep--drag { border-color: #14b8a6; background: rgba(20,184,166,.04); }
+/* ══ DROPZONE ══ */
+.ep-dropzone { position: relative; border: 2px dashed var(--border); border-radius: 12px; cursor: pointer; transition: border-color .18s, background .18s; }
+.ep-dropzone:hover, .ep-dropzone.ep--drag { border-color: var(--primary, #6366f1); background: rgba(99,102,241,.04); }
 .ep-dropzone.ep--done { border-style: solid; border-color: #10b981; background: rgba(16,185,129,.04); }
 .ep-drop-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; z-index: 2; }
-.ep-drop-label { display: flex; flex-direction: column; align-items: center; gap: .4rem; padding: 1.25rem 1rem; cursor: pointer; text-align: center; }
-.ep-drop-icon { width: 42px; height: 42px; border-radius: 10px; background: #14b8a6; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; box-shadow: 0 4px 12px rgba(20,184,166,.3); transition: transform .18s, box-shadow .18s; }
-.ep-dropzone:hover .ep-drop-icon, .ep-dropzone.ep--drag .ep-drop-icon { transform: translateY(-3px) scale(1.05); }
+.ep-drop-label { display: flex; flex-direction: column; align-items: center; gap: .4rem; padding: 1.1rem 1rem; cursor: pointer; text-align: center; }
+.ep-drop-icon { width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(135deg, #2563eb, #06b6d4); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; box-shadow: 0 4px 12px rgba(37,99,235,.25); transition: transform .18s, box-shadow .18s; }
+.ep-dropzone:hover .ep-drop-icon, .ep-dropzone.ep--drag .ep-drop-icon { transform: translateY(-2px) scale(1.05); }
 .ep-dropzone.ep--done .ep-drop-icon { background: #10b981; box-shadow: 0 4px 12px rgba(16,185,129,.3); }
 .ep-drop-icon--sm { width: 34px; height: 34px; font-size: .85rem; border-radius: 8px; }
-.ep-drop-icon--cyan { background: #06b6d4; box-shadow: 0 4px 12px rgba(6,182,212,.25); }
-.ep-drop-name { font-size: .84rem; font-weight: 600; color: var(--text-primary); word-break: break-word; }
+.ep-drop-icon--cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); box-shadow: 0 4px 12px rgba(6,182,212,.25); }
+.ep-drop-name { font-family: 'Poppins', sans-serif; font-size: .84rem; font-weight: 700; color: var(--text-primary); word-break: break-word; }
 .ep-drop-types { font-size: .69rem; color: var(--text-muted); }
-.ep-drop-rm { position: absolute; top: .5rem; right: .5rem; z-index: 3; width: 22px; height: 22px; border-radius: 50%; background: rgba(239,68,68,.1); border: none; color: #ef4444; font-size: .6rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .13s, transform .13s; }
+.ep-drop-rm { position: absolute; top: .5rem; right: .5rem; z-index: 3; width: 22px; height: 22px; border-radius: 50%; background: rgba(239,68,68,.1); border: none; color: #ef4444; font-size: .6rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .13s; }
 .ep-drop-rm:hover { background: rgba(239,68,68,.2); transform: scale(1.1); }
-
-.ep-sidecar-label { display: flex; align-items: center; gap: .4rem; padding: .55rem .75rem; font-size: .69rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #06b6d4; border-top: 1px solid var(--border-light, rgba(0,0,0,.07)); background: rgba(6,182,212,.04); }
+.ep-sidecar-label { display: flex; align-items: center; gap: .4rem; padding: .6rem 0 .4rem; font-size: .75rem; font-weight: 700; color: #06b6d4; border-top: 1px solid var(--border-light, rgba(255,255,255,.05)); margin-top: .25rem; }
 .ep-dropzone--sm { border-top: none; border-left: none; border-right: none; border-radius: 0 0 8px 8px; }
 
-.ep-toggle-wrap { margin-left: auto; }
-.ep-toggle-inp  { display: none; }
-.ep-toggle { display: inline-block; width: 38px; height: 22px; background: var(--border); border-radius: 50px; cursor: pointer; position: relative; transition: background .18s ease; }
-.ep-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .18s ease; }
+/* ══ TOGGLE ══ */
+.ep-toggle-wrap { display: flex; align-items: center; gap: .5rem; }
+.ep-toggle-inp { display: none; }
+.ep-toggle { display: inline-block; width: 38px; height: 22px; background: var(--border); border-radius: 50px; cursor: pointer; position: relative; transition: background .18s; }
+.ep-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .18s; }
 .ep-toggle-inp:checked + .ep-toggle { background: #10b981; }
 .ep-toggle-inp:checked + .ep-toggle::after { transform: translateX(16px); }
 .ep-price-row { position: relative; }
 .ep-price-ccy { position: absolute; left: .875rem; top: 50%; transform: translateY(-50%); font-size: .78rem; font-weight: 700; color: var(--text-secondary); pointer-events: none; z-index: 1; }
 .ep-price-inp { padding-left: 3.25rem !important; font-weight: 600; }
 
-.ep-notice { display: flex; align-items: flex-start; gap: .6rem; padding: .875rem 1rem; background: rgba(249,115,22,.05); border: 1px solid rgba(249,115,22,.2); border-left: 3px solid #fb923c; border-radius: 12px; }
+/* ══ NOTICE ══ */
+.ep-notice { display: flex; align-items: flex-start; gap: .6rem; padding: .875rem 1rem; background: rgba(249,115,22,.05); border: 1px solid rgba(249,115,22,.18); border-left: 3px solid #fb923c; border-radius: 14px; }
 .ep-notice i { color: #f97316; font-size: .85rem; margin-top: .15rem; flex-shrink: 0; }
 .ep-notice p { margin: 0; font-size: .75rem; color: #92400e; line-height: 1.55; }
 .ep-notice strong { color: #7c2d12; }
@@ -396,48 +427,45 @@
 [data-theme="dark"] .ep-notice p { color: #fdba74; }
 [data-theme="dark"] .ep-notice strong { color: #fed7aa; }
 
+/* ══ MISC ══ */
 .ep-hint { margin: 0; font-size: .73rem; color: var(--text-muted); line-height: 1.5; }
-.ep-err { margin: 0; display: flex; align-items: center; gap: .35rem; font-size: .78rem; color: #ef4444; font-weight: 500; animation: epFadeUp .2s ease both; }
+.ep-req { color: #f87171; font-size: 1rem; font-weight: 400; }
+.ep-opt { font-size: .64rem; font-weight: 600; color: var(--text-muted); background: var(--bg-hover); padding: .1rem .4rem; border-radius: 20px; }
+.ep-err { margin: 0; display: flex; align-items: center; gap: .35rem; font-size: .78rem; color: #ef4444; font-weight: 500; }
 
-.ep-actions { display: flex; gap: .6rem; }
-.ep-mobile-bar { display: none; }
-
-.ep-btn-primary { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .75rem 1.5rem; background: #f59e0b; color: #fff; border: none; border-radius: 50px; font-family: inherit; font-weight: 700; font-size: .9rem; cursor: pointer; text-decoration: none; letter-spacing: .01em; white-space: nowrap; box-shadow: 0 4px 14px rgba(245,158,11,.35); transition: background .15s, transform .2s, box-shadow .2s; }
-.ep-btn-primary:hover { background: #d97706; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(245,158,11,.45); color: #fff; }
+/* ══ ACTIONS ══ */
+.ep-actions { display: flex; gap: .6rem; align-items: center; }
+.ep-actions .ep-btn-ghost { min-width: 100px; flex-shrink: 0; }
+.ep-actions .ep-btn-primary { flex: 1; }
+.ep-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .75rem 1.5rem; background: linear-gradient(135deg, #2563eb, #06b6d4); color: #fff; border: none; border-radius: 50px; font-family: inherit; font-weight: 700; font-size: .9rem; cursor: pointer; text-decoration: none; white-space: nowrap; box-shadow: 0 4px 14px rgba(37,99,235,.35); transition: opacity .15s, transform .2s, box-shadow .2s; }
+.ep-btn-primary:hover { opacity: .9; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,99,235,.45); color: #fff; }
 .ep-btn-primary:active { transform: none; }
 .ep-btn-primary--full { flex: 1; }
 .ep-btn-primary:disabled { opacity: .65; cursor: not-allowed; transform: none; }
-
-.ep-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: .75rem 1.1rem; background: var(--bg-card); color: var(--text-secondary); border: 1.5px solid var(--border); border-radius: 50px; font-family: inherit; font-weight: 600; font-size: .9rem; cursor: pointer; text-decoration: none; white-space: nowrap; transition: all .15s ease; }
-.ep-btn-ghost:hover { border-color: #f59e0b; color: #f59e0b; }
+.ep-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: .75rem 1.1rem; background: var(--bg-card); color: var(--text-secondary); border: 1.5px solid var(--border); border-radius: 50px; font-family: inherit; font-weight: 600; font-size: .9rem; cursor: pointer; text-decoration: none; white-space: nowrap; transition: all .15s; }
+.ep-btn-ghost:hover { border-color: var(--primary, #6366f1); color: var(--primary, #6366f1); }
 .ep-btn-ghost--sm { padding: .75rem; }
 
-[data-theme="dark"] .ep-header-content { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.25); }
-[data-theme="dark"] .ep-card { background: var(--bg-card); border-color: var(--border); }
-[data-theme="dark"] .ep-toolbar { background: rgba(255,255,255,.04); }
-[data-theme="dark"] .ep-textarea, [data-theme="dark"] .ep-input, [data-theme="dark"] .ep-preview { background: var(--bg-card); }
-[data-theme="dark"] .ep-btn-ghost { background: var(--bg-card); }
-[data-theme="dark"] .ep-tab--active { background: var(--bg-card); }
-[data-theme="dark"] .ep-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); }
-
+/* ══ MOBILE BAR ══ */
 @media (max-width: 900px) {
-  .ep-wrap { padding: 1.25rem .875rem 5.5rem; }
+  .ep-wrap { padding: 1rem .875rem 5.5rem; }
   .ep-layout { grid-template-columns: 1fr; }
   .ep-sidebar { position: static; }
   .ep-actions { display: none; }
-  .ep-mobile-bar { display: flex; gap: .75rem; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; padding: .875rem 1.25rem; background: var(--bg-card); border-top: 1px solid var(--border); box-shadow: 0 -4px 20px rgba(0,0,0,.1); }
+  .ep-mobile-bar { display: flex !important; gap: .75rem; position: fixed; bottom: 62px; left: 0; right: 0; z-index: 150; padding: .75rem 1rem; background: var(--bg-card); border-top: 1px solid var(--border); box-shadow: 0 -4px 20px rgba(0,0,0,.12); align-items: center; }
+  .ep-mobile-bar .ep-btn-ghost--sm { flex-shrink: 0; width: 46px; height: 46px; padding: 0; border-radius: 12px; }
+  .ep-mobile-bar .ep-btn-primary--full { flex: 1; padding: .75rem 1rem; }
 }
 @media (max-width: 600px) {
-  .ep-wrap { padding: 1rem .75rem 5.5rem; }
-  .ep-header-content { flex-direction: column; align-items: flex-start; gap: .75rem; }
-  .ep-card { padding: .875rem 1rem; gap: .65rem; }
-  .ep-textarea { min-height: 200px; }
+  .ep-wrap { padding: .875rem .75rem 5.5rem; }
+  .ep-header-content { padding: .875rem; }
+  .ep-header-icon { width: 38px; height: 38px; font-size: 1rem; }
+  .ep-title { font-size: 1rem; }
+  .ep-card-body { padding: .875rem; }
+  .ep-textarea { min-height: 180px; font-size: .875rem; }
   .ep-tb-sep { display: none; }
-  .ep-card-label-row { flex-direction: column; align-items: flex-start; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .ep-card--anim { animation: none; opacity: 1; }
-}
+@media (prefers-reduced-motion: reduce) { .ep-card--anim { animation: none; opacity: 1; } }
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>

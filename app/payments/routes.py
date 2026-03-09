@@ -2,11 +2,13 @@ import hmac
 import hashlib
 import json
 import requests
+from datetime import datetime, timedelta, timezone
 from flask import render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
 from app import db
 from app.payments import bp
 from app.models import Purchase, Document, User, Subscription
+
 
 def _paystack_headers():
     """Return auth headers for Paystack API calls."""
@@ -110,6 +112,28 @@ def initiate(document_id):
         },
     }
 
+    try:
+        response = requests.post(
+            'https://api.paystack.co/transaction/initialize',
+            headers=_paystack_headers(),
+            json=payload,
+            timeout=15,
+        )
+        data = response.json()
+
+        if data.get('status'):
+            return redirect(data['data']['authorization_url'])
+        else:
+            current_app.logger.error(f"Paystack init failed for doc {document.id}: {data}")
+            flash('Payment could not be initiated. Please try again.', 'danger')
+            return redirect(url_for('payments.checkout', document_id=document.id))
+
+    except requests.exceptions.RequestException as e:
+        current_app.logger.error(f"Paystack request error: {e}")
+        flash('A network error occurred. Please try again.', 'danger')
+        return redirect(url_for('payments.checkout', document_id=document.id))
+
+
 """
 ADD THESE TO: app/payments/routes.py
 ─────────────────────────────────────
@@ -130,11 +154,13 @@ Also add the Subscription model import once you create it (see models section be
 # ═══════════════════════════════════════════════════════════════════════════════
 
 PLANS = {
-    'monthly_unlimited': {
-        'name':        'Monthly Unlimited',
-        'amount_ghs':  20.00,
-        'duration_days': 30,
-        'description': 'Unlimited quizzes for 30 days',
+    'semester_unlimited': {
+        'name':          'Semester Pass',
+        'amount_ghs':    45.00,
+        'duration_days': 120,
+        'description':   'Unlimited quizzes for a full semester',
+        'best_value':    True,
+        'per_month_ghs': 11.00,
         'features': [
             'Unlimited quiz attempts',
             'Full answer explanations',
@@ -142,7 +168,20 @@ PLANS = {
             'Priority grading',
         ],
     },
-    # Add more plans here e.g. 'term_unlimited', 'annual_unlimited'
+    'monthly_unlimited': {
+        'name':          'Monthly Pass',
+        'amount_ghs':    18.00,
+        'duration_days': 30,
+        'description':   'Unlimited quizzes for 30 days',
+        'best_value':    False,
+        'per_month_ghs': 18.00,
+        'features': [
+            'Unlimited quiz attempts',
+            'Full answer explanations',
+            'Leaderboard access',
+            'Priority grading',
+        ],
+    },
 }
 
 
@@ -193,17 +232,17 @@ def plan_checkout():
         amount_pesewas = int(plan['amount_ghs'] * 100)
 
         return render_template(
-            'payments/checkout.html',
-            title='Upgrade to Unlimited',
-            # ── plan fields (no `document` key!) ──
-            plan_key='monthly_unlimited',
-            plan_name='Monthly Unlimited Plan',
-            amount=20.0,                    # float, used for display
-            amount_pesewas=2000,            # int, passed to Paystack (amount * 100)
-            paystack_public_key=current_app.config['PAYSTACK_PUBLIC_KEY'],
-            verify_url=url_for('payments.subscribe_verify', _external=False),
-            fallback_url=url_for('payments.subscribe_initiate'),   # optional
-            next_url=request.args.get('next', ''))
+                    'payments/checkout.html',
+                    title='Upgrade to Unlimited',
+                    plan_key=plan_key,
+                    plan_name=plan['name'],
+                    amount=plan['amount_ghs'],
+                    amount_pesewas=amount_pesewas,
+                    paystack_public_key=current_app.config['PAYSTACK_PUBLIC_KEY'],
+                    verify_url=url_for('payments.subscribe_verify', _external=False),
+                    fallback_url=url_for('payments.subscribe_initiate'),
+                    next_url=request.args.get('next', ''))
+
 
     # ── No plan param → wrong endpoint, send to index ────────────────────────
     flash('No plan selected.', 'warning')
@@ -249,29 +288,19 @@ def subscribe_initiate():
     )
 
     payload = {
-        'email':        current_user.email,
-        'amount':       amount_pesewas,
-        'currency':     'GHS',
-        'callback_url': callback_url,
-        'metadata': {
-            'user_id':  current_user.id,
-            'plan_key': plan_key,
-            'post_id':  post_id,
-            'source':   source,
-            'type':     'subscription',
-            'custom_fields': [
-                {
-                    'display_name':  'Plan',
-                    'variable_name': 'plan_name',
-                    'value':         plan['name'],
-                },
-                {
-                    'display_name':  'Buyer',
-                    'variable_name': 'buyer_username',
-                    'value':         current_user.username,
-                },
-            ],
-        },
+            'email':        current_user.email,
+            'amount':       amount_pesewas,
+            'currency':     'GHS',
+            'callback_url': callback_url,
+            'metadata': {
+                            'user_id':  current_user.id,
+                            'plan_key': plan_key,
+                            'type':     'subscription',
+                            'custom_fields': [
+                                {'display_name': 'Plan',  'variable_name': 'plan_name',      'value': plan['name']},
+                                {'display_name': 'Buyer', 'variable_name': 'buyer_username', 'value': current_user.username},
+                            ],
+            }
     }
 
     try:
@@ -286,16 +315,14 @@ def subscribe_initiate():
         if data.get('status'):
             return redirect(data['data']['authorization_url'])
         else:
-            current_app.logger.error(f"Paystack subscribe init failed: {data}")
+            current_app.logger.error(f"Paystack init failed: {data}")
             flash('Payment could not be initiated. Please try again.', 'danger')
-            return redirect(url_for('payments.plan_checkout', plan=plan_key, post_id=post_id, source=source))
-
+            return redirect(url_for('payments.plan_checkout', plan=plan_key))
 
     except requests.exceptions.RequestException as e:
-        current_app.logger.error(f"Paystack subscribe request error: {e}")
+        current_app.logger.error(f"Paystack request error: {e}")
         flash('A network error occurred. Please try again.', 'danger')
-        return redirect(url_for('payments.plan_checkout', plan=plan_key, post_id=post_id, source=source))
-
+        return redirect(url_for('payments.plan_checkout', plan=plan_key))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -347,7 +374,7 @@ def subscribe_verify():
 
         if tx['status'] == 'success' and tx['amount'] >= expected_pesewas:
             # ── Grant subscription ────────────────────────────────────────────
-            now        = datetime.utcnow()
+            now        = datetime.now(timezone.utc)
             expires_at = now + timedelta(days=plan['duration_days'])
 
             subscription = Subscription(
@@ -368,7 +395,7 @@ def subscribe_verify():
             # Optional: send confirmation email
             try:
                 from app.utils import send_subscription_activation_email
-                send_subscription_confirmation_email(current_user, subscription, plan)
+                send_subscription_activation_email(current_user, plan_key)
             except Exception as email_err:
                 current_app.logger.warning(f"Sub confirmation email failed: {email_err}")
 
@@ -391,8 +418,8 @@ def subscribe_verify():
                 payment_method=tx.get('channel', 'paystack'),
                 transaction_id=reference,
                 status=tx['status'],
-                started_at=datetime.utcnow(),
-                expires_at=datetime.utcnow(),
+                started_at=datetime.now(timezone.utc),
+                expires_at=datetime.now(timezone.utc),
             )
             db.session.add(failed_sub)
             db.session.commit()
@@ -425,7 +452,7 @@ def subscribe_verify():
         if plan_key and metadata.get('type') == 'subscription':
             plan = PLANS.get(plan_key)
             if plan and not Subscription.query.filter_by(transaction_id=reference).first():
-                now = datetime.utcnow()
+                now = datetime.now(timezone.utc)
                 sub = Subscription(
                     user_id=user_id,
                     plan_key=plan_key,
@@ -450,37 +477,16 @@ def subscribe_verify():
 def _user_has_active_subscription(user) -> bool:
     """
     Returns True if the user has a currently active subscription.
-    Add this as a method on your User model too (see models section).
     """
     from datetime import datetime
     sub = Subscription.query.filter_by(
         user_id=user.id,
         status='active',
     ).filter(
-        Subscription.expires_at > datetime.utcnow()
+        Subscription.expires_at > datetime.now(timezone.utc)
     ).first()
     return sub is not None
-    try:
-        response = requests.post(
-            'https://api.paystack.co/transaction/initialize',
-            headers=_paystack_headers(),
-            json=payload,
-            timeout=15,
-        )
-        data = response.json()
-
-        if data.get('status'):
-            return redirect(data['data']['authorization_url'])
-        else:
-            current_app.logger.error(f"Paystack init failed: {data}")
-            flash('Payment could not be initiated. Please try again.', 'danger')
-            return redirect(url_for('payments.checkout', document_id=document.id))
-
-    except requests.exceptions.RequestException as e:
-        current_app.logger.error(f"Paystack request error: {e}")
-        flash('A network error occurred. Please try again.', 'danger')
-        return redirect(url_for('payments.checkout', document_id=document.id))
-
+    
 
 @bp.route('/verify/<int:document_id>')
 @login_required
@@ -597,45 +603,67 @@ def webhook():
         return jsonify({'status': 'bad json'}), 400
 
     if event.get('event') == 'charge.success':
-        tx        = event['data']
-        reference = tx.get('reference')
-        metadata  = tx.get('metadata', {})
+            tx        = event['data']
+            reference = tx.get('reference')
+            metadata  = tx.get('metadata', {})
+            user_id   = metadata.get('user_id')
 
-        user_id     = metadata.get('user_id')
-        document_id = metadata.get('document_id')
+            # ── Subscription payment ──────────────────────────────────────────────
+            plan_key = metadata.get('plan_key')
+            if plan_key and metadata.get('type') == 'subscription':
+                plan = PLANS.get(plan_key)
+                if plan and not Subscription.query.filter_by(transaction_id=reference).first():
+                    now = datetime.now(timezone.utc)
+                    sub = Subscription(
+                        user_id=user_id,
+                        plan_key=plan_key,
+                        plan_name=plan['name'],
+                        amount_paid=tx['amount'] / 100,
+                        currency='GHS',
+                        payment_method=tx.get('channel', 'paystack'),
+                        transaction_id=reference,
+                        status='active',
+                        started_at=now,
+                        expires_at=now + timedelta(days=plan['duration_days']),
+                    )
+                    db.session.add(sub)
+                    db.session.commit()
+                    current_app.logger.info(
+                        f"Webhook: subscription activated plan={plan_key} user={user_id}"
+                    )
+                return jsonify({'status': 'ok'}), 200
 
-        if not all([reference, user_id, document_id]):
-            return jsonify({'status': 'missing metadata'}), 200
+            # ── Document purchase ─────────────────────────────────────────────────
+            document_id = metadata.get('document_id')
 
-        # Idempotency
-        if Purchase.query.filter_by(transaction_id=reference).first():
-            return jsonify({'status': 'already processed'}), 200
+            if not all([reference, user_id, document_id]):
+                return jsonify({'status': 'missing metadata'}), 200
 
-        document = Document.query.get(document_id)
-        if not document:
-            return jsonify({'status': 'document not found'}), 200
+            if Purchase.query.filter_by(transaction_id=reference).first():
+                return jsonify({'status': 'already processed'}), 200
 
-        purchase = Purchase(
-            user_id=user_id,
-            document_id=document_id,
-            amount_paid=tx['amount'] / 100,
-            payment_method=tx.get('channel', 'paystack'),
-            transaction_id=reference,
-            status='completed',
-        )
-        db.session.add(purchase)
-        db.session.commit()
-        
-        # Send purchase confirmation email
-        from app.utils.emails import send_purchase_confirmation_email
-        from app.models import User
-        user = User.query.get(user_id)
-        send_purchase_confirmation_email(user, purchase, document)
-        
-        current_app.logger.info(
-            f"Webhook: purchase recorded for doc {document_id} by user {user_id}"
-        )
+            document = db.session.get(Document, document_id)
+            if not document:
+                return jsonify({'status': 'document not found'}), 200
 
+            purchase = Purchase(
+                user_id=user_id,
+                document_id=document_id,
+                amount_paid=tx['amount'] / 100,
+                payment_method=tx.get('channel', 'paystack'),
+                transaction_id=reference,
+                status='completed',
+            )
+            db.session.add(purchase)
+            db.session.commit()
+
+            from app.utils.emails import send_purchase_confirmation_email
+            user = db.session.get(User, user_id)
+            send_purchase_confirmation_email(user, purchase, document)
+
+            current_app.logger.info(
+                f"Webhook: purchase recorded for doc {document_id} by user {user_id}"
+            )
     return jsonify({'status': 'ok'}), 200
 
 
@@ -652,4 +680,36 @@ def my_purchases():
         'payments/my_purchases.html',
         title='My Purchases',
         purchases=purchases,
+    )
+
+@bp.route('/my-subscription')
+@login_required
+def my_subscription():
+    """Show the current user's active subscription and billing history."""
+    from datetime import datetime
+
+    # Active subscription: latest active row that hasn't expired
+    active_sub = (
+        Subscription.query
+        .filter_by(user_id=current_user.id, status='active')
+        .filter(Subscription.expires_at > datetime.now(timezone.utc))
+        .order_by(Subscription.expires_at.desc())
+        .first()
+    )
+
+    # Full billing history (all statuses, newest first)
+    history = (
+        Subscription.query
+        .filter_by(user_id=current_user.id)
+        .order_by(Subscription.created_at.desc())
+        .all()
+    )
+
+    return render_template(
+        'payments/my_subscription.html',
+        title='My Subscription',
+        active_sub=active_sub,
+        history=history,
+        plans=PLANS,
+        now=datetime.now(timezone.utc),
     )

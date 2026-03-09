@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% block title %}Library — Knowly{% endblock %}
+
+{% block content %}
+<div class="lib-wrap">
+
+  {# ── HEADER ── #}
+  <div class="lib-header">
+    <div class="lib-header-left">
+      <div class="lib-header-icon"><i class="fas fa-layer-group"></i></div>
+      <div>
+        <h1 class="lib-title">Knowledge Library</h1>
+        <p class="lib-subtitle">Browse faculties, programmes and study materials</p>
+      </div>
+    </div>
+    <div class="lib-header-stats">
+      <div class="lib-stat"><span class="lib-stat-val">{{ total_posts }}</span><span class="lib-stat-lbl">Resources</span></div>
+      <div class="lib-stat-sep"></div>
+      <div class="lib-stat"><span class="lib-stat-val">{{ total_subjects }}</span><span class="lib-stat-lbl">Courses</span></div>
+      <div class="lib-stat-sep"></div>
+      <div class="lib-stat"><span class="lib-stat-val">{{ total_programmes }}</span><span class="lib-stat-lbl">Programmes</span></div>
+    </div>
+  </div>
+
+  {# ── YOUR PROGRAMME ── #}
+  {% if user_programme and user_subjects %}
+  <section class="lib-section">
+    <div class="lib-section-panel">
+      <div class="lib-section-head">
+        <div class="lib-section-head-left">
+          <div class="lib-section-icon" style="background:{{ user_programme.color }}18;color:{{ user_programme.color }}">
+            <i class="fas fa-graduation-cap"></i>
+          </div>
+          <div>
+            <h2>{{ user_programme.name }}</h2>
+            <p>Your enrolled programme</p>
+          </div>
+        </div>
+        <a href="{{ url_for('main.library_programme', slug=user_programme.slug) }}" class="lib-see-all">
+          All courses <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+      <div class="course-list">
+        {% for s in user_subjects[:6] %}
+        <a href="{{ url_for('main.library_subject', slug=s.slug) }}" class="course-row" style="--sc:{{ s.color }}">
+          <div class="course-icon" style="background:{{ s.color }}1a;color:{{ s.color }}"><i class="fas fa-{{ s.icon }}"></i></div>
+          <div class="course-body">
+            <span class="course-name">{{ s.name }}</span>
+            <span class="course-count">{{ s.post_count }} resources</span>
+          </div>
+          <i class="fas fa-chevron-right course-chevron"></i>
+        </a>
+        {% endfor %}
+        {% if user_subjects|length > 6 %}
+        <a href="{{ url_for('main.library_programme', slug=user_programme.slug) }}" class="course-row course-row-more">
+          <div class="course-icon" style="background:rgba(255,255,255,.05);color:var(--text-muted)"><i class="fas fa-ellipsis-h"></i></div>
+          <div class="course-body"><span class="course-name">View all {{ user_subjects|length }} courses</span></div>
+          <i class="fas fa-arrow-right course-chevron"></i>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {# ── FACULTIES ── #}
+  {% if faculty_map %}
+  <section class="lib-section">
+    <div class="lib-section-panel">
+      <div class="lib-section-head">
+        <div class="lib-section-head-left">
+          <div class="lib-section-icon" style="background:rgba(37,99,235,.12);color:#2563eb">
+            <i class="fas fa-building-columns"></i>
+          </div>
+          <div>
+            <h2>Browse by Faculty</h2>
+            <p>{{ faculty_map|length }} faculties · {{ total_programmes }} programmes</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="course-list">
+        {% set sorted_faculties = faculty_map.keys() | reject("equalto", "__unassigned__") | sort | list %}
+        {% if user_faculty and user_faculty in faculty_map %}
+          {% set sorted_faculties = [user_faculty] + sorted_faculties | reject("equalto", user_faculty) | list %}
+        {% endif %}
+
+        {% for faculty_name in sorted_faculties %}
+          {% set fprogs = faculty_map[faculty_name] %}
+          {% set fslug = faculty_name | lower | replace("'", '') | replace('/', ' ') | replace('&', 'and') | replace(' ', '-') | replace('--', '-') | replace('--', '-') %}
+          {% set fcolor = (fprogs | sort(attribute='name'))[0].color if fprogs else '#2563eb' %}
+          <a href="{{ url_for('main.library_faculty', faculty_slug=fslug) }}"
+             class="course-row {% if user_faculty and faculty_name == user_faculty %}course-row--mine{% endif %}"
+             style="--sc:{{ fcolor }}">
+            <div class="course-icon" style="background:{{ fcolor }}1a;color:{{ fcolor }}">
+              <i class="fas fa-{% if user_faculty and faculty_name == user_faculty %}graduation-cap{% else %}building-columns{% endif %}"></i>
+            </div>
+            <div class="course-body">
+              <span class="course-name">{{ faculty_name }}</span>
+              <span class="course-count">{{ fprogs|length }} programme{{ 's' if fprogs|length != 1 }}</span>
+            </div>
+            <i class="fas fa-chevron-right course-chevron"></i>
+          </a>
+        {% endfor %}
+
+        {% if '__unassigned__' in faculty_map %}
+          {% set fprogs = faculty_map['__unassigned__'] %}
+          <a href="{{ url_for('main.library_faculty', faculty_slug='unassigned') }}"
+             class="course-row course-row-more" style="--sc:#6b7280">
+            <div class="course-icon" style="background:rgba(255,255,255,.05);color:var(--text-muted)">
+              <i class="fas fa-circle-question"></i>
+            </div>
+            <div class="course-body">
+              <span class="course-name">Unassigned</span>
+              <span class="course-count">{{ fprogs|length }} programme{{ 's' if fprogs|length != 1 }}</span>
+            </div>
+            <i class="fas fa-chevron-right course-chevron"></i>
+          </a>
+        {% endif %}
+      </div>
+
+    </div>
+  </section>
+  {% endif %}
+
+  {# ── UNGROUPED SUBJECTS ── #}
+  {% if ungrouped %}
+  <section class="lib-section">
+    <div class="lib-section-panel">
+      <div class="lib-section-head">
+        <div class="lib-section-head-left">
+          <div class="lib-section-icon" style="background:rgba(16,185,129,.12);color:#10b981">
+            <i class="fas fa-book"></i>
+          </div>
+          <div>
+            <h2>Other Courses</h2>
+            <p>Courses not linked to a programme</p>
+          </div>
+        </div>
+      </div>
+      <div class="course-list">
+        {% for subject in ungrouped %}
+        <a href="{{ url_for('main.library_subject', slug=subject.slug) }}" class="course-row" style="--sc:{{ subject.color }}">
+          <div class="course-icon" style="background:{{ subject.color }}1a;color:{{ subject.color }}"><i class="fas fa-{{ subject.icon }}"></i></div>
+          <div class="course-body">
+            <span class="course-name">{{ subject.name }}</span>
+            <span class="course-count">{{ subject.post_count }} resources</span>
+          </div>
+          <i class="fas fa-chevron-right course-chevron"></i>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+</div>
+
+<style>
+/* ── LAYOUT ── */
+.lib-wrap { max-width: 860px; margin: 0 auto; padding: 1.5rem 1.25rem 5.5rem; }
+@media (min-width: 1024px) { .lib-wrap { padding: 2rem 2rem 3rem; } }
+
+/* ── HEADER ── */
+.lib-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1.25rem; flex-wrap: wrap; padding: 1.5rem;
+  background: linear-gradient(135deg, #060d1f, #0a1628);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 22px; margin-bottom: 1.5rem;
+  position: relative; overflow: hidden;
+}
+.lib-header::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 75% 50%, rgba(37,99,235,.2), transparent 65%);
+  pointer-events: none;
+}
+:root:not([data-theme="dark"]) .lib-header {
+  background: linear-gradient(135deg, #1e3a5f, #1e40af);
+  border-color: rgba(255,255,255,.15);
+}
+.lib-header-left { display: flex; align-items: center; gap: 1rem; position: relative; }
+.lib-header-icon {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  background: rgba(37,99,235,.25); border: 1px solid rgba(37,99,235,.35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem; color: #93c5fd;
+}
+.lib-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: 900; color: white; letter-spacing: -.03em; margin: 0 0 .2rem; line-height: 1.1;
+}
+.lib-subtitle { font-size: .82rem; color: rgba(255,255,255,.5); margin: 0; }
+.lib-header-stats {
+  display: flex; align-items: center; gap: .875rem;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 12px; padding: .6rem .875rem; flex-shrink: 0;
+}
+.lib-stat { display: flex; flex-direction: column; align-items: center; }
+.lib-stat-val { font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 900; color: white; line-height: 1; }
+.lib-stat-lbl { font-size: .58rem; color: rgba(255,255,255,.4); font-weight: 600; margin-top: .1rem; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+.lib-stat-sep { width: 1px; height: 28px; background: rgba(255,255,255,.12); }
+
+/* ── SECTION ── */
+.lib-section { margin-bottom: 1.25rem; }
+.lib-section-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+.lib-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.1rem .875rem;
+  border-bottom: 1px solid var(--border-light, rgba(255,255,255,.05));
+}
+.lib-section-head-left { display: flex; align-items: center; gap: .65rem; }
+.lib-section-icon { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .85rem; }
+.lib-section-head h2 { font-family: 'Nunito', sans-serif; font-size: .95rem; font-weight: 800; color: var(--text-primary); letter-spacing: -.02em; margin: 0 0 .05rem; }
+.lib-section-head p { font-size: .72rem; color: var(--text-muted); margin: 0; }
+.lib-see-all { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; font-weight: 700; color: #2563eb; text-decoration: none; padding: .25rem .5rem; border-radius: 7px; transition: background .15s; white-space: nowrap; }
+.lib-see-all:hover { background: rgba(37,99,235,.08); }
+.lib-see-all i { font-size: .6rem; transition: transform .2s; }
+.lib-see-all:hover i { transform: translateX(2px); }
+
+/* ── FACULTY LIST ── */
+.faculty-list { display: flex; flex-direction: column; }
+
+.faculty-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .75rem; padding: .875rem 1.1rem;
+  border-bottom: 1px solid var(--border-light, rgba(255,255,255,.04));
+  text-decoration: none; transition: background .14s; cursor: pointer;
+}
+.faculty-row:last-child { border-bottom: none; }
+.faculty-row:hover { background: var(--bg-hover, rgba(255,255,255,.04)); }
+.faculty-row:hover .faculty-chevron { transform: translateX(3px); color: #2563eb; }
+
+.faculty-row--mine {
+  background: rgba(37,99,235,.04);
+  border-left: 3px solid #2563eb;
+  padding-left: calc(1.1rem - 3px);
+}
+.faculty-row--mine:hover { background: rgba(37,99,235,.07); }
+.faculty-row--unassigned { opacity: .6; }
+
+.faculty-row-left { display: flex; align-items: center; gap: .75rem; flex: 1; min-width: 0; }
+
+.faculty-icon-wrap {
+  width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .88rem;
+  background: var(--bg-secondary, rgba(255,255,255,.05));
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.faculty-icon--mine {
+  background: rgba(37,99,235,.15);
+  color: #2563eb;
+  border-color: rgba(37,99,235,.25);
+}
+
+.faculty-info { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.faculty-name {
+  font-family: 'Nunito', sans-serif; font-size: .88rem; font-weight: 800;
+  color: var(--text-primary); letter-spacing: -.02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.faculty-preview {
+  font-size: .68rem; color: var(--text-muted); font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.faculty-row-right { display: flex; align-items: center; gap: .5rem; flex-shrink: 0; }
+
+.faculty-yours-badge {
+  font-size: .6rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .06em; color: #2563eb;
+  background: rgba(37,99,235,.1); border: 1px solid rgba(37,99,235,.2);
+  border-radius: 20px; padding: .15rem .45rem; white-space: nowrap;
+}
+.faculty-count-badge {
+  font-size: .7rem; font-weight: 800; color: var(--text-muted);
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: 20px; padding: .15rem .5rem; min-width: 24px; text-align: center;
+}
+.faculty-chevron {
+  font-size: .65rem; color: var(--text-muted);
+  transition: transform .18s, color .18s;
+}
+
+/* ── COURSE LIST ── */
+.course-list { display: flex; flex-direction: column; }
+.course-row {
+  display: flex; align-items: center; gap: .75rem; padding: .75rem 1.1rem;
+  text-decoration: none; border-bottom: 1px solid var(--border-light, rgba(255,255,255,.04));
+  transition: background .14s;
+}
+.course-row:last-child { border-bottom: none; }
+.course-row:hover { background: var(--bg-hover, rgba(255,255,255,.04)); }
+.course-icon { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .82rem; }
+.course-body { flex: 1; min-width: 0; }
+.course-name { display: block; font-family: 'Nunito', sans-serif; font-size: .85rem; font-weight: 700; color: var(--text-primary); letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.course-count { display: block; font-size: .7rem; color: var(--text-muted); font-weight: 500; margin-top: .1rem; }
+.course-chevron { font-size: .6rem; color: var(--text-muted); flex-shrink: 0; transition: transform .18s, color .18s; }
+.course-row:hover .course-chevron { transform: translateX(2px); color: var(--sc, #2563eb); }
+.course-row-more { opacity: .6; }
+
+/* ── ANIMATIONS ── */
+.faculty-row { animation: fadeUp .2s ease-out both; }
+{% for i in range(1, 12) %}.faculty-row:nth-child({{ i }}) { animation-delay: {{ (i * 0.04)|round(2) }}s; }
+{% endfor %}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── MOBILE ── */
+@media (max-width: 480px) {
+  .lib-wrap { padding: 1rem .875rem 5.5rem; }
+  .lib-header { padding: 1.25rem 1rem; border-radius: 18px; }
+  .lib-header-stats { display: none; }
+  .lib-title { font-size: 1.25rem; }
+  .faculty-yours-badge { display: none; }
+}
+</style>
+{% endblock %}

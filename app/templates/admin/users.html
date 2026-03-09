@@ -1,228 +1,331 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
+{% block admin_title %}Users{% endblock %}
+{% block admin_content %}
 
-{% block title %}{{ title }}{% endblock %}
-
-{% block content %}
-<div class="admin-container">
-    <div class="admin-header">
-        <h1><i class="fas fa-users"></i> Manage Users</h1>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-            <a href="{{ url_for('admin.moderation') }}" class="btn btn-primary">
-                <i class="fas fa-shield-alt"></i> Moderation Queue
-            </a>
-            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Dashboard
-            </a>
+<div class="adm-header">
+    <div class="adm-header-left">
+        <div class="adm-header-icon"><i class="fas fa-users"></i></div>
+        <div>
+            <p class="adm-header-title">Manage Users</p>
+            <p class="adm-header-sub">{{ users.total }} user{{ 's' if users.total != 1 }}</p>
         </div>
     </div>
-
-    <!-- Search Bar -->
-    <div class="search-bar">
-        <form action="{{ url_for('admin.users') }}" method="get">
-            <div class="search-input-group">
-                <input type="text" name="search" value="{{ search }}"
-                       placeholder="Search users by username, email, or name..." class="form-control">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-search"></i> Search
-                </button>
-                {% if search %}
-                <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">Clear</a>
-                {% endif %}
-            </div>
-        </form>
-    </div>
-
-    <!-- Users Table -->
-    {% if users.items %}
-    <div class="table-container">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>User</th>
-                    <th>Email</th>
-                    <th>Joined</th>
-                    <th>Posts</th>
-                    <th>Followers</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in users.items %}
-                <tr class="{% if not user.is_active %}inactive-row{% endif %}">
-                    <td>
-                        <div class="user-cell">
-                            {# Use Cloudinary profile_picture_url instead of local static path #}
-                            <img src="{{ user.profile_picture_url }}"
-                                 alt="{{ user.username }}">
-                            <div>
-                                <strong>{{ user.username }}</strong>
-                                <small>{{ user.full_name or '-' }}</small>
-                            </div>
-                        </div>
-                    </td>
-                    <td>{{ user.email }}</td>
-                    <td>{{ user.created_at.strftime('%b %d, %Y') }}</td>
-                    <td><span class="badge">{{ user.posts.count() }}</span></td>
-                    <td><span class="badge">{{ user.followers_count() }}</span></td>
-                    <td>
-                        {% if user.is_active %}
-                            <span class="status-badge status-active">Active</span>
-                        {% else %}
-                            <span class="status-badge status-inactive">Inactive</span>
-                        {% endif %}
-                    </td>
-                    <td class="actions-cell">
-                        <a href="{{ url_for('users.profile', username=user.username) }}"
-                           class="btn btn-sm btn-secondary" title="View Profile">
-                            <i class="fas fa-eye"></i>
-                        </a>
-
-                        {% if user.id != current_user.id %}
-                        <form action="{{ url_for('admin.toggle_user_active', user_id=user.id) }}"
-                              method="post" style="display: inline;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit"
-                                    class="btn btn-sm {% if user.is_active %}btn-warning{% else %}btn-success{% endif %}"
-                                    title="{% if user.is_active %}Deactivate{% else %}Activate{% endif %}">
-                                <i class="fas fa-{% if user.is_active %}ban{% else %}check-circle{% endif %}"></i>
-                            </button>
-                        </form>
-
-                        <form action="{{ url_for('admin.toggle_premium_access', user_id=user.id) }}"
-                              method="post" style="display: inline;"
-                              title="{% if user.can_access_all_content %}Revoke premium access{% else %}Grant premium access{% endif %}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit"
-                                    class="btn btn-sm {% if user.can_access_all_content %}btn-success{% else %}btn-outline-secondary{% endif %}">
-                                <i class="fas fa-{% if user.can_access_all_content %}star{% else %}star-half-alt{% endif %}"></i>
-                            </button>
-                        </form>
-
-                        <form action="{{ url_for('admin.delete_user', user_id=user.id) }}"
-                              method="post" style="display: inline;"
-                              onsubmit="return confirm('Delete user {{ user.username }} and ALL their content? This cannot be undone!');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-danger" title="Delete User">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
-                        {% else %}
-                        <span class="badge" style="background: var(--info);">You</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination -->
-    {% if users.has_prev or users.has_next %}
-    <div class="pagination">
-        {% if users.has_prev %}
-            <a href="{{ url_for('admin.users', page=users.prev_num, search=search) }}" class="page-btn">
-                <i class="fas fa-chevron-left"></i> Previous
-            </a>
-        {% endif %}
-
-        <span class="page-info">Page {{ users.page }} of {{ users.pages }}</span>
-
-        {% if users.has_next %}
-            <a href="{{ url_for('admin.users', page=users.next_num, search=search) }}" class="page-btn">
-                Next <i class="fas fa-chevron-right"></i>
-            </a>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    {% else %}
-    <div class="empty-state">
-        <i class="fas fa-users-slash"></i>
-        <h2>No users found</h2>
-        {% if search %}
-            <p>No users match your search.</p>
-            <a href="{{ url_for('admin.users') }}" class="btn btn-primary">Clear Search</a>
-        {% else %}
-            <p>No users in the system yet.</p>
-        {% endif %}
-    </div>
-    {% endif %}
 </div>
 
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% for category, message in messages %}
+<div class="adm-flash adm-flash--{{ category }}">
+    <i class="fas fa-{% if category=='success' %}check-circle{% elif category=='danger' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+    {{ message }}
+</div>
+{% endfor %}
+{% endwith %}
+
+<div class="adm-search-wrap">
+    <form method="get" style="display:flex;align-items:center;gap:.75rem;flex:1;flex-wrap:wrap">
+        <div class="adm-search-input-wrap">
+            <i class="fas fa-search adm-search-icon"></i>
+            <input type="text" name="search" value="{{ search }}" class="adm-search-input"
+                   placeholder="Search by username, email or name…">
+        </div>
+        <button type="submit" class="adm-btn adm-btn--primary">Search</button>
+        {% if search %}
+        <a href="{{ url_for('admin.users') }}" class="adm-btn adm-btn--secondary">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+{% if users.items %}
+<div class="au-grid">
+    {% for user in users.items %}
+    <div class="au-card {% if not user.is_active %}au-card--inactive{% endif %}">
+
+        {# ── Top row: avatar + identity + badges ── #}
+        <div class="au-top">
+            <img src="{{ user.profile_picture_url }}"
+                 alt="{{ user.username }}" class="au-avatar">
+            <div class="au-identity">
+                <div class="au-name">
+                    {{ user.username }}
+                    {% if user.is_admin %}
+                        <span class="adm-pill adm-pill--purple">Admin</span>
+                    {% endif %}
+                </div>
+                <div class="au-fullname">{{ user.full_name or '—' }}</div>
+                <div class="au-email">
+                    <i class="fas fa-envelope"></i> {{ user.email }}
+                </div>
+            </div>
+            <div class="au-status-badge">
+                <span class="adm-pill {% if user.is_active %}adm-pill--green{% else %}adm-pill--red{% endif %}">
+                    <i class="fas fa-{% if user.is_active %}circle-check{% else %}ban{% endif %}"
+                       style="font-size:.55rem"></i>
+                    {{ 'Active' if user.is_active else 'Inactive' }}
+                </span>
+            </div>
+        </div>
+
+        {# ── Meta chips ── #}
+        <div class="au-meta">
+            {% if user.school %}
+            <span class="au-chip au-chip--school">
+                <i class="fas fa-university"></i> {{ user.school }}
+            </span>
+            {% endif %}
+            {% if user.programme %}
+            <span class="au-chip au-chip--prog">
+                <i class="fas fa-graduation-cap"></i> {{ user.programme }}
+            </span>
+            {% endif %}
+            {% if not user.school and not user.programme %}
+            <span class="au-chip au-chip--empty">
+                <i class="fas fa-circle-info"></i> No school / programme set
+            </span>
+            {% endif %}
+        </div>
+
+        {# ── Stats row ── #}
+        <div class="au-stats">
+            <div class="au-stat">
+                <span class="au-stat-val">
+                    <i class="fas fa-star" style="color:#f59e0b;font-size:.7rem"></i>
+                    {{ user.xp_points }}
+                </span>
+                <span class="au-stat-label">XP</span>
+            </div>
+            <div class="au-stat">
+                <span class="au-stat-val">Lv {{ user.xp_level }}</span>
+                <span class="au-stat-label">Level</span>
+            </div>
+            <div class="au-stat">
+                <span class="au-stat-val">
+                    {% if user.subscription_tier == 'premium' %}
+                        <span class="adm-pill adm-pill--amber" style="font-size:.65rem">Premium</span>
+                    {% elif user.can_access_all_content %}
+                        <span class="adm-pill adm-pill--green" style="font-size:.65rem">All Access</span>
+                    {% else %}
+                        <span class="adm-pill adm-pill--grey" style="font-size:.65rem">Free</span>
+                    {% endif %}
+                </span>
+                <span class="au-stat-label">Tier</span>
+            </div>
+            <div class="au-stat">
+                <span class="au-stat-val">{{ user.created_at.strftime('%b %Y') }}</span>
+                <span class="au-stat-label">Joined</span>
+            </div>
+        </div>
+
+        {# ── Actions ── #}
+        <div class="au-actions">
+            <a href="{{ url_for('users.profile', username=user.username) }}"
+               class="adm-btn adm-btn--secondary adm-btn--sm" target="_blank">
+                <i class="fas fa-eye"></i> View
+            </a>
+            {% if user.id != current_user.id %}
+            <form action="{{ url_for('admin.toggle_user_active', user_id=user.id) }}"
+                  method="post" style="display:contents">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                        class="adm-btn adm-btn--sm {% if user.is_active %}adm-btn--warning{% else %}adm-btn--success{% endif %}">
+                    <i class="fas fa-{% if user.is_active %}ban{% else %}check{% endif %}"></i>
+                    {{ 'Deactivate' if user.is_active else 'Activate' }}
+                </button>
+            </form>
+            <form action="{{ url_for('admin.toggle_premium_access', user_id=user.id) }}"
+                  method="post" style="display:contents">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="adm-btn adm-btn--sm adm-btn--secondary"
+                        title="{{ 'Revoke all-access' if user.can_access_all_content else 'Grant all-access' }}">
+                    <i class="fas fa-{% if user.can_access_all_content %}lock{% else %}unlock{% endif %}"></i>
+                    {{ 'Revoke Access' if user.can_access_all_content else 'Grant Access' }}
+                </button>
+            </form>
+            <form action="{{ url_for('admin.delete_user', user_id=user.id) }}"
+                  method="post" style="display:contents"
+                  onsubmit="return confirm('Permanently delete {{ user.username }}? This cannot be undone.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="adm-btn adm-btn--danger adm-btn--sm">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if users.pages > 1 %}
+<div class="adm-pagination">
+    {% if users.has_prev %}
+    <a href="{{ url_for('admin.users', page=users.prev_num, search=search) }}" class="adm-page-btn">
+        <i class="fas fa-chevron-left"></i> Prev
+    </a>
+    {% endif %}
+    <span class="adm-page-info">Page {{ users.page }} of {{ users.pages }}</span>
+    {% if users.has_next %}
+    <a href="{{ url_for('admin.users', page=users.next_num, search=search) }}" class="adm-page-btn">
+        Next <i class="fas fa-chevron-right"></i>
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="adm-empty">
+    <i class="fas fa-users"></i>
+    <p>{% if search %}No users found matching "{{ search }}".{% else %}No users yet.{% endif %}</p>
+    {% if search %}<a href="{{ url_for('admin.users') }}" class="adm-btn adm-btn--secondary">Clear search</a>{% endif %}
+</div>
+{% endif %}
+
 <style>
-.search-bar {
-    background: var(--bg-card);
-    padding: var(--spacing-lg);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    margin-bottom: var(--spacing-xl);
+/* ── User card grid ── */
+.au-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: .875rem;
 }
 
-.search-input-group {
+.au-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.125rem;
     display: flex;
-    gap: var(--spacing-md);
-    align-items: center;
+    flex-direction: column;
+    gap: .875rem;
+    transition: box-shadow .2s, border-color .2s;
 }
-
-.search-input-group .form-control { flex: 1; }
-
-.table-container {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    overflow-x: auto;
+.au-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,.07);
+    border-color: rgba(99,102,241,.25);
 }
+.au-card--inactive { opacity: .65; }
 
-.data-table { width: 100%; border-collapse: collapse; }
-
-.data-table thead { background: var(--bg-hover); }
-
-.data-table th {
-    padding: var(--spacing-md);
-    text-align: left;
-    font-weight: 600;
-    color: var(--text-primary);
-    border-bottom: 2px solid var(--border);
-    white-space: nowrap;
+/* ── Top row ── */
+.au-top {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
 }
-
-.data-table td {
-    padding: var(--spacing-md);
-    border-bottom: 1px solid var(--border-light);
-}
-
-.data-table tr.inactive-row { opacity: 0.6; }
-
-.user-cell { display: flex; align-items: center; gap: var(--spacing-sm); }
-
-.user-cell img {
-    width: 40px; height: 40px;
-    border-radius: var(--radius-full);
+.au-avatar {
+    width: 46px; height: 46px;
+    border-radius: 50%;
     object-fit: cover;
+    border: 2.5px solid var(--border);
+    flex-shrink: 0;
+}
+.au-identity { flex: 1; min-width: 0; }
+.au-name {
+    font-weight: 800;
+    font-size: .9rem;
+    color: var(--text-primary);
+    display: flex; align-items: center; gap: .4rem;
+    flex-wrap: wrap;
+}
+.au-fullname {
+    font-size: .78rem;
+    color: var(--text-muted);
+    margin-top: .1rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.au-email {
+    font-size: .74rem;
+    color: var(--text-muted);
+    margin-top: .15rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.au-email i { opacity: .5; margin-right: .2rem; }
+.au-status-badge { flex-shrink: 0; }
+
+/* ── Meta chips ── */
+.au-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+.au-chip {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .22rem .65rem;
+    border-radius: 20px;
+    font-size: .72rem; font-weight: 600;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis;
+}
+.au-chip i { font-size: .65rem; flex-shrink: 0; }
+.au-chip--school {
+    background: rgba(37,99,235,.08);
+    color: #2563eb;
+}
+.au-chip--prog {
+    background: rgba(124,58,237,.08);
+    color: #7c3aed;
+}
+.au-chip--empty {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
 }
 
-.user-cell div { display: flex; flex-direction: column; }
-.user-cell small { color: var(--text-muted); font-size: 0.8125rem; }
-
-.status-badge {
-    display: inline-block;
-    padding: 0.25rem var(--spacing-sm);
-    border-radius: var(--radius-sm);
-    font-size: 0.8125rem; font-weight: 600;
+/* ── Stats row ── */
+.au-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    overflow: hidden;
 }
-.status-active   { background: var(--success); color: white; }
-.status-inactive { background: var(--danger);  color: white; }
+.au-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: .5rem .25rem;
+    gap: .15rem;
+    border-right: 1px solid var(--border);
+}
+.au-stat:last-child { border-right: none; }
+.au-stat-val {
+    font-size: .78rem; font-weight: 700;
+    color: var(--text-primary);
+    display: flex; align-items: center; gap: .2rem;
+}
+.au-stat-label {
+    font-size: .62rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 600;
+}
 
-.actions-cell { display: flex; gap: var(--spacing-xs); flex-wrap: wrap; }
+/* ── Actions ── */
+.au-actions {
+    display: flex;
+    gap: .4rem;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--border);
+    padding-top: .75rem;
+}
 
-.btn-warning { background: var(--warning); color: white; }
-.btn-warning:hover { background: #d97706; }
+/* ── Dark mode ── */
+[data-theme="dark"] .au-card {
+    box-shadow: none;
+}
+[data-theme="dark"] .au-card:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,.3);
+}
+[data-theme="dark"] .au-chip--school { background: rgba(37,99,235,.15); }
+[data-theme="dark"] .au-chip--prog   { background: rgba(124,58,237,.15); }
 
-@media (max-width: 768px) {
-    .search-input-group { flex-direction: column; }
-    .data-table { font-size: 0.875rem; }
-    .data-table th, .data-table td { padding: var(--spacing-sm); }
+/* ── Responsive ── */
+@media (max-width: 600px) {
+    .au-grid { grid-template-columns: 1fr; gap: .75rem; }
+    .au-stats { grid-template-columns: repeat(2, 1fr); }
+    .au-stat:nth-child(2) { border-right: none; }
+    .au-stat:nth-child(3) { border-right: 1px solid var(--border); }
+    .au-actions .adm-btn { flex: 1; justify-content: center; }
 }
 </style>
+
 {% endblock %}

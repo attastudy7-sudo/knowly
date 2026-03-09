@@ -1,0 +1,224 @@
+{% extends "layout.html" %}
+{% block title %}Upload Past Papers — Knowly{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:760px;margin:0 auto;padding:2rem 1rem">
+
+  {# ── Header ── #}
+  <div style="text-align:center;margin-bottom:2rem">
+    <div style="font-size:2.5rem;margin-bottom:.5rem">📄</div>
+    <h1 style="font-size:1.4rem;font-weight:900;margin-bottom:.4rem">Upload Past Papers</h1>
+    <p style="color:var(--text-muted);font-size:.85rem">
+      Help your classmates prepare for exams and earn
+      <strong style="color:#fbbf24">{{ xp_reward }} XP</strong> per upload
+    </p>
+  </div>
+
+  {# ── Flash messages ── #}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }}" style="margin-bottom:1rem">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {# ── Upload form ── #}
+  <div class="card" style="margin-bottom:1.5rem">
+    <h2 style="font-size:.95rem;font-weight:800;margin-bottom:1.25rem">
+      <i class="fas fa-upload" style="color:var(--primary);margin-right:.4rem"></i>
+      Upload a Paper
+    </h2>
+
+    <form method="POST" action="{{ url_for('past_papers.upload') }}"
+          enctype="multipart/form-data">
+
+      {# Programme → Subject cascade #}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem">
+        <div>
+          <label class="form-label">Programme</label>
+          <select id="prog-select" class="form-control"
+                  onchange="loadSubjects(this.value)">
+            <option value="">Select programme</option>
+            {% for p in programmes %}
+            <option value="{{ p.id }}">{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">
+            Subject <span style="color:var(--danger)">*</span>
+          </label>
+          <select name="subject_slug" id="subj-select" class="form-control"
+                  disabled required>
+            <option value="">Select programme first</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem">
+        <div>
+          <label class="form-label">Exam Year</label>
+          <input type="text" name="year" class="form-control"
+                 placeholder="e.g. 2023" maxlength="4">
+        </div>
+        <div>
+          <label class="form-label">Semester</label>
+          <select name="semester" class="form-control">
+            <option value="">Not specified</option>
+            <option value="1">Semester 1</option>
+            <option value="2">Semester 2</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:.85rem">
+        <label class="form-label">Description <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+        <input type="text" name="description" class="form-control"
+               placeholder="e.g. June 2023 Final Exam, Midsem 2022">
+      </div>
+
+      {# Drop zone #}
+      <div id="drop-zone"
+           onclick="document.getElementById('file-inp').click()"
+           style="border:2px dashed var(--border-color);border-radius:14px;
+                  padding:2rem;text-align:center;cursor:pointer;
+                  color:var(--text-muted);font-size:.82rem;
+                  transition:all .2s;margin-bottom:.85rem">
+        <input type="file" id="file-inp" name="file"
+               accept=".pdf,.jpg,.jpeg,.png" style="display:none" required>
+        <i class="fas fa-cloud-upload-alt"
+           style="font-size:2rem;display:block;margin-bottom:.5rem"></i>
+        <span id="drop-label">Drop PDF or image here, or click to browse</span>
+        <div style="font-size:.68rem;margin-top:.3rem;opacity:.7">
+          PDF, JPG, PNG — max 20MB
+        </div>
+      </div>
+
+      {# XP notice #}
+      <div style="background:linear-gradient(135deg,rgba(251,191,36,.1),rgba(245,158,11,.05));
+                  border:1px solid rgba(251,191,36,.25);border-radius:12px;
+                  padding:.75rem 1rem;margin-bottom:1rem;
+                  display:flex;align-items:center;gap:.65rem">
+        <span style="font-size:1.25rem">🎉</span>
+        <div style="font-size:.78rem">
+          You'll earn <strong style="color:#fbbf24">{{ xp_reward }} XP</strong>
+          immediately upon upload — no approval needed.
+        </div>
+      </div>
+
+      <button type="submit" id="upload-btn" class="btn btn-primary"
+              style="width:100%" disabled>
+        <i class="fas fa-upload"></i> Upload & Earn {{ xp_reward }} XP
+      </button>
+    </form>
+  </div>
+
+  {# ── My uploads ── #}
+  {% if my_papers %}
+  <div class="card">
+    <h2 style="font-size:.95rem;font-weight:800;margin-bottom:1rem">
+      <i class="fas fa-history" style="color:var(--text-muted);margin-right:.4rem"></i>
+      My Uploads
+    </h2>
+    {% for paper in my_papers %}
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:.65rem 0;border-bottom:1px solid var(--border-color);
+                gap:.5rem;flex-wrap:wrap"
+         {% if not loop.last %}{% endif %}>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.82rem;font-weight:600;
+                    overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          {{ paper.filename }}
+        </div>
+        <div style="font-size:.68rem;color:var(--text-muted);margin-top:.1rem">
+          {{ paper.subject.name }}
+          {% if paper.year %} · {{ paper.year }}{% endif %}
+          {% if paper.semester %} Sem {{ paper.semester }}{% endif %}
+          · {{ paper.uploaded_at.strftime('%d %b %Y') }}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
+        {% if paper.xp_awarded %}
+        <span style="font-size:.68rem;font-weight:700;color:#fbbf24;
+                     background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);
+                     border-radius:20px;padding:.15rem .5rem">
+          +{{ xp_reward }} XP
+        </span>
+        {% endif %}
+        <span style="font-size:.65rem;font-weight:700;padding:.15rem .5rem;
+                     border-radius:20px;text-transform:uppercase;
+                     {% if paper.status == 'collected' %}
+                     background:rgba(16,185,129,.12);color:#34d399;
+                     {% elif paper.status == 'rejected' %}
+                     background:rgba(239,68,68,.12);color:#f87171;
+                     {% else %}
+                     background:rgba(100,116,139,.12);color:#94a3b8;
+                     {% endif %}">
+          {{ paper.status }}
+        </span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Programme → Subject cascade
+  function loadSubjects(progId) {
+    const sel = document.getElementById('subj-select');
+    if (!progId) {
+      sel.innerHTML = '<option value="">Select programme first</option>';
+      sel.disabled = true;
+      return;
+    }
+    sel.innerHTML = '<option value="">Loading…</option>';
+    sel.disabled = true;
+
+    fetch(`/internal/subjects-by-id/${progId}`)
+      .then(r => r.json())
+      .then(data => {
+        sel.innerHTML = '<option value="">Select a subject</option>';
+        (data.subjects || []).forEach(s => {
+          const o = document.createElement('option');
+          o.value = s.slug; o.textContent = s.name;
+          sel.appendChild(o);
+        });
+        sel.disabled = false;
+      })
+      .catch(() => {
+        sel.innerHTML = '<option value="">Could not load</option>';
+      });
+  }
+
+  // Drop zone
+  const fileInp  = document.getElementById('file-inp');
+  const dropZone = document.getElementById('drop-zone');
+  const dropLbl  = document.getElementById('drop-label');
+  const uploadBtn = document.getElementById('upload-btn');
+
+  fileInp.addEventListener('change', () => {
+    if (fileInp.files.length) {
+      dropLbl.textContent = '✓ ' + fileInp.files[0].name;
+      dropZone.style.borderColor = 'var(--success-color, #10b981)';
+      dropZone.style.color       = 'var(--success-color, #10b981)';
+      uploadBtn.disabled = false;
+    }
+  });
+
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.style.opacity = '.7'; });
+  dropZone.addEventListener('dragleave', () => { dropZone.style.opacity = '1'; });
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.style.opacity = '1';
+    if (e.dataTransfer.files.length) {
+      fileInp.files = e.dataTransfer.files;
+      fileInp.dispatchEvent(new Event('change'));
+    }
+  });
+</script>
+{% endblock %}

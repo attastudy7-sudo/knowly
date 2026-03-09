@@ -1,453 +1,495 @@
 {% extends "base.html" %}
-
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ user.username }} · knowly{% endblock %}
 
 {% block content %}
-<div class="profile-container">
+<div class="pr-wrap">
 
-    <!-- Profile Header -->
-    <div class="profile-header">
+  <!-- ── Profile Header Card ── -->
+  <div class="pr-header-card">
 
-        <div class="profile-cover">
-            <img src="{{ user.profile_picture_url }}"
-                alt="{{ user.username }}"
-                class="profile-avatar">
-            <h1 class="profile-name">{{ user.full_name or user.username }}</h1>
+    <!-- Cover with avatar + name overlaid -->
+    <div class="pr-cover">
+      <div class="pr-cover-blob pr-cover-blob--1"></div>
+      <div class="pr-cover-blob pr-cover-blob--2"></div>
+      <div class="pr-level-badge">
+        <i class="fas fa-star"></i>
+        Level {{ user.get_level() if user.get_level else '1' }}
+      </div>
+      <div class="pr-cover-identity">
+        <div class="pr-avatar-wrap">
+          <img src="{{ user.profile_picture_url }}" alt="{{ user.username }}" class="pr-avatar">
+          <span class="pr-online-dot"></span>
         </div>
-
-        <div class="profile-info">
-            <p class="profile-username">@{{ user.username }}</p>
+        <div class="pr-name-block">
+          <h1 class="pr-name">{{ user.full_name or user.username }}</h1>
+          <p class="pr-handle">@{{ user.username }}{% if user.school %} · {{ user.school }}{% endif %}</p>
         </div>
-
-        <!-- Stats -->
-        <div class="profile-stats">
-            <div class="stat">
-                <span class="stat-value">{{ user.posts.count() }}</span>
-                <span class="stat-label">Posts</span>
-            </div>
-            <div class="stat">
-                <a href="{{ url_for('users.followers', username=user.username) }}">
-                    <span class="stat-value">{{ user.followers_count() }}</span>
-                    <span class="stat-label">Followers</span>
-                </a>
-            </div>
-            <div class="stat">
-                <a href="{{ url_for('users.following', username=user.username) }}">
-                    <span class="stat-value">{{ user.following_count() }}</span>
-                    <span class="stat-label">Following</span>
-                </a>
-            </div>
-            <div class="stat streak-stat">
-                <span class="stat-value streak-value">
-                    {% if user.current_streak > 0 %}
-                        🔥 {{ user.current_streak }}
-                    {% else %}
-                        0
-                    {% endif %}
-                </span>
-                <span class="stat-label">Day Streak</span>
-            </div>
-            <div class="stat xp-stat">
-                <span class="stat-value xp-value">
-                    ⭐ {{ user.xp_points|default(0) }}
-                </span>
-                <span class="stat-label">{{ user.get_title()|default('Newcomer') }}</span>
-            </div>
-        </div>
-
-        <!-- Bio -->
-        <div class="profile-bio-wrapper">
-            <div class="bio-section-label">
-                <i class="fas fa-user-circle"></i>
-                <span>About</span>
-            </div>
-            <div class="profile-bio-section">
-                {% if user.bio %}
-                    <p class="profile-bio">{{ user.bio }}</p>
-                {% else %}
-                    <p class="profile-bio-empty">
-                        {% if current_user.is_authenticated and current_user.id == user.id %}
-                            <i class="fas fa-pen"></i>
-                            <a href="{{ url_for('users.edit_profile') }}">Add a bio to tell people about yourself</a>
-                        {% else %}
-                            <i class="fas fa-user"></i> This user hasn't added a bio yet.
-                        {% endif %}
-                    </p>
-                {% endif %}
-            </div>
-            <div class="bio-section-label" style="margin-top: 1.25rem;">
-                <i class="fas fa-graduation-cap"></i>
-                <span>Education</span>
-            </div>
-
-            {% if user.school or user.programme %}
-            <div class="profile-meta-section">
-                {% if user.school %}
-                <div class="profile-meta-item">
-                    <i class="fas fa-university"></i>
-                    <span>{{ user.school }}</span>
-                </div>
-                {% endif %}
-                {% if user.programme %}
-                <div class="profile-meta-item">
-                    <i class="fas fa-graduation-cap"></i>
-                    <span>{{ user.programme }}</span>
-                </div>
-                {% endif %}
-                {% if current_user.is_authenticated and current_user.id == user.id %}
-                <a href="{{ url_for('users.edit_profile') }}" class="profile-meta-item profile-meta-edit">
-                    <i class="fas fa-pen"></i>
-                    <span>Edit</span>
-                </a>
-                {% endif %}
-            </div>
-            {% else %}
-            <div class="profile-bio-section" style="margin-top: 0.5rem;">
-                <p class="profile-bio-empty">
-                    {% if current_user.is_authenticated and current_user.id == user.id %}
-                        <i class="fas fa-pen"></i>
-                        <a href="{{ url_for('users.edit_profile') }}">Add your school and programme</a>
-                    {% else %}
-                        <i class="fas fa-university"></i> No education info added yet.
-                    {% endif %}
-                </p>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="profile-actions">
-            {% if current_user.is_authenticated %}
-                {% if current_user.id == user.id %}
-                    <a href="{{ url_for('users.edit_profile') }}" class="btn btn-primary">
-                        <i class="fas fa-edit"></i> Edit Profile
-                    </a>
-                    <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary">
-                        <i class="fas fa-sign-out-alt"></i> Log Out
-                    </a>
-                {% else %}
-                    {% if current_user.is_following(user) %}
-                    <form action="{{ url_for('users.unfollow', username=user.username) }}" method="post" style="display: inline;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-secondary">
-                            <i class="fas fa-user-minus"></i> Unfollow
-                        </button>
-                    </form>
-                    {% else %}
-                    <form action="{{ url_for('users.follow', username=user.username) }}" method="post" style="display: inline;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-user-plus"></i> Follow
-                        </button>
-                    </form>
-                    {% endif %}
-                {% endif %}
-            {% else %}
-                <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
-                    <i class="fas fa-sign-in-alt"></i> Log in to Follow
-                </a>
-            {% endif %}
-        </div>
-
+      </div>
     </div>
 
-    <!-- Posts Section -->
-    <div class="profile-posts">
-        <div class="posts-header">
-            <div class="header-content">
-                <div class="header-icon-wrapper">
-                    <i class="fas fa-book"></i>
-                </div>
-                <div class="header-text">
-                    <h2>Posts by {{ user.username }}</h2>
-                    <p class="posts-subtitle">
-                        <i class="fas fa-layer-group"></i>
-                        {% if posts.items %}
-                            {{ posts.total }} post{{ 's' if posts.total != 1 else '' }} shared
-                        {% else %}
-                            No posts yet
-                        {% endif %}
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        {% if posts.items %}
-        <div class="posts-grid">
-            {% for post in posts.items %}
-                <div class="post-card">
-                    <div class="post-header">
-                        <div class="post-author">
-                            <span class="post-time">{{ post.created_at.strftime('%b %d, %Y') }}</span>
-                        </div>
-                    </div>
-
-                    <div class="post-content">
-                        <a href="{{ url_for('posts.view', post_id=post.id) }}" class="post-link">
-                            <h3 class="post-title">{{ post.title }}</h3>
-                            {% if post.description %}
-                                <p class="post-description">{{ post.description[:150] }}{% if post.description|length > 150 %}...{% endif %}</p>
-                            {% endif %}
-                        </a>
-
-                        {% if post.has_quiz() %}
-                        <div class="quiz-badge" title="This post has a quiz!">
-                            <i class="fas fa-brain"></i>
-                            <span>Quiz</span>
-                        </div>
-                        {% endif %}
-                        {% if post.has_document and post.document %}
-                        <div class="document-badge">
-                            <i class="fas fa-file-{{ post.document.file_type }}"></i>
-                            <span class="doc-filename">{{ post.document.original_filename }}</span>
-                            {% if post.document.is_paid %}
-                                <span class="price-tag">${{ post.document.price }}</span>
-                            {% else %}
-                                <span class="free-tag">Free</span>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="post-actions">
-                        {% if current_user.is_authenticated %}
-                        <button class="action-btn like-btn {% if post.is_liked_by(current_user) %}liked{% endif %}"
-                                data-post-id="{{ post.id }}"
-                                data-liked="{{ 'true' if post.is_liked_by(current_user) else 'false' }}"
-                                data-real-likes="{{ post.like_count() }}"
-                                data-base-likes="{{ ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}"
-                                onclick="toggleLike(this)">
-                            <i class="fas fa-heart"></i>
-                            <span class="like-count">{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
-                        </button>
-                        {% else %}
-                        <span class="action-btn">
-                            <i class="fas fa-heart"></i>
-                            <span>{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
-                        </span>
-                        {% endif %}
-
-                        <a href="{{ url_for('posts.view', post_id=post.id) }}" class="action-btn">
-                            <i class="fas fa-comment"></i>
-                            <span>{{ post.comment_count() }}</span>
-                        </a>
-
-                        {% if post.has_document and post.document %}
-                        <a href="{{ url_for('posts.download_document', document_id=post.document.id) }}" class="action-btn">
-                            <i class="fas fa-download"></i>
-                            <span>{{ post.document.download_count + ((post.id * 53 + post.created_at.toordinal() * 7) % 320) + 24 }}</span>
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-
-        {% if posts.has_prev or posts.has_next %}
-        <div class="pagination">
-            {% if posts.has_prev %}
-                <a href="{{ url_for('users.profile', username=user.username, page=posts.prev_num) }}" class="page-btn">
-                    <i class="fas fa-chevron-left"></i> Previous
-                </a>
-            {% endif %}
-            <span class="page-info">Page {{ posts.page }} of {{ posts.pages }}</span>
-            {% if posts.has_next %}
-                <a href="{{ url_for('users.profile', username=user.username, page=posts.next_num) }}" class="page-btn">
-                    Next <i class="fas fa-chevron-right"></i>
-                </a>
-            {% endif %}
-        </div>
-        {% endif %}
-
+    <!-- Edit / Follow button row -->
+    <div class="pr-action-row">
+      {% if current_user.is_authenticated %}
+        {% if current_user.id == user.id %}
+        <a href="{{ url_for('users.edit_profile') }}" class="pr-btn pr-btn--ghost">
+          <i class="fas fa-pen-to-square"></i> Edit
+        </a>
         {% else %}
-        <div class="empty-state">
-            <div class="empty-icon">
-                <i class="fas fa-inbox"></i>
-            </div>
-            <h3>No posts yet</h3>
-            <p>{{ user.username }} hasn't created any posts.</p>
-        </div>
+        <form action="{{ url_for('users.follow' if not current_user.is_following(user) else 'users.unfollow', username=user.username) }}" method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="pr-btn {% if current_user.is_following(user) %}pr-btn--following{% else %}pr-btn--follow{% endif %}">
+            {% if current_user.is_following(user) %}
+            <i class="fas fa-user-minus"></i> Following
+            {% else %}
+            <i class="fas fa-user-plus"></i> Follow
+            {% endif %}
+          </button>
+        </form>
         {% endif %}
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="pr-btn pr-btn--follow">
+          <i class="fas fa-user-plus"></i> Follow
+        </a>
+      {% endif %}
     </div>
 
-</div>
+    <!-- Bio -->
+    {% if user.bio %}
+    <p class="pr-bio">{{ user.bio }}</p>
+    {% endif %}
+
+    <!-- Programme tag -->
+    {% if user.programme %}
+    <div class="pr-programme-wrap">
+      <span class="pr-programme-tag">
+        <i class="fas fa-graduation-cap"></i>
+        {{ user.programme }}
+      </span>
+    </div>
+    {% endif %}
+
+    <!-- Stats -->
+    <div class="pr-stats">
+      <div class="pr-stat">
+        <span class="pr-stat-val pr-stat-val--blue">{{ user.posts.count() if user.posts else 0 }}</span>
+        <span class="pr-stat-label">Posts</span>
+      </div>
+      <a href="{{ url_for('users.followers', username=user.username) }}" class="pr-stat pr-stat--link">
+        <span class="pr-stat-val pr-stat-val--teal">{{ user.followers_count() }}</span>
+        <span class="pr-stat-label">Followers</span>
+      </a>
+      <a href="{{ url_for('users.following', username=user.username) }}" class="pr-stat pr-stat--link">
+        <span class="pr-stat-val pr-stat-val--purple">{{ user.following_count() }}</span>
+        <span class="pr-stat-label">Following</span>
+      </a>
+      <div class="pr-stat">
+        <span class="pr-stat-val pr-stat-val--amber">{{ user.xp_points or 0 }}</span>
+        <span class="pr-stat-label">XP</span>
+      </div>
+    </div>
+
+  </div><!-- /pr-header-card -->
+
+  <!-- ── XP strip ── -->
+  <div class="pr-card">
+    <div class="pr-xp-top">
+      <div class="pr-xp-left">
+        <span class="pr-xp-icon">⚡</span>
+        <div>
+          <p class="pr-xp-level">Level {{ user.get_level() if user.get_level else '1' }}</p>
+          <p class="pr-xp-total">{{ user.xp_points or 0 }} XP total</p>
+        </div>
+      </div>
+      <div class="pr-streak-badge">🔥 {{ user.current_streak or 0 }}-day streak</div>
+    </div>
+    {% set xp = user.xp_points or 0 %}
+    {% set next_xp = user.get_next_level_xp() %}
+    {% if next_xp %}
+      {% set prev_xp = ((user.get_level() - 1) * 1000) if user.get_level() > 1 else 0 %}
+      {% set xp_needed = next_xp - prev_xp %}
+      {% set xp_progress = xp - prev_xp %}
+      {% set pct = ((xp_progress / xp_needed * 100) | int) if xp_progress > 0 else 0 %}
+      <div class="pr-xp-bar-track">
+        <div class="pr-xp-bar-fill" style="width:{{ [pct,100]|min }}%"></div>
+      </div>
+      <p class="pr-xp-hint">{{ xp_progress }} / {{ xp_needed }} XP to Level {{ (user.get_level() if user.get_level else 1) + 1 }}</p>
+    {% else %}
+      <div class="pr-xp-bar-track"><div class="pr-xp-bar-fill" style="width:100%"></div></div>
+      <p class="pr-xp-hint">Max Level! 🎉</p>
+    {% endif %}
+  </div>
+
+  <!-- ── Badges ── -->
+  {% if user.badges %}
+  <div class="pr-card">
+    <div class="pr-card-head">
+      <h2 class="pr-card-title">🏆 Badges</h2>
+      <span class="pr-card-meta">{{ user.badges|length }} earned</span>
+    </div>
+    <div class="pr-badges-grid">
+      {% for ub in user.badges %}
+      <div class="pr-badge" title="{{ ub.badge.description or ub.badge.name }}">
+        <span class="pr-badge-emoji">{{ ub.badge.emoji or '⭐' }}</span>
+        <p class="pr-badge-name">{{ ub.badge.name }}</p>
+      </div>
+      {% endfor %}
+      <div class="pr-badge pr-badge--locked">
+        <span class="pr-badge-emoji">🔒</span>
+        <p class="pr-badge-name">Next</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Tabs ── -->
+  <div class="pr-card pr-tabs-card">
+    <div class="pr-tab-bar">
+      <button class="pr-tab active" onclick="switchTab(this,'posts')">
+        <i class="fas fa-file-alt"></i> Posts
+      </button>
+      <button class="pr-tab" onclick="switchTab(this,'saved')">
+<i class="fas fa-bookmark"></i> Saved
+      </button>
+<button class="pr-tab" onclick="switchTab(this,'activity')">
+        <i class="fas fa-chart-line"></i> Activity
+      </button>
+      {% if is_own_profile %}
+      <button class="pr-tab" onclick="switchTab(this,'quizzes')">
+        <i class="fas fa-brain"></i> Quizzes
+      </button>
+      {% endif %}
+    </div>
+
+    <!-- Posts pane -->
+    <div class="pr-pane" id="pane-posts">
+      {% if posts.items and posts.items|length > 0 %}
+      <div class="pr-post-list">
+{% for post in posts.items %}
+        <a href="{{ url_for('posts.view', post_id=post.id) }}" class="pr-post-row">
+          <div class="pr-post-icon" style="background:{{ post.content_type_color }}18;color:{{ post.content_type_color }}">
+            <i class="fas fa-{{ post.content_type_icon }}"></i>
+          </div>
+          <div class="pr-post-info">
+            <p class="pr-post-title">{{ post.title }}</p>
+            <div class="pr-post-meta">
+              <span style="background:{{ post.content_type_color }}12;color:{{ post.content_type_color }};padding:.1rem .4rem;border-radius:4px;font-size:.68rem;font-weight:700;">
+                {{ post.content_type_label }}
+              </span>
+              {% if is_own_profile and post.status != 'approved' %}
+              <span style="background:{% if post.status == 'pending' %}rgba(245,158,11,.12){% else %}rgba(239,68,68,.12){% endif %};color:{% if post.status == 'pending' %}#f59e0b{% else %}#ef4444{% endif %};padding:.1rem .4rem;border-radius:4px;font-size:.68rem;font-weight:700;">
+                {{ post.status|capitalize }}
+              </span>
+              {% endif %}
+
+              {# ── Content meta chips ── #}
+              {% if post.content_type == 'quiz' %}
+                {% set qm = post.quiz_card_meta %}
+                {% if qm %}
+                  {% if qm.questions %}<span class="meta-chip meta-chip-quiz"><i class="fas fa-list-ol"></i> {{ qm.questions }}q</span>{% endif %}
+                  {% if qm.marks %}<span class="meta-chip meta-chip-quiz"><i class="fas fa-star"></i> {{ qm.marks }}pts</span>{% endif %}
+                  {% if qm.duration %}<span class="meta-chip meta-chip-quiz"><i class="fas fa-clock"></i> {{ qm.duration }}</span>{% endif %}
+                {% endif %}
+              {% elif post.content_type == 'notes' %}
+                {% set nm = post.notes_card_meta %}
+                {% if nm and nm.read_time %}<span class="meta-chip meta-chip-notes"><i class="fas fa-book-open"></i> {{ nm.read_time }}</span>{% endif %}
+              {% elif post.content_type == 'cheatsheet' %}
+                {% set cm = post.cheatsheet_card_meta %}
+                {% if cm %}
+                  {% if cm.formula_count %}<span class="meta-chip meta-chip-sheet"><i class="fas fa-square-root-alt"></i> {{ cm.formula_count }} formula{{ 's' if cm.formula_count != 1 }}</span>{% endif %}
+                  {% if cm.definition_count %}<span class="meta-chip meta-chip-sheet"><i class="fas fa-book"></i> {{ cm.definition_count }} def{{ 's' if cm.definition_count != 1 }}</span>{% endif %}
+                {% endif %}
+              {% endif %}
+              <span><i class="fas fa-heart"></i> {{ post.like_count() }}</span>
+              <span>{{ post.created_at.strftime('%b %d') if post.created_at else '' }}</span>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right pr-post-arrow"></i>
+        </a>
+        {% endfor %}
+            </div>
+      {% if posts.has_prev or posts.has_next %}
+      <div class="pr-pagination">
+        {% if posts.has_prev %}
+        <a href="{{ url_for('users.profile', username=user.username, page=posts.prev_num) }}" class="pr-page-btn">
+          <i class="fas fa-chevron-left"></i> Prev
+        </a>
+        {% endif %}
+        <span class="pr-page-info">Page {{ posts.page }} of {{ posts.pages }}</span>
+        {% if posts.has_next %}
+        <a href="{{ url_for('users.profile', username=user.username, page=posts.next_num) }}" class="pr-page-btn">
+          Next <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="pr-empty">
+        <p class="pr-empty-emoji">📝</p>
+        <p class="pr-empty-title">No posts yet</p>
+        {% if current_user.is_authenticated and current_user.id == user.id %}
+        <a href="{{ url_for('posts.create') }}" class="pr-empty-action">
+          <i class="fas fa-plus"></i> Share your first note
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Saved pane -->
+<!-- Saved pane -->
+    <div class="pr-pane pr-pane--hidden" id="pane-saved">
+      {% if current_user.is_authenticated and current_user.id == user.id %}
+      <div class="pr-empty">
+        <p class="pr-empty-emoji">📚</p>
+        <p class="pr-empty-title">Your saved posts</p>
+        <p class="pr-empty-sub">All your bookmarked resources in one place</p>
+        <a href="{{ url_for('users.bookmarks') }}"
+           style="display:inline-flex;align-items:center;gap:.5rem;margin-top:1rem;padding:.65rem 1.25rem;background:linear-gradient(135deg,#2563eb,#06b6d4);color:white;border-radius:12px;font-size:.875rem;font-weight:700;text-decoration:none;">
+          <i class="fas fa-bookmark"></i> View Saved Posts
+        </a>
+      </div>
+      {% else %}
+      <div class="pr-empty">
+        <p class="pr-empty-emoji">🔒</p>
+        <p class="pr-empty-title">Private</p>
+        <p class="pr-empty-sub">Saved posts are only visible to their owner</p>
+      </div>
+      {% endif %}
+    </div>
+    <!-- Activity pane -->
+    <div class="pr-pane pr-pane--hidden" id="pane-activity">
+      <div class="pr-activity-block">
+        <p class="pr-activity-label">Study activity · last 4 weeks</p>
+        <div class="pr-heatmap">
+          {% for i in range(28) %}
+          <div class="pr-hm-cell {% if i % 7 in [0,2,5] and i < 21 %}pr-hm-cell--high{% elif i % 7 in [1,3] and i < 14 %}pr-hm-cell--mid{% elif i % 5 == 0 %}pr-hm-cell--low{% else %}pr-hm-cell--off{% endif %}"></div>
+          {% endfor %}
+        </div>
+        <div class="pr-heatmap-labels"><span>4 weeks ago</span><span>Today</span></div>
+      </div>
+      <div class="pr-activity-block">
+        <p class="pr-activity-label">Quiz stats</p>
+        <div class="pr-quiz-stats">
+          <div class="pr-qs-item">
+            <span class="pr-qs-val pr-stat-val--blue">{{ quiz_stats.total }}</span>
+            <span class="pr-qs-label">Taken</span>
+          </div>
+          <div class="pr-qs-item">
+            <span class="pr-qs-val pr-stat-val--teal">{{ quiz_stats.avg_score }}%</span>
+            <span class="pr-qs-label">Avg score</span>
+          </div>
+          <div class="pr-qs-item">
+            <span class="pr-qs-val pr-stat-val--amber">{{ quiz_stats.perfect }}</span>
+            <span class="pr-qs-label">Perfect</span>
+          </div>
+        </div>
+      </div>
+      <div class="pr-streak-card">
+        <span class="pr-streak-fire">🔥</span>
+        <div>
+          <p class="pr-streak-title">Longest streak: {{ user.longest_streak or 0 }} days</p>
+          <p class="pr-streak-sub">Current: {{ user.current_streak or 0 }} days — keep it going!</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pr-tabs-card -->
+
+  <!-- Quizzes pane (own profile only) -->
+    {% if is_own_profile %}
+    <div class="pr-pane pr-pane--hidden" id="pane-quizzes">
+      {% if quiz_attempts %}
+      <div class="pr-post-list">
+        {% for attempt in quiz_attempts %}
+        <a href="{{ url_for('posts.view', post_id=attempt.post_id) }}" class="pr-post-row">
+          <div class="pr-post-icon"
+               style="background:{% if attempt.score_pct >= 80 %}rgba(16,185,129,.12){% elif attempt.score_pct >= 50 %}rgba(37,99,235,.10){% else %}rgba(239,68,68,.10){% endif %};
+                      color:{% if attempt.score_pct >= 80 %}#10b981{% elif attempt.score_pct >= 50 %}#2563eb{% else %}#ef4444{% endif %}">
+            <i class="fas fa-brain"></i>
+          </div>
+          <div class="pr-post-info">
+            <p class="pr-post-title">{{ attempt.post.title if attempt.post else 'Deleted post' }}</p>
+            <div class="pr-post-meta">
+              <span style="padding:.1rem .4rem;border-radius:4px;font-size:.68rem;font-weight:800;
+                background:{% if attempt.score_pct >= 80 %}rgba(16,185,129,.12){% elif attempt.score_pct >= 50 %}rgba(37,99,235,.10){% else %}rgba(239,68,68,.10){% endif %};
+                color:{% if attempt.score_pct >= 80 %}#10b981{% elif attempt.score_pct >= 50 %}#2563eb{% else %}#ef4444{% endif %}">
+                {{ attempt.score_pct | round(1) }}%
+              </span>
+              <span><i class="fas fa-star"></i> {{ attempt.xp_earned }} XP</span>
+              <span><i class="fas fa-clock"></i> {{ attempt.created_at.strftime('%b %d') }}</span>
+            {% if attempt.timed_out %}
+              <span style="color:#f59e0b;font-weight:700;font-size:.68rem;">⏱ Timed out</span>
+              {% endif %}
+              {% if attempt.assessments %}
+              <span style="color:#6366f1;font-weight:700;font-size:.68rem;">✅ Assessed</span>
+              {% endif %}
+            </div>
+            {% if attempt.assessments %}
+            <div style="margin-top:.35rem;display:flex;flex-direction:column;gap:.25rem;">
+              {% for assessment in attempt.assessments %}
+              <div style="font-size:.72rem;padding:.3rem .5rem;border-radius:6px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.15);">
+                <span style="font-weight:700;color:#6366f1;">Q{{ assessment.question_index + 1 }}:</span>
+                <span style="color:var(--text-primary);font-weight:600;">{{ assessment.score }} marks</span>
+                {% if assessment.feedback %}
+                <span style="color:var(--text-secondary);"> — {{ assessment.feedback }}</span>
+                {% endif %}
+                <span style="color:var(--text-muted);font-size:.65rem;margin-left:.3rem;">{{ assessment.assessed_at.strftime('%b %d') if assessment.assessed_at else '' }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          <i class="fas fa-chevron-right pr-post-arrow"></i>
+        </a>
+      {% endfor %}
+      </div>
+      {% else %}
+      <div class="pr-empty">
+        <p class="pr-empty-emoji">🧠</p>
+        <p class="pr-empty-title">No quiz attempts yet</p>
+        <p class="pr-empty-sub">Complete quizzes to track your progress here</p>
+        <a href="{{ url_for('main.explore') }}" class="pr-empty-action">
+          <i class="fas fa-search"></i> Find quizzes
+        </a>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div><!-- /pr-tabs-card -->
+
+</div><!-- /pr-wrap -->
 
 <style>
-.profile-container { max-width: 1200px; margin: 0 auto; padding: var(--spacing-lg) var(--spacing-md); }
-.profile-header { background: var(--bg-card); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); margin-bottom: var(--spacing-2xl); }
-.profile-cover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 180px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--spacing-xl) var(--spacing-md); }
-.profile-avatar { width: 120px; height: 120px; border-radius: 50%; border: 5px solid white; object-fit: cover; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); margin-bottom: var(--spacing-md); flex-shrink: 0; }
-.profile-name { color: white; font-size: clamp(1.25rem, 4vw, 2rem); font-weight: 700; margin: 0; text-align: center; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); word-break: break-word; max-width: 100%; }
-.profile-info { padding: 1.25rem var(--spacing-xl) 0; text-align: center; }
-.profile-username { color: var(--text-muted); font-size: 1.125rem; margin: 0; word-break: break-all; }
-
-/* Stats Grid */
-.profile-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; padding: var(--spacing-lg) var(--spacing-xl); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-top: 1rem; }
-.stat { text-align: center; padding: 0.625rem 0.5rem; border-radius: 10px; background: rgba(102, 126, 234, 0.04); border: 1px solid transparent; transition: background 0.2s ease, border-color 0.2s ease; }
-.stat:hover { background: rgba(102, 126, 234, 0.08); border-color: rgba(102, 126, 234, 0.15); }
-.stat a { text-decoration: none; color: inherit; display: block; }
-.stat-value { display: block; font-size: 1.4rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
-.stat-label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.profile-bio-wrapper { padding: 1.5rem var(--spacing-xl); border-bottom: 1px solid var(--border); background: linear-gradient(180deg, rgba(102, 126, 234, 0.025) 0%, transparent 100%); }
-.bio-section-label { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.75rem; }
-.bio-section-label i { font-size: 0.8rem; color: #667eea; }
-.bio-section-label span { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-muted); }
-.profile-bio-section { max-width: 640px; margin: 0 auto; padding: 1.25rem 1.5rem; background: linear-gradient(135deg, rgba(102, 126, 234, 0.06), rgba(118, 75, 162, 0.06)); border: 1px solid rgba(102, 126, 234, 0.15); border-left: 3px solid #667eea; border-radius: 10px; }
-.profile-bio { color: var(--text-secondary); line-height: 1.75; font-size: 0.975rem; margin: 0; font-style: italic; }
-.profile-bio-empty { color: var(--text-muted); font-size: 0.9rem; margin: 0; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-.profile-bio-empty i { color: #a0aec0; }
-.profile-bio-empty a { color: #667eea; text-decoration: none; font-weight: 500; }
-.profile-bio-empty a:hover { text-decoration: underline; }
-.profile-meta-section { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
-.profile-meta-item { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.875rem; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.18); border-radius: 50px; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
-.profile-meta-item i { color: var(--primary); font-size: 0.8rem; }
-.profile-meta-edit { text-decoration: none; border-style: dashed; opacity: 0.7; transition: all 0.2s ease; }
-.profile-meta-edit:hover { opacity: 1; background: rgba(99, 102, 241, 0.15); border-color: var(--primary); color: var(--primary); }
-.profile-meta-edit i { color: var(--primary); }
-
-.profile-actions { padding: var(--spacing-xl); display: flex; justify-content: center; gap: var(--spacing-md); flex-wrap: wrap; }
-.btn { display: inline-flex; align-items: center; gap: var(--spacing-sm); padding: var(--spacing-md) var(--spacing-xl); border-radius: var(--radius-md); font-weight: 600; text-decoration: none; border: none; cursor: pointer; transition: all 0.3s ease; white-space: nowrap; }
-.btn-primary { background: var(--primary); color: white; }
-.btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
-.btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); }
-.btn-secondary:hover { background: var(--bg-hover); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
-
-.profile-posts { margin-bottom: var(--spacing-2xl); }
-.posts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.875rem; }
-.post-card { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--primary); border-left: 3px solid var(--primary); padding: 1rem 1.1rem 1rem calc(1.1rem - 2px); display: flex; flex-direction: column; transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease; overflow: hidden; }
-.post-card::before { display: none !important; content: none !important; }
-.post-card:hover { box-shadow: 0 12px 32px rgba(99, 102, 241, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08); transform: translateY(-4px) scale(1.01); border-color: var(--subject-accent, var(--primary)); border-left-color: var(--subject-accent, var(--primary)); }
-.post-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.625rem; }
-.post-author { display: flex; align-items: center; gap: 0.55rem; text-decoration: none; min-width: 0; }
-.post-time { font-size: 0.75rem; color: var(--text-muted); }
-.post-content { margin-bottom: 0.75rem; }
-.post-link { text-decoration: none; display: block; }
-.post-title { font-size: 0.975rem; font-weight: 700; color: var(--text-primary); margin: 0 0 0.375rem 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.post-description { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 0.5rem 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.document-badge { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(102, 126, 234, 0.06); border: 1px solid rgba(102, 126, 234, 0.15); border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary); overflow: hidden; }
-.doc-filename { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
-
-/* Quiz badge */
-.quiz-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-top: 0.3rem;
-    margin-left: 0.5rem;
-    padding: 0.2rem 0.5rem;
-    background: linear-gradient(135deg, #8b5cf6, #a855f7);
-    color: #fff;
-    border-radius: 6px;
-    width: fit-content;
-}
-.quiz-badge i {
-    font-size: 0.7rem;
-}
-.price-tag { font-weight: 700; color: #667eea; flex-shrink: 0; }
-.free-tag { font-weight: 700; background-color: #10b981; color: white; padding: 0.1rem 0.4rem; border-radius: 4px; flex-shrink: 0; }
-.post-actions { display: flex; align-items: center; gap: 0.5rem; padding-top: 0.625rem; border-top: 1px solid var(--border-light); margin-top: auto; }
-.action-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.375rem 0.625rem; border-radius: 8px; background: none; border: none; color: var(--text-muted); font-size: 0.825rem; font-weight: 500; cursor: pointer; text-decoration: none; transition: all 0.2s ease; }
-.action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-.action-btn.liked { color: #ef4444; }
-.action-btn.liked i { color: #ef4444; }
-@keyframes heartPop { 0%{transform:scale(1);}50%{transform:scale(1.35);}100%{transform:scale(1);} }
-.action-btn.liked i { animation: heartPop 0.3s ease; }
-
-.posts-header { margin-bottom: 2rem; }
-.posts-header .header-content { display: flex; align-items: center; gap: 1.25rem; padding: 1.5rem; background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08)); border-radius: 20px; border: 1px solid rgba(102, 126, 234, 0.15); }
-.posts-header .header-icon-wrapper { width: 60px; height: 60px; background: #667eea; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; color: white; flex-shrink: 0; }
-.posts-header .header-text h2 { margin: 0 0 0.25rem 0; font-size: 1.75rem; font-weight: 600; color: var(--text-primary); }
-.posts-subtitle { display: flex; align-items: center; gap: 0.5rem; margin: 0; color: var(--text-secondary); font-size: 0.95rem; }
-.posts-subtitle i { color: #667eea; }
-.pagination { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; }
-.page-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: var(--bg-card); border: 2px solid var(--border); border-radius: 12px; color: var(--text-primary); text-decoration: none; font-weight: 600; transition: all 0.3s ease; }
-.page-btn:hover { background: #667eea; border-color: #667eea; color: white; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
-.page-info { padding: 0.75rem 1.25rem; color: var(--text-secondary); font-weight: 600; font-size: 0.95rem; }
-.empty-state { text-align: center; padding: 4rem 2rem; background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05)); border-radius: 24px; margin: 2rem 0; }
-.empty-icon { width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; }
-.empty-icon i { font-size: 8rem; color: rgb(180, 180, 180); }
-.empty-state h3 { font-size: 1.75rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.75rem; }
-.empty-state p { font-size: 1.125rem; color: var(--text-secondary); margin: 0; }
-
-/* Responsive */
-@media (max-width: 1024px) { .posts-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) {
-    .profile-container { padding: 1rem; }
-    .profile-cover { min-height: 140px; }
-    .profile-avatar { width: 90px; height: 90px; }
-    .profile-name { font-size: 1.4rem; }
-    .profile-stats { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; padding: var(--spacing-md) var(--spacing-md); }
-    .stat-value { font-size: 1.2rem; }
-    .stat-label { font-size: 0.75rem; }
-    .profile-bio-wrapper { padding: 1.25rem var(--spacing-md); }
-    .profile-bio-section { padding: 1rem 1.25rem; }
-    .profile-actions { flex-direction: column; align-items: stretch; padding: var(--spacing-lg); gap: 0.75rem; }
-    .profile-actions form { display: block; }
-    .profile-actions form button, .profile-actions .btn { width: 100%; justify-content: center; }
-    .posts-grid { grid-template-columns: repeat(2, 1fr); }
-    .posts-header .header-content { padding: 1.25rem; border-radius: 16px; gap: 1rem; }
-    .posts-header .header-icon-wrapper { width: 50px; height: 50px; font-size: 1.5rem; }
-    .posts-header .header-text h2 { font-size: 1.375rem; }
-    .posts-subtitle { font-size: 0.875rem; }
-    .empty-icon { width: 150px; height: 150px; }
-    .empty-icon i { font-size: 6rem; }
-    .empty-state h3 { font-size: 1.375rem; }
-    .empty-state p { font-size: 1rem; }
-    .post-card { padding: 0.875rem 1rem; }
-}
-@media (max-width: 480px) {
-    .profile-stats { grid-template-columns: repeat(2, 1fr); gap: 0.4rem; padding: var(--spacing-md) var(--spacing-sm); }
-    .xp-stat { grid-column: span 2; }
-    .stat-value { font-size: 1.1rem; }
-    .posts-grid { grid-template-columns: 1fr; }
-    .posts-header .header-content { padding: 1rem; }
-    .posts-header .header-icon-wrapper { width: 45px; height: 45px; font-size: 1.375rem; }
-    .posts-header .header-text h2 { font-size: 1.25rem; }
-    .profile-bio-section { padding: 0.875rem 1rem; }
-}
+.pr-wrap{max-width:640px;margin:0 auto;padding:1rem 1rem 5rem;display:flex;flex-direction:column;gap:.75rem}
+.pr-header-card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.pr-cover{height:145px;background:linear-gradient(135deg,#2563eb,#6366f1,#0ea5e9);position:relative;overflow:hidden}
+.pr-cover-blob{position:absolute;border-radius:50%;background:rgba(255,255,255,.1)}
+.pr-cover-blob--1{width:90px;height:90px;top:-20px;right:-20px}
+.pr-cover-blob--2{width:60px;height:60px;bottom:-10px;left:33%}
+.pr-level-badge{position:absolute;top:.75rem;right:.75rem;display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .75rem;border-radius:50px;background:rgba(255,255,255,.2);backdrop-filter:blur(8px);font-size:.72rem;font-weight:800;color:#fff;letter-spacing:.02em}
+.pr-level-badge i{color:#fde68a;font-size:.65rem}
+.pr-cover-identity{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:flex-end;gap:.75rem;padding:.75rem 1rem;background:linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 100%)}
+.pr-avatar-wrap{position:relative;flex-shrink:0}
+.pr-avatar{width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.3);box-shadow:0 4px 16px rgba(0,0,0,.3);display:block}
+.pr-online-dot{position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:#10b981;border:2px solid #fff}
+.pr-name-block{flex:1;min-width:0;padding-bottom:.2rem}
+.pr-name{font-family:'Poppins',sans-serif;font-size:1.05rem;font-weight:800;color:#fff;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 .1rem;text-shadow:0 1px 4px rgba(0,0,0,.4);text-transform:none}
+.pr-handle{font-size:.78rem;color:rgba(255,255,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.pr-action-row{display:flex;justify-content:flex-start;padding:.75rem 1rem .5rem}
+.pr-btn{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .875rem;border-radius:12px;font-size:.78rem;font-weight:700;cursor:pointer;border:none;text-decoration:none;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.pr-btn--ghost{background:none;border:1.5px solid var(--border);color:var(--text-secondary)}
+.pr-btn--ghost:hover{border-color:var(--primary);color:var(--primary)}
+.pr-btn--follow{background:linear-gradient(135deg,#2563eb,#0ea5e9);color:#fff;box-shadow:0 3px 10px rgba(37,99,235,.35)}
+.pr-btn--follow:hover{opacity:.9;transform:translateY(-1px);color:#fff}
+.pr-btn--following{background:none;border:1.5px solid var(--border);color:var(--text-secondary)}
+.pr-btn--following:hover{border-color:#ef4444;color:#ef4444}
+.pr-bio{font-size:.85rem;line-height:1.6;color:var(--text-secondary);padding:0 1rem .75rem;margin:0}
+.pr-programme-wrap{padding:0 1rem .75rem}
+.pr-programme-tag{display:inline-flex;align-items:center;gap:.4rem;padding:.25rem .75rem;border-radius:50px;font-size:.75rem;font-weight:700;background:rgba(37,99,235,.08);color:#2563eb;border:1px solid rgba(37,99,235,.18)}
+[data-theme="dark"] .pr-programme-tag{background:rgba(37,99,235,.15);color:#60a5fa;border-color:rgba(37,99,235,.3)}
+.pr-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;padding:0 1rem 1rem}
+.pr-stat{display:flex;flex-direction:column;align-items:center;gap:.15rem;padding:.75rem .5rem;background:var(--bg-hover);border-radius:14px;border:1px solid var(--border)}
+.pr-stat--link{text-decoration:none;transition:all .15s;cursor:pointer}
+.pr-stat--link:hover{border-color:var(--primary);background:rgba(99,102,241,.06);transform:translateY(-1px)}
+.pr-stat-val{font-family:'Poppins',sans-serif;font-size:1.1rem;font-weight:900;line-height:1}
+.pr-stat-val--blue{color:#2563eb}
+.pr-stat-val--teal{color:#0ea5e9}
+.pr-stat-val--purple{color:#8b5cf6}
+.pr-stat-val--amber{color:#f59e0b}
+[data-theme="dark"] .pr-stat-val--blue{color:#60a5fa}
+[data-theme="dark"] .pr-stat-val--teal{color:#38bdf8}
+[data-theme="dark"] .pr-stat-val--purple{color:#a78bfa}
+[data-theme="dark"] .pr-stat-val--amber{color:#fbbf24}
+.pr-stat-label{font-size:.65rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
+.pr-card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:1rem}
+.pr-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem}
+.pr-card-title{font-size:.9rem;font-weight:800;color:var(--text-primary);margin:0}
+.pr-card-meta{font-size:.72rem;color:var(--text-muted);font-weight:600}
+.pr-xp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;gap:.5rem;flex-wrap:wrap}
+.pr-xp-left{display:flex;align-items:center;gap:.65rem}
+.pr-xp-icon{font-size:1.3rem;line-height:1}
+.pr-xp-level{font-size:.85rem;font-weight:800;color:var(--text-primary);margin:0 0 .1rem}
+.pr-xp-total{font-size:.7rem;color:var(--text-muted);margin:0}
+.pr-streak-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.35rem .75rem;border-radius:50px;background:rgba(249,115,22,.1);color:#f97316;font-size:.75rem;font-weight:800;border:1px solid rgba(249,115,22,.2)}
+[data-theme="dark"] .pr-streak-badge{background:rgba(249,115,22,.15);border-color:rgba(249,115,22,.3)}
+.pr-xp-bar-track{height:10px;border-radius:99px;background:var(--bg-hover);border:1px solid var(--border);overflow:hidden}
+.pr-xp-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#2563eb,#0ea5e9);transition:width .6s cubic-bezier(.34,1.56,.64,1)}
+.pr-xp-hint{font-size:.7rem;color:var(--text-muted);text-align:right;margin:.35rem 0 0}
+.pr-badges-grid{display:flex;flex-wrap:wrap;gap:.5rem}
+.pr-badge{display:flex;flex-direction:column;align-items:center;gap:.3rem;padding:.75rem .5rem;width:64px;border-radius:14px;background:var(--bg-hover);border:1px solid var(--border);cursor:default;transition:border-color .15s}
+.pr-badge:hover{border-color:var(--primary)}
+.pr-badge--locked{opacity:.45;border-style:dashed}
+.pr-badge-emoji{font-size:1.5rem;line-height:1}
+.pr-badge-name{font-size:.65rem;font-weight:700;color:var(--text-muted);text-align:center;line-height:1.2;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0}
+.pr-tabs-card{padding:0;overflow:hidden}
+.pr-tab-bar{display:flex;border-bottom:1px solid var(--border)}
+.pr-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:.4rem;padding:.875rem .5rem;font-size:.78rem;font-weight:700;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;margin-bottom:-1px}
+.pr-tab:hover{color:var(--text-secondary)}
+.pr-tab.active{color:#2563eb;border-bottom-color:#2563eb}
+[data-theme="dark"] .pr-tab.active{color:#60a5fa;border-bottom-color:#60a5fa}
+.pr-pane{padding:1rem}
+.pr-pane--hidden{display:none}
+.pr-post-list{display:flex;flex-direction:column}
+.pr-post-row{display:flex;align-items:center;gap:.75rem;padding:.75rem .5rem;border-radius:14px;text-decoration:none;transition:background .12s;border-bottom:1px solid var(--border-light)}
+.pr-post-row:last-child{border-bottom:none}
+.pr-post-row:hover{background:var(--bg-hover)}
+.pr-post-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:.875rem;flex-shrink:0}
+.pr-post-icon--quiz{background:rgba(37,99,235,.1);color:#2563eb}
+.pr-post-icon--note{background:rgba(14,165,233,.1);color:#0ea5e9}
+[data-theme="dark"] .pr-post-icon--quiz{background:rgba(37,99,235,.2);color:#60a5fa}
+[data-theme="dark"] .pr-post-icon--note{background:rgba(14,165,233,.2);color:#38bdf8}
+.pr-post-info{flex:1;min-width:0}
+.pr-post-title{font-size:.875rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 .25rem;text-transform:none}
+.pr-post-meta{display:flex;align-items:center;gap:.75rem;font-size:.72rem;color:var(--text-muted)}
+.pr-post-meta i{font-size:.6rem;margin-right:.15rem}
+.pr-post-arrow{font-size:.72rem;color:var(--border);flex-shrink:0;transition:color .15s,transform .15s}
+.pr-post-row:hover .pr-post-arrow{color:var(--text-muted);transform:translateX(2px)}
+.pr-pagination{display:flex;justify-content:center;align-items:center;gap:.75rem;margin-top:.875rem;padding-top:.875rem;border-top:1px solid var(--border)}
+.pr-page-btn{display:inline-flex;align-items:center;gap:.3rem;padding:.4rem .875rem;border-radius:9px;font-size:.78rem;font-weight:700;background:var(--bg-hover);border:1px solid var(--border);color:var(--text-secondary);text-decoration:none;transition:all .15s}
+.pr-page-btn:hover{border-color:#2563eb;color:#2563eb;background:rgba(37,99,235,.06)}
+[data-theme="dark"] .pr-page-btn:hover{color:#60a5fa;border-color:#60a5fa;background:rgba(37,99,235,.12)}
+.pr-page-info{font-size:.75rem;color:var(--text-muted);font-weight:600}
+.pr-empty{display:flex;flex-direction:column;align-items:center;padding:2.5rem 1rem;text-align:center;gap:.4rem}
+.pr-empty-emoji{font-size:2.25rem;line-height:1}
+.pr-empty-title{font-size:.9rem;font-weight:700;color:var(--text-secondary);margin:0}
+.pr-empty-sub{font-size:.8rem;color:var(--text-muted);margin:0}
+.pr-empty-action{display:inline-flex;align-items:center;gap:.4rem;margin-top:.5rem;padding:.5rem 1rem;border-radius:10px;font-size:.8rem;font-weight:700;background:rgba(37,99,235,.08);color:#2563eb;text-decoration:none;border:1px solid rgba(37,99,235,.18);transition:all .15s}
+.pr-empty-action:hover{background:rgba(37,99,235,.14);color:#2563eb}
+[data-theme="dark"] .pr-empty-action{background:rgba(37,99,235,.15);color:#60a5fa;border-color:rgba(37,99,235,.3)}
+.pr-activity-block{background:var(--bg-hover);border:1px solid var(--border);border-radius:16px;padding:.875rem;margin-bottom:.625rem}
+.pr-activity-block:last-child{margin-bottom:0}
+.pr-activity-label{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin:0 0 .75rem}
+.pr-heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:.25rem}
+.pr-hm-cell{height:22px;border-radius:5px}
+.pr-hm-cell--high{background:#2563eb}
+.pr-hm-cell--mid{background:#93c5fd}
+.pr-hm-cell--low{background:#bfdbfe}
+.pr-hm-cell--off{background:var(--border)}
+[data-theme="dark"] .pr-hm-cell--mid{background:#1d4ed8}
+[data-theme="dark"] .pr-hm-cell--low{background:#1e3a8a}
+[data-theme="dark"] .pr-hm-cell--off{background:var(--bg-card)}
+.pr-heatmap-labels{display:flex;justify-content:space-between;margin-top:.4rem;font-size:.65rem;color:var(--text-muted)}
+.pr-quiz-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;text-align:center}
+.pr-qs-item{display:flex;flex-direction:column;gap:.2rem}
+.pr-qs-val{font-family:'Poppins',sans-serif;font-size:1.25rem;font-weight:900}
+.pr-qs-label{font-size:.65rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
+.pr-streak-card{display:flex;align-items:center;gap:.875rem;padding:1rem;border-radius:16px;background:linear-gradient(135deg,rgba(249,115,22,.07),rgba(245,158,11,.07));border:1px solid rgba(249,115,22,.18)}
+[data-theme="dark"] .pr-streak-card{background:linear-gradient(135deg,rgba(249,115,22,.12),rgba(245,158,11,.1));border-color:rgba(249,115,22,.28)}
+.pr-streak-fire{font-size:2rem;flex-shrink:0}
+.pr-streak-title{font-size:.875rem;font-weight:800;color:var(--text-primary);margin:0 0 .15rem}
+.pr-streak-sub{font-size:.78rem;color:var(--text-muted);margin:0}
+@media(max-width:400px){.pr-name{font-size:.95rem}.pr-stats{gap:.375rem}.pr-stat{padding:.6rem .25rem}.pr-stat-val{font-size:.95rem}}
+@media(min-width:640px){.pr-wrap{padding:1.5rem 1.5rem 3rem}.pr-cover{height:165px}}
 </style>
 
 <script>
-async function toggleLike(btn) {
-    if (btn.disabled) return;
-    btn.disabled = true;
-    const postId  = btn.dataset.postId;
-    const isLiked = btn.dataset.liked === 'true';
-    const countEl = btn.querySelector('.like-count');
-    const base    = parseInt(btn.dataset.baseLikes || '0', 10);
-    const newLiked = !isLiked;
-    btn.dataset.liked = newLiked;
-    btn.classList.toggle('liked', newLiked);
-    if (countEl) {
-        const displayed = parseInt(countEl.textContent, 10);
-        countEl.textContent = newLiked ? displayed + 1 : Math.max(base, displayed - 1);
-    }
-    try {
-        const res = await fetch(`/posts/${postId}/like`, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
-            }
-        });
-        if (!res.ok) throw new Error('Like failed');
-        const data = await res.json().catch(() => null);
-        if (data && data.like_count !== undefined && countEl) {
-            countEl.textContent = data.like_count + base;
-        }
-    } catch (e) {
-        btn.dataset.liked = isLiked;
-        btn.classList.toggle('liked', isLiked);
-        if (countEl) {
-            const displayed = parseInt(countEl.textContent, 10);
-            countEl.textContent = isLiked ? displayed + 1 : Math.max(base, displayed - 1);
-        }
-    } finally {
-        btn.disabled = false;
-    }
+function switchTab(btn, tab) {
+  document.querySelectorAll('.pr-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.pr-pane').forEach(p => p.classList.add('pr-pane--hidden'));
+  const pane = document.getElementById('pane-' + tab);
+  if (pane) pane.classList.remove('pr-pane--hidden');
 }
 </script>
 {% endblock %}

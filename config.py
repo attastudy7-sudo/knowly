@@ -77,16 +77,16 @@ class Config:
 
     else:
         # Local development fallback
-        SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'edushare_dev.db')
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'knowly.db')
         
         if IS_WINDOWS:
             print("\n" + "="*70)
             print("WINDOWS DEVELOPMENT MODE")
             print("="*70)
-            print("Using local SQLite: edushare_dev.db")
+            print("Using local SQLite: knowly.db")
             print("="*70 + "\n")
         else:
-            print("\nUsing local SQLite: edushare_dev.db\n")
+            print("\nUsing local SQLite: knowly.db\n")
 
     # SQLAlchemy settings
     SQLALCHEMY_TRACK_MODIFICATIONS = False

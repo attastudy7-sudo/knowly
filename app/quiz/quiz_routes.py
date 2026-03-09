@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 from flask import session, request, jsonify, render_template, abort, redirect, url_for
@@ -29,13 +29,21 @@ def quiz_start(post_id):
     Clears any previous submission guard so a retake is allowed.
     Handles both URL patterns: /quiz/start/<post_id> and /<post_id>/quiz/start
     """
-    # Allow retake: clear the previous submission flag
-    session.pop(_quiz_submitted_key(post_id), None)
-    session[_quiz_start_key(post_id)] = datetime.utcnow().isoformat()
-    session.modified = True
-    
     # Get the post first
     post = Post.query.get_or_404(post_id)
+    
+    # Check if quiz exists for this post - if not, redirect back to post
+    quiz_data = QuizData.query.filter_by(post_id=post_id).first()
+    if not quiz_data:
+        from flask import flash, redirect, url_for
+        flash('No quiz available for this post.', 'warning')
+        return redirect(url_for('posts.view', post_id=post.id))
+    
+    # Allow retake: clear the previous submission flag
+    session.pop(_quiz_submitted_key(post_id), None)
+    session[_quiz_start_key(post_id)] = datetime.now(timezone.utc).isoformat()
+
+    session.modified = True
     
     # ── Check payment access for paid posts ─────────────────────────────────────
     # If the post has a document that is paid, user must have purchased it
@@ -43,11 +51,11 @@ def quiz_start(post_id):
         if not post.document.has_access(current_user):
             from flask import flash, redirect, url_for
             flash('You need to purchase this content to access the quiz.', 'warning')
-            return redirect(url_for('payments.checkout', post_id=post.id))
+            return redirect(url_for('payments.checkout', document_id=post.document.id))
     
     # If it's a GET request, render the quiz page directly
     if request.method == 'GET':
-        quiz_data = QuizData.query.filter_by(post_id=post_id).first_or_404()
+        # quiz_data already fetched above
         
         # Parse quiz meta data if available
         try:
@@ -73,14 +81,7 @@ def quiz_start(post_id):
             }
         except json.JSONDecodeError:
             quiz_json = {'questions': [], 'total_marks': 0, 'xp_reward': 0}
-        
-        # Debug: Check current_user
-        print(f"Current user: {type(current_user)}")
-        print(f"Is authenticated: {current_user.is_authenticated}")
-        if current_user.is_authenticated:
-            print(f"User: {current_user}")
-            print(f"Free attempts left: {current_user.free_attempts_left}")
-        
+                
         return render_template(
             'quiz/quiz.html',
             user=current_user,
@@ -105,16 +106,22 @@ def quiz_submit(post_id):
     persists QuizAttempt and (optionally) QuizLeaderboard, then returns
     the result JSON consumed by showResults() in quiz.html.
     """
-    post      = Post.query.get_or_404(post_id)
-    quiz_data = QuizData.query.filter_by(post_id=post_id).first_or_404()
+    post = Post.query.get_or_404(post_id)
+    
+    # Check if quiz exists for this post
+    quiz_data = QuizData.query.filter_by(post_id=post_id).first()
+    if not quiz_data:
+        return jsonify({
+            'error': 'no_quiz',
+            'message': 'No quiz available for this post.'
+        }), 404
 
-    # ── Double-submission guard ───────────────────────────────────────────────
+# ── Double-submission guard ───────────────────────────────────────────────
     submitted_key = _quiz_submitted_key(post_id)
     if session.get(submitted_key):
         return jsonify({'error': 'already_submitted'}), 409
 
-    # ── Check payment access for paid posts ─────────────────────────────────────
-    # If the post has a document that is paid, user must have purchased it
+    # ── Check payment access for paid posts ──────────────────────────────────
     if post.document and post.document.is_paid:
         if not post.document.has_access(current_user):
             return jsonify({
@@ -122,8 +129,10 @@ def quiz_submit(post_id):
                 'message': 'You need to purchase this content to access the quiz.'
             }), 403
 
-    # ── Check free attempts ───────────────────────────────────────────────────
-    if not current_user.use_free_attempt():
+    # ── Pre-flight: verify user has an attempt available (do NOT consume yet) ─
+    # Actual deduction happens just before persisting, after grading succeeds.
+    is_premium = current_user.is_admin or current_user.is_premium or current_user.has_active_subscription
+    if not is_premium and current_user.free_attempts_left <= 0:
         return jsonify({
             'error': 'no_free_attempts',
             'message': 'You have no free attempts remaining. Subscribe to get unlimited attempts!'
@@ -136,7 +145,7 @@ def quiz_submit(post_id):
     if start_iso:
         try:
             start_dt   = datetime.fromisoformat(start_iso)
-            time_taken = int((datetime.utcnow() - start_dt).total_seconds())
+            time_taken = int((datetime.now(timezone.utc) - start_dt).total_seconds())
             time_taken = max(1, time_taken)          # minimum 1 second
         except (ValueError, TypeError):
             time_taken = 0
@@ -206,9 +215,13 @@ def quiz_submit(post_id):
 
     percentage = min(100.0, max(0.0, percentage))
 
-    # ── XP ───────────────────────────────────────────────────────────────────
+# ── XP ───────────────────────────────────────────────────────────────────
     xp_reward  = quiz_data.xp_reward or 0
     xp_earned  = max(1, round(xp_reward * earned_marks / total_marks)) if total_marks > 0 else 0
+
+    # ── Consume free attempt (grading succeeded, safe to deduct now) ─────────
+    if not is_premium:
+        current_user.use_free_attempt()   # handles reset + decrement atomically
 
     # ── Persist QuizAttempt ───────────────────────────────────────────────────
     attempt = QuizAttempt(
@@ -281,32 +294,61 @@ def quiz_submit(post_id):
     })
 
 
-# ── Route: publish score to leaderboard ──────────────────────────────────────
-
 @quiz_bp.route('/<int:post_id>/quiz/publish', methods=['POST'])
 @login_required
 def quiz_publish(post_id):
     """
-    Allows a user to opt their score into the public leaderboard.
-    Backend enforces the 60% minimum — frontend cannot bypass this.
+    Opt the user's best attempt into the public leaderboard.
+    The leaderboard row is created here (not at submission time).
+    Backend enforces the 60% minimum.
     """
-    lb_entry = QuizLeaderboard.query.filter_by(
-        post_id=post_id,
-        user_id=current_user.id
-    ).first_or_404()
+    # Find their best attempt for this post
+    best = (
+        QuizAttempt.query
+        .filter_by(post_id=post_id, user_id=current_user.id)
+        .order_by(
+            QuizAttempt.score_pct.desc(),
+            QuizAttempt.time_taken.asc()
+        )
+        .first_or_404()
+    )
 
-    # ── Backend enforcement of the 60% rule ──────────────────────────────────
-    if lb_entry.score_pct < 60.0:
+    if best.score_pct < 60.0:
         return jsonify({
             'error':   'below_threshold',
             'message': 'Score must be at least 60% to publish to the leaderboard.',
         }), 403
 
-    lb_entry.is_public = True
+    # Upsert leaderboard row
+    existing = QuizLeaderboard.query.filter_by(
+        post_id=post_id,
+        user_id=current_user.id
+    ).first()
+
+    if existing is None:
+        lb_entry = QuizLeaderboard(
+            post_id      = post_id,
+            user_id      = current_user.id,
+            score_pct    = best.score_pct,
+            earned_marks = best.earned_marks,
+            xp_earned    = best.xp_earned,
+            time_taken   = best.time_taken,
+            is_public    = True,
+        )
+        db.session.add(lb_entry)
+    else:
+        # Update with best attempt data and re-publish
+        if best.score_pct > existing.score_pct or (
+            best.score_pct == existing.score_pct and best.time_taken < existing.time_taken
+        ):
+            existing.score_pct    = best.score_pct
+            existing.earned_marks = best.earned_marks
+            existing.xp_earned    = best.xp_earned
+            existing.time_taken   = best.time_taken
+        existing.is_public = True
+
     db.session.commit()
-
     return jsonify({'status': 'published'})
-
 
 # ── Route: unpublish score ────────────────────────────────────────────────────
 
@@ -417,13 +459,13 @@ def quiz_assess(post_id):
             assessment.score = score
             assessment.feedback = feedback
             assessment.assessed_by = current_user.id
-            assessment.assessed_at = datetime.utcnow()
+            assessment.assessed_at = datetime.now(timezone.utc)
             
             db.session.add(assessment)
             db.session.commit()
             
             # Recalculate the attempt's total score
-            attempt = QuizAttempt.query.get(attempt_id)
+            attempt = db.session.get(QuizAttempt, attempt_id)
             if attempt:
                 recalculate_attempt_score(attempt, questions)
                 
@@ -525,3 +567,36 @@ def recalculate_attempt_score(attempt, questions):
         leaderboard_entry.earned_marks = earned_marks
         leaderboard_entry.xp_earned = xp_earned
         db.session.commit()
+
+@quiz_bp.route('/quiz/my-results/<int:post_id>', methods=['GET'])
+@login_required
+def my_quiz_results(post_id):
+    """Return the user's latest attempt with any open-answer assessments."""
+    attempt = (
+        QuizAttempt.query
+        .filter_by(post_id=post_id, user_id=current_user.id)
+        .order_by(QuizAttempt.created_at.desc())
+        .first_or_404()
+    )
+
+    assessment_data = {}
+    for a in attempt.assessments:
+        assessment_data[a.question_index] = {
+            'score':       a.score,
+            'feedback':    a.feedback or '',
+            'assessed_at': a.assessed_at.strftime('%b %d, %Y') if a.assessed_at else '',
+        }
+
+    return jsonify({
+        'attempt_id':   attempt.id,
+        'score_pct':    attempt.score_pct,
+        'earned_marks': attempt.earned_marks,
+        'xp_earned':    attempt.xp_earned,
+        'assessments':  assessment_data,
+        'has_pending':  any(
+            not (bool(q.get('options')) and bool(q.get('answer')))
+            for q in json.loads(
+                QuizData.query.filter_by(post_id=post_id).first().questions
+            )
+        ) and len(assessment_data) == 0,
+    })
