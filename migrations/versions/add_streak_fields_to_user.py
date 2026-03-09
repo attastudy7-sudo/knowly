@@ -17,10 +17,15 @@ depends_on = None
 
 
 def upgrade():
-    # Add streak tracking columns to profiles table
-    op.add_column('profiles', sa.Column('last_activity_date', sa.Date(), nullable=True))
-    op.add_column('profiles', sa.Column('current_streak', sa.Integer(), nullable=False, server_default='0'))
-    op.add_column('profiles', sa.Column('longest_streak', sa.Integer(), nullable=False, server_default='0'))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('profiles')]
+    if 'last_activity_date' not in columns:
+        op.add_column('profiles', sa.Column('last_activity_date', sa.Date(), nullable=True))
+    if 'current_streak' not in columns:
+        op.add_column('profiles', sa.Column('current_streak', sa.Integer(), nullable=False, server_default='0'))
+    if 'longest_streak' not in columns:
+        op.add_column('profiles', sa.Column('longest_streak', sa.Integer(), nullable=False, server_default='0'))
 
 
 def downgrade():

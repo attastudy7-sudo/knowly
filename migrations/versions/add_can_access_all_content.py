@@ -14,7 +14,11 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    op.add_column('profiles', sa.Column('can_access_all_content', sa.Boolean(), nullable=False, server_default='0'))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('profiles')]
+    if 'can_access_all_content' not in columns:
+        op.add_column('profiles', sa.Column('can_access_all_content', sa.Boolean(), nullable=False, server_default='0'))
 
 def downgrade():
     op.drop_column('profiles', 'can_access_all_content')

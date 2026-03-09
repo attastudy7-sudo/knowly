@@ -15,8 +15,9 @@ depends_on = None
 
 def upgrade():
     conn = op.get_bind()
-    cols = [row[1] for row in conn.execute(sa.text("PRAGMA table_info(profiles)"))]
-    if 'onboarding_skipped' not in cols:
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('profiles')]
+    if 'onboarding_skipped' not in columns:
         op.add_column('profiles',
             sa.Column('onboarding_skipped', sa.Boolean(), nullable=False,
                       server_default=sa.false())

@@ -17,10 +17,15 @@ depends_on = None
 
 
 def upgrade():
-    # Add XP tracking columns to profiles table
-    op.add_column('profiles', sa.Column('xp_points', sa.Integer(), nullable=False, server_default='0'))
-    op.add_column('profiles', sa.Column('xp_level', sa.Integer(), nullable=False, server_default='1'))
-    op.add_column('profiles', sa.Column('xp_title', sa.String(50), nullable=True))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('profiles')]
+    if 'xp_points' not in columns:
+        op.add_column('profiles', sa.Column('xp_points', sa.Integer(), nullable=False, server_default='0'))
+    if 'xp_level' not in columns:
+        op.add_column('profiles', sa.Column('xp_level', sa.Integer(), nullable=False, server_default='1'))
+    if 'xp_title' not in columns:
+        op.add_column('profiles', sa.Column('xp_title', sa.String(50), nullable=True))
 
 
 def downgrade():
