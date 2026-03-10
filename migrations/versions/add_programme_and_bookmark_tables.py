@@ -16,55 +16,66 @@ depends_on = None
 
 
 def upgrade():
-    # === Create programme table ===
-    op.create_table(
-        'programme',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('name', sa.String(length=200), nullable=False),
-        sa.Column('slug', sa.String(length=100), nullable=False),
-        sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('icon', sa.String(length=50), nullable=True, server_default='graduation-cap'),
-        sa.Column('color', sa.String(length=7), nullable=True, server_default='#8b5cf6'),
-        sa.Column('order', sa.Integer(), nullable=True, server_default='0'),
-        sa.Column('is_active', sa.Boolean(), nullable=True, server_default='true'),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
-        sa.PrimaryKeyConstraint('id'),
-        sa.unique_constraint('name'),
-        sa.unique_constraint('slug')
-    )
-    op.create_index(op.f('ix_programme_name'), 'programme', ['name'], unique=True)
-    op.create_index(op.f('ix_programme_slug'), 'programme', ['slug'], unique=True)
-    
-    # === Add programme_id to subject table ===
-    with op.batch_alter_table('subject', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('programme_id', sa.Integer(), nullable=True))
-        batch_op.create_foreign_key(
-            'fk_subject_programme',
-            'programme',
-            ['programme_id'],
-            ['id'],
-            ondelete='SET NULL'
-        )
-    
-    # === Add content_type to post table ===
-    with op.batch_alter_table('post', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('content_type', sa.String(length=20), nullable=False, server_default='notes'))
-    
-    # === Create bookmark table ===
-    op.create_table(
-        'bookmark',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('post_id', sa.Integer(), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
-        sa.ForeignKeyConstraint(['user_id'], ['profiles.id'], name='fk_bookmark_user', ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['post_id'], ['post.id'], name='fk_bookmark_post', ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id'),
-        sa.unique_constraint('unique_bookmark')
-    )
-    op.create_index(op.f('ix_bookmark_user_id'), 'bookmark', ['user_id'], unique=False)
-    op.create_index(op.f('ix_bookmark_post_id'), 'bookmark', ['post_id'], unique=False)
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    existing_tables = inspector.get_table_names()
 
+    # === Create programme table ===
+    if 'programme' not in existing_tables:
+        op.create_table(
+            'programme',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('name', sa.String(length=200), nullable=False),
+            sa.Column('slug', sa.String(length=100), nullable=False),
+            sa.Column('description', sa.Text(), nullable=True),
+            sa.Column('icon', sa.String(length=50), nullable=True, server_default='graduation-cap'),
+            sa.Column('color', sa.String(length=7), nullable=True, server_default='#8b5cf6'),
+            sa.Column('order', sa.Integer(), nullable=True, server_default='0'),
+            sa.Column('is_active', sa.Boolean(), nullable=True, server_default='true'),
+            sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
+            sa.PrimaryKeyConstraint('id'),
+            sa.UniqueConstraint('name'),
+            sa.UniqueConstraint('slug')
+        )
+        indexes = [i['name'] for i in inspector.get_indexes('programme')] if 'programme' in existing_tables else []
+        if 'ix_programme_name' not in indexes:
+            op.create_index(op.f('ix_programme_name'), 'programme', ['name'], unique=True)
+        if 'ix_programme_slug' not in indexes:
+            op.create_index(op.f('ix_programme_slug'), 'programme', ['slug'], unique=True)
+
+    # === Add programme_id to subject table ===
+    subject_cols = [col['name'] for col in inspector.get_columns('subject')]
+    subject_fks = [fk['name'] for fk in inspector.get_foreign_keys('subject')]
+    with op.batch_alter_table('subject', schema=None) as batch_op:
+        if 'programme_id' not in subject_cols:
+            batch_op.add_column(sa.Column('programme_id', sa.Integer(), nullable=True))
+        if 'fk_subject_programme' not in subject_fks:
+            batch_op.create_foreign_key(
+                'fk_subject_programme', 'programme',
+                ['programme_id'], ['id'], ondelete='SET NULL'
+            )
+
+    # === Add content_type to post table ===
+    post_cols = [col['name'] for col in inspector.get_columns('post')]
+    with op.batch_alter_table('post', schema=None) as batch_op:
+        if 'content_type' not in post_cols:
+            batch_op.add_column(sa.Column('content_type', sa.String(length=20), nullable=False, server_default='notes'))
+
+    # === Create bookmark table ===
+    if 'bookmark' not in existing_tables:
+        op.create_table(
+            'bookmark',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('user_id', sa.Integer(), nullable=False),
+            sa.Column('post_id', sa.Integer(), nullable=False),
+            sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
+            sa.ForeignKeyConstraint(['user_id'], ['profiles.id'], name='fk_bookmark_user', ondelete='CASCADE'),
+            sa.ForeignKeyConstraint(['post_id'], ['post.id'], name='fk_bookmark_post', ondelete='CASCADE'),
+            sa.PrimaryKeyConstraint('id'),
+            sa.UniqueConstraint('user_id', 'post_id', name='unique_bookmark')
+        )
+        op.create_index(op.f('ix_bookmark_user_id'), 'bookmark', ['user_id'], unique=False)
+        op.create_index(op.f('ix_bookmark_post_id'), 'bookmark', ['post_id'], unique=False)
 
 def downgrade():
     # === Drop bookmark table ===
