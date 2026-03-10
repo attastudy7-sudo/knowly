@@ -128,6 +128,32 @@ def internal_coverage(subject_slug: str):
         "engagement_zero": liked_post_ids == 0,
     })
 
+@bp.route("/titles/<subject_slug>")
+@internal_key_required
+def internal_titles(subject_slug: str):
+    """
+    Returns existing approved post titles grouped by content_type for a subject.
+    Used by KnowlyGen to avoid generating duplicate topics per content type.
+    """
+    subject = Subject.query.filter_by(slug=subject_slug).first()
+    if not subject:
+        return jsonify({"notes": [], "quiz": [], "cheatsheet": []}), 200
+
+    rows = (
+        Post.query
+        .filter_by(subject_id=subject.id, status='approved')
+        .with_entities(Post.content_type, Post.title)
+        .all()
+    )
+
+    result = {"notes": [], "quiz": [], "cheatsheet": []}
+    for content_type, title in rows:
+        if content_type in result:
+            result[content_type].append(title)
+
+    return jsonify(result)
+
+
 @bp.route("/subjects-search")
 @internal_key_required
 def subjects_search():
