@@ -190,13 +190,13 @@ window.MathJax = {
 
               {% elif cblock.block_type == 'definition' %}
               <div class="nv-block nv-block--definition">
-                {% if cblock.label %}<div class="nv-block-label">{{ cblock.label }}</div>{% endif %}
+                {% if cblock.label %}<div class="nv-block-label">{{ cblock.label | markdown | safe }}</div>{% endif %}
                 <div>{{ cblock.text | markdown | safe }}</div>
               </div>
 
               {% elif cblock.block_type in ('theorem', 'proof') %}
               <div class="nv-block nv-block--theorem">
-                {% if cblock.label %}<div class="nv-block-label">{{ cblock.label }}</div>{% endif %}
+                {% if cblock.label %}<div class="nv-block-label">{{ cblock.label | markdown | safe }}</div>{% endif %}
                 <div>{{ cblock.text | markdown | safe }}</div>
               </div>
 
@@ -593,6 +593,7 @@ window.MathJax = {
 .nv-block {
   padding: .875rem 1rem; border-radius: 12px;
   font-size: .875rem; line-height: 1.7; color: var(--text-secondary); position: relative;
+  overflow-wrap: break-word; word-break: break-word;
 }
 .nv-block p { margin: 0; }
 .nv-block--definition { background: rgba(99,102,241,.06);  border-left: 3px solid #6366f1; }
@@ -632,7 +633,7 @@ window.MathJax = {
 
 .nv-formula-text {
   font-family: 'Courier New', monospace; font-size: .9rem; color: #f59e0b; letter-spacing: .02em;
-  overflow-x: auto;
+  overflow-x: scroll;
 }
 /* If MathJax renders, override monospace */
 .nv-formula-text .MathJax { color: var(--text-primary) !important; }
@@ -646,7 +647,7 @@ window.MathJax = {
 .nv-list { margin: 0 0 0 1.1rem; list-style: disc; display: flex; flex-direction: column; gap: .25rem; font-size: .875rem; color: var(--text-secondary); }
 /* Strip paragraph margin injected by mistune inside list items, steps, and table cells */
 .nv-list li p, .nv-steps li p, .nv-table td p, .nv-table th p { margin: 0; display: inline; }
-.nv-paragraph { font-size: .875rem; line-height: 1.75; color: var(--text-secondary); margin: 0 0 .25rem; }
+.nv-paragraph { font-size: .875rem; line-height: 1.75; color: var(--text-secondary); margin: 0 0 .25rem; overflow-wrap: break-word; word-break: break-word; }
 
 /* Table block */
 .nv-table-wrap { overflow-x: auto; }

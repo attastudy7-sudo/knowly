@@ -185,7 +185,7 @@ window.MathJax = {
               <div class="cs-step-label">{{ entry.label }}</div>
               {% if entry.content %}<div class="cs-step-content">{{ entry.content }}</div>{% endif %}
               {% if entry.notes %}
-              <div class="cs-entry-note"><i class="fas fa-info-circle"></i> {{ entry.notes }}</div>
+              <div class="cs-entry-note"><i class="fas fa-info-circle"></i><span class="cs-note-text">{{ entry.notes }}</span></div>
               {% endif %}
               {% if entry.example %}
               <div class="cs-entry-example"><span class="cs-eg-label">e.g.</span> {{ entry.example }}</div>
@@ -210,7 +210,7 @@ window.MathJax = {
             <div class="cs-entry-content">
               {{ entry.content }}
               {% if entry.notes %}
-              <div class="cs-entry-note"><i class="fas fa-info-circle"></i> {{ entry.notes }}</div>
+              <div class="cs-entry-note"><i class="fas fa-info-circle"></i><span class="cs-note-text">{{ entry.notes }}</span></div>
               {% endif %}
               {% if entry.example %}
               <div class="cs-entry-example"><span class="cs-eg-label">e.g.</span> {{ entry.example }}</div>
@@ -229,11 +229,15 @@ window.MathJax = {
           <div class="cs-entry">
             <div class="cs-entry-label">{{ entry.label }}</div>
             <div class="cs-entry-content {% if section.section_type == 'formulas' %}cs-formula{% endif %}">
-              {{ entry.content }}
+              {% if section.section_type in ('definitions', 'rules') %}
+                {{ entry.content | markdown | safe }}
+              {% else %}
+                {{ entry.content }}
+              {% endif %}
             </div>
             {% if entry.notes %}
             <div class="cs-entry-note">
-              <i class="fas fa-info-circle"></i> {{ entry.notes }}
+              <i class="fas fa-info-circle"></i><span class="cs-note-text">{{ entry.notes }}</span>
             </div>
             {% endif %}
             {% if entry.example %}
@@ -434,12 +438,19 @@ window.MathJax = {
 .cs-entry { display: grid; grid-template-columns: minmax(140px, 28%) 1fr; gap: 0; border-bottom: 1px solid var(--border); transition: background .12s; }
 .cs-entry:last-child { border-bottom: none; }
 .cs-entry:hover { background: var(--bg-hover); }
-.cs-entry-label { padding: .75rem .875rem; font-size: .8rem; font-weight: 700; color: var(--text-primary); border-right: 1px solid var(--border); background: var(--bg-secondary); display: flex; align-items: flex-start; line-height: 1.5; }
-.cs-entry-content { padding: .75rem .875rem; font-size: .85rem; color: var(--text-secondary); line-height: 1.6; grid-column: 2; }
-.cs-formula { font-family: 'Courier New', monospace; font-size: .88rem; color: #f59e0b; letter-spacing: .02em; overflow-x: scroll}
-.cs-entry-note { grid-column: 1 / -1; padding: .4rem .875rem .5rem; font-size: .74rem; color: var(--text-muted); background: var(--bg-hover); border-top: 1px dashed var(--border); display: flex; align-items: flex-start; gap: .35rem; line-height: 1.5; font-style: italic; }
-.cs-entry-note i { color: var(--primary); font-size: .65rem; margin-top: .15rem; flex-shrink: 0; }
-.cs-entry-example { grid-column: 1 / -1; padding: .4rem .875rem .5rem; font-size: .76rem; color: var(--text-muted); border-top: 1px dashed var(--border); line-height: 1.5; }
+.cs-entry-label { padding: .75rem .875rem; font-size: .8rem; font-weight: 700; color: var(--text-primary); border-right: 1px solid var(--border); background: var(--bg-secondary); display: flex; align-items: flex-start; line-height: 1.5; overflow-wrap: break-word; word-break: break-word; min-width: 0; }
+.cs-entry-content { padding: .75rem .875rem; font-size: .85rem; color: var(--text-secondary); line-height: 1.6; grid-column: 2; overflow-wrap: break-word; word-break: break-word; min-width: 0; }
+.cs-formula { font-family: 'Courier New', monospace; font-size: .88rem; color: #f59e0b; letter-spacing: .02em; overflow-x: scroll; }
+.cs-entry-note { grid-column: 1 / -1; padding: .5rem .875rem .6rem; font-size: .78rem; color: var(--text-muted); background: var(--bg-hover); border-top: 1px dashed var(--border); display: flex; align-items: flex-start; gap: .35rem; line-height: 1.6; font-style: italic; overflow-wrap: break-word; word-break: break-word; white-space: normal; }
+.cs-entry-note i { color: var(--primary); font-size: .65rem; margin-top: .25rem; flex-shrink: 0; }
+.cs-entry-note p { margin: 0; }
+.cs-entry-note > *:not(i) { flex: 1; min-width: 0; }
+.cs-note-text { flex: 1; min-width: 0; }
+.cs-note-text p { margin: 0; }
+.cs-entry-example { grid-column: 1 / -1; padding: .5rem .875rem .6rem; font-size: .78rem; color: var(--text-muted); border-top: 1px dashed var(--border); line-height: 1.6; overflow-wrap: break-word; word-break: break-word; white-space: normal; }
+.cs-entry-example p { margin: 0; display: inline; }
+.cs-entry-content p { margin: 0; }
+.cs-step-content p { margin: 0; }
 .cs-eg-label { font-weight: 800; font-size: .68rem; color: #06b6d4; text-transform: uppercase; letter-spacing: .06em; margin-right: .3rem; }
 
 /* Section-type accent on label column */
