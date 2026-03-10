@@ -895,6 +895,11 @@ def download_document(document_id):
     document.download_count += 1
     db.session.commit()
 
+    # On Cloudinary: redirect directly to the secure URL — no proxying needed
+    if not _is_local():
+        return redirect(document.file_path)
+
+    # Local: stream from disk
     body, kwargs = _stream_document(document, as_attachment=True)
     if body is None:
         flash('Could not fetch file from storage. Please try again.', 'danger')
@@ -968,11 +973,3 @@ def proxy_document(document_id):
         return 'Could not fetch file from storage', 502
 
     return Response(body, **kwargs)
-    
-@bp.route('/debug/storage')
-def debug_storage():
-    from app.models import Document
-    d = Document.query.first()
-    if not d:
-        return "No documents in DB"
-    return f"file_path: {d.file_path}<br>sidecar: {d.json_sidecar_path}"
