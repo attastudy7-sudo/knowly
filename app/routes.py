@@ -611,6 +611,14 @@ def notifications_unread_count():
 # Must be a real route so the SW can pre-cache it during install.
 # ─────────────────────────────────────────────────────────────────────────────
 
+@bp.route('/debug/storage')
+def debug_storage():
+    from app.models import Document
+    d = Document.query.first()
+    if not d:
+        return "No documents in DB"
+    return f"file_path: {d.file_path}<br>sidecar: {d.json_sidecar_path}"
+
 @bp.route('/offline')
 def offline():
     """PWA offline fallback page."""
