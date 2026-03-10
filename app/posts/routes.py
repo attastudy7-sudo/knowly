@@ -968,3 +968,11 @@ def proxy_document(document_id):
         return 'Could not fetch file from storage', 502
 
     return Response(body, **kwargs)
+    
+@bp.route('/debug/storage')
+def debug_storage():
+    from app.models import Document
+    d = Document.query.first()
+    if not d:
+        return "No documents in DB"
+    return f"file_path: {d.file_path}<br>sidecar: {d.json_sidecar_path}"
