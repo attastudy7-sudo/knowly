@@ -110,6 +110,10 @@ def index():
         total_subjects = Subject.query.filter_by(is_active=True).count()
         # Show at most 10 courses in the sidebar for guests; "See all" goes to /library
         all_subjects   = subjects[:10]
+        from app.models import Programme
+        guest_programmes = Programme.query.filter_by(is_active=True).order_by(Programme.order, Programme.name).limit(6).all()
+        for p in guest_programmes:
+            p.subject_count = p.subjects.filter_by(is_active=True).count()
         from app.past_papers.routes import XP_REWARD
         return render_template(
             'index.html',
@@ -121,7 +125,7 @@ def index():
             selected_subjects=selected_subjects,
             show_suggestions=False,
             suggested_users=[],
-            programmes=[],
+            programmes=guest_programmes,
             user_programme=None,
             user_subjects=[],
             all_subjects=all_subjects,
@@ -133,6 +137,8 @@ def index():
     from sqlalchemy import func as sqlfunc
 
     programmes = Programme.query.filter_by(is_active=True).order_by(Programme.order, Programme.name).limit(6).all()
+    for p in programmes:
+        p.subject_count = p.subjects.filter_by(is_active=True).count()
 
     user_programme = None
     user_subjects  = []
