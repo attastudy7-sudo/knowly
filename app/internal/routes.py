@@ -128,6 +128,43 @@ def internal_coverage(subject_slug: str):
         "engagement_zero": liked_post_ids == 0,
     })
 
+@bp.route("/subjects-search")
+@internal_key_required
+def subjects_search():
+    """
+    Search all subjects by name or slug query.
+    ?q=calculus  — returns up to 40 matching subjects with programme info.
+    """
+    q = request.args.get("q", "").strip().lower()
+
+    query = (
+        db.session.query(Subject, Programme)
+        .join(Programme, Subject.programme_id == Programme.id)
+        .filter(Subject.is_active == True)
+    )
+    if q:
+        query = query.filter(
+            db.or_(
+                Subject.name.ilike(f"%{q}%"),
+                Subject.slug.ilike(f"%{q}%"),
+            )
+        )
+    results = query.order_by(Subject.name).limit(40).all()
+
+    return jsonify({
+        "subjects": [
+            {
+                "id":          s.id,
+                "slug":        s.slug,
+                "name":        s.name,
+                "programme":   p.name,
+                "programme_slug": p.slug,
+            }
+            for s, p in results
+        ]
+    })
+
+
 @bp.route("/subjects-by-id/<int:programme_id>")
 def subjects_by_id(programme_id: int):
     """

@@ -628,3 +628,11 @@ def service_worker():
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Service-Worker-Allowed'] = '/'
     return response
+
+@bp.route('/debug/storage')
+def debug_storage():
+    from app.models import Document
+    d = Document.query.first()
+    if not d:
+        return "No documents in DB"
+    return f"file_path: {d.file_path}<br>sidecar: {d.json_sidecar_path}"
