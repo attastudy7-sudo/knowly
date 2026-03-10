@@ -457,16 +457,24 @@ def library_programme(slug):
     subjects = programme.subjects.filter_by(is_active=True)\
                                    .order_by(Subject.order, Subject.name).all()
 
-    counts_by_subject = {}
-    for s in subjects:
-        approved = s.posts.filter_by(status='approved')
-        counts_by_subject[s.id] = {
-            'notes':      approved.filter_by(content_type='notes').count(),
-            'cheatsheets': approved.filter_by(content_type='cheatsheet').count(),
-            'quizzes':    approved.filter_by(content_type='quiz').count(),
-            'mixed':      approved.filter_by(content_type='mixed').count(),
-            'total':      approved.count(),
-        }
+    subject_ids = [s.id for s in subjects]
+    counts_by_subject = {s.id: {'notes': 0, 'cheatsheets': 0, 'quizzes': 0, 'mixed': 0, 'total': 0} for s in subjects}
+    if subject_ids:
+        rows = db.session.query(
+            Post.subject_id,
+            Post.content_type,
+            func.count(Post.id).label('n')
+        ).filter(
+            Post.subject_id.in_(subject_ids),
+            Post.status == 'approved'
+        ).group_by(Post.subject_id, Post.content_type).all()
+        for subject_id, ctype, n in rows:
+            row = counts_by_subject[subject_id]
+            row['total'] += n
+            if ctype == 'notes':            row['notes'] += n
+            elif ctype == 'cheatsheet':     row['cheatsheets'] += n
+            elif ctype == 'quiz':           row['quizzes'] += n
+            elif ctype == 'mixed':          row['mixed'] += n
 
     return render_template(
         'library/programme.html',

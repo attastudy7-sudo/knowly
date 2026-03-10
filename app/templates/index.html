@@ -737,6 +737,7 @@
 
 /* ── Upload modal ── */
 function openUploadModal()  { document.getElementById('uploadModal').classList.add('is-open'); document.body.style.overflow = 'hidden'; }
+if (window.location.search.includes('upload=1')) { openUploadModal(); }
 function closeUploadModal() { document.getElementById('uploadModal').classList.remove('is-open'); document.body.style.overflow = ''; }
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeUploadModal(); });
 

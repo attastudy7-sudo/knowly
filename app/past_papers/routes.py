@@ -84,7 +84,7 @@ def upload():
         import cloudinary.uploader
         result = cloudinary.uploader.upload(
             file,
-            folder='edushare/past_papers',
+            folder='knowly/past_papers',
             resource_type='auto',
             use_filename=False,
             unique_filename=True,

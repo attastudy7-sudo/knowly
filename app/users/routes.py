@@ -141,7 +141,7 @@ def edit_profile():
                 # Upload new profile picture to Cloudinary
                 result = cloudinary.uploader.upload(
                     file,
-                    folder='edushare/profiles',
+                    folder='knowly/profiles',
                     resource_type='image',
                     use_filename=True,
                     unique_filename=True,

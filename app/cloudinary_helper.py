@@ -21,7 +21,7 @@ def upload_document(file, folder='documents'):
         init_cloudinary()
         result = cloudinary.uploader.upload(
             file,
-            folder=f'edushare/{folder}',
+            folder=f'knowly/{folder}',
             resource_type='auto',  # Handles PDFs, images, docs etc
             use_filename=True,
             unique_filename=True

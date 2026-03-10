@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
@@ -59,6 +59,17 @@ def create_app(config_class=Config):
     mail.init_app(app)
     csrf.init_app(app)
     Migrate(app, db)
+
+    # ── Compression (gzip all HTML/CSS/JS responses) ──────────────────────────
+    from flask_compress import Compress
+    Compress(app)
+
+    # ── Static file caching ───────────────────────────────────────────────────
+    @app.after_request
+    def add_cache_headers(response):
+        if '/static/' in request.path:
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        return response
     
     # Initialize rate limiter
     global limiter

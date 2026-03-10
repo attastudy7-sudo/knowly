@@ -115,7 +115,7 @@ def _upload_cloudinary(file, form, json_file=None):
 
         result = cloudinary.uploader.upload(
             file,
-            folder='edushare/documents',
+            folder='knowly/documents',
             resource_type='auto',
             type='upload',
             use_filename=True,
@@ -136,7 +136,7 @@ def _upload_cloudinary(file, form, json_file=None):
         if json_file and json_file.filename:
             json_result = cloudinary.uploader.upload(
                 json_file,
-                folder='edushare/documents',
+                folder='knowly/documents',
                 resource_type='raw',
                 type='upload',
                 use_filename=True,
@@ -178,22 +178,40 @@ def _delete_local(document):
         current_app.logger.warning(f"Failed to delete local file '{document.filename}': {e}")
 
 
+def _cloudinary_public_id_from_url(url: str) -> str:
+    """
+    Extract the public_id from a Cloudinary secure_url.
+    e.g. https://res.cloudinary.com/<cloud>/raw/upload/v123/<public_id>.json
+    For raw files the public_id includes the file extension.
+    """
+    parsed = urllib.parse.urlparse(url)
+    parts = parsed.path.split('/')
+    # Find the version segment (starts with 'v' followed by digits)
+    for i, part in enumerate(parts):
+        if part.startswith('v') and part[1:].isdigit():
+            return '/'.join(parts[i + 1:])
+    # Fallback: take everything after /upload/
+    try:
+        upload_idx = parts.index('upload')
+        return '/'.join(parts[upload_idx + 1:])
+    except ValueError:
+        return parsed.path.lstrip('/')
+
+
 def _delete_cloudinary(document):
     try:
         import cloudinary.uploader
+        # PDFs uploaded with resource_type='auto' are stored as 'raw' on Cloudinary
         resource_type = (
             'image' if document.file_type in {'png', 'jpg', 'jpeg', 'gif', 'webp'}
             else 'raw'
         )
         cloudinary.uploader.destroy(document.filename, resource_type=resource_type)
+
         if document.json_sidecar_path:
-            parsed_url = urllib.parse.urlparse(document.json_sidecar_path)
-            path_parts = parsed_url.path.split('/')
-            if len(path_parts) > 3:
-                public_id = '/'.join(path_parts[5:])
-                if public_id.endswith('.json'):
-                    public_id = public_id[:-5]
-                cloudinary.uploader.destroy(public_id, resource_type='raw')
+            json_public_id = _cloudinary_public_id_from_url(document.json_sidecar_path)
+            cloudinary.uploader.destroy(json_public_id, resource_type='raw')
+
     except Exception as e:
         current_app.logger.warning(f"Failed to delete Cloudinary file '{document.filename}': {e}")
 

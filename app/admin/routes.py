@@ -334,25 +334,18 @@ def delete_user(user_id):
 
     username = user.username
 
-    if user.profile_picture != 'default.jpg':
-        profile_pic_path = os.path.join(
-            current_app.config['UPLOAD_FOLDER'], 'profiles', user.profile_picture
-        )
-        if os.path.exists(profile_pic_path):
-            os.remove(profile_pic_path)
+    if user.profile_picture and user.profile_picture != 'default.jpg':
+        if user.profile_picture.startswith('http'):
+            try:
+                import cloudinary.uploader
+                cloudinary.uploader.destroy(user.profile_picture, resource_type='image')
+            except Exception as e:
+                current_app.logger.warning(f"Failed to delete profile picture from Cloudinary: {e}")
 
     for post in user.posts:
         if post.document:
-            doc_path = post.document.file_path
-            if os.path.exists(doc_path):
-                os.remove(doc_path)
-            if post.document.json_sidecar_path:
-                json_path = post.document.json_sidecar_path
-                if os.path.exists(json_path):
-                    try:
-                        os.remove(json_path)
-                    except Exception as e:
-                        current_app.logger.error(f"Error deleting JSON sidecar {json_path}: {e}")
+            from app.posts.routes import delete_document
+            delete_document(post.document)
 
     db.session.delete(user)
     db.session.commit()
@@ -411,16 +404,8 @@ def delete_post(post_id):
     subject = post.subject
 
     if post.document:
-        file_path = post.document.file_path
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        if post.document.json_sidecar_path:
-            json_path = post.document.json_sidecar_path
-            if os.path.exists(json_path):
-                try:
-                    os.remove(json_path)
-                except Exception as e:
-                    current_app.logger.error(f"Error deleting JSON sidecar {json_path}: {e}")
+        from app.posts.routes import delete_document
+        delete_document(post.document)
 
     db.session.delete(post)
     db.session.commit()
@@ -654,4 +639,4 @@ def send_email():
 
         return redirect(url_for('admin.send_email'))
 
-    return render_template('admin/send_email.html', users=users, total_users=total_users, form=form)
+    return render_template('admin/send_email.html', users=users, total_users=total_users, form=form)    

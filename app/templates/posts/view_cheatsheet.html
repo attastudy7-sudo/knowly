@@ -502,8 +502,8 @@ window.MathJax = {
 .cs-page-info { font-size: .75rem; color: var(--text-muted); }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
-@media (max-width: 600px) {
-  .cs-wrap { padding: 1rem .875rem 5rem; }
+@media (max-width: 768px) {
+  .cs-wrap { padding: 1.25rem 1rem 5rem; }
   .cs-doc-header { flex-direction: column; gap: .75rem; }
   .cs-doc-header-right { width: 100%; justify-content: space-between; }
   .cs-entry { grid-template-columns: 1fr; }
@@ -511,6 +511,9 @@ window.MathJax = {
   .cs-entry-content { grid-column: 1; }
   .cs-summary-table-header { grid-template-columns: 1fr; }
   .cs-summary-table-header > div:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+}
+@media (max-width: 600px) {
+  .cs-wrap { padding: 1rem .875rem 5rem; }
   .cs-topbar { padding: .5rem .875rem; gap: .4rem; }
   .cs-icon-btn span { display: none; }
   .cs-subject-pill { display: none; }
