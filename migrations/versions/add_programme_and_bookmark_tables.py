@@ -1,6 +1,6 @@
 """Add programme table, bookmark table, content_type to post, and programme_id to subject.
 
-Revision ID: add_programme_and_bookmark_tables
+Revision ID: a8f3c1b09d2e
 Revises: 68b2c9a84344_merge_migration_heads
 Create Date: 2025-01-15 10:30:00.000000
 
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = 'add_programme_and_bookmark_tables'
+revision = 'a8f3c1b09d2e'
 down_revision = '68b2c9a84344'
 branch_labels = None
 depends_on = None
@@ -96,4 +96,3 @@ def downgrade():
     op.drop_index(op.f('ix_programme_slug'), table_name='programme')
     op.drop_index(op.f('ix_programme_name'), table_name='programme')
     op.drop_table('programme')
-
