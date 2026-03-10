@@ -711,24 +711,30 @@ class StudentPastPaper(db.Model):
     """A past exam paper uploaded by a student."""
     __tablename__ = 'student_past_paper'
 
-    id           = db.Column(db.Integer, primary_key=True)
-    user_id      = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
-    subject_id   = db.Column(db.Integer, db.ForeignKey('subject.id'),  nullable=False)
-    subject_slug = db.Column(db.String(100), nullable=False, index=True)
-    filename     = db.Column(db.String(255), nullable=False)
-    file_path    = db.Column(db.String(500), nullable=False)
-    file_type    = db.Column(db.String(10),  nullable=False)  # pdf | image
-    file_size    = db.Column(db.Integer,     nullable=True)
-    year         = db.Column(db.String(10),  nullable=True)
-    semester     = db.Column(db.String(20),  nullable=True)
-    description  = db.Column(db.String(300), nullable=True)
-    status       = db.Column(db.String(20),  default='pending')  # pending|collected|rejected
-    xp_awarded   = db.Column(db.Boolean,     default=False)
-    collected_at = db.Column(db.DateTime,    nullable=True)
-    uploaded_at  = db.Column(db.DateTime,    default=lambda: datetime.now(timezone.utc), nullable=False)
+    id                   = db.Column(db.Integer, primary_key=True)
+    user_id              = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
+    subject_id           = db.Column(db.Integer, db.ForeignKey('subject.id'),  nullable=False)
+    subject_slug         = db.Column(db.String(100), nullable=False, index=True)
+    filename             = db.Column(db.String(255), nullable=False)
+    file_path            = db.Column(db.String(500), nullable=False)
+
+    file_type            = db.Column(db.String(10),  nullable=False)  # pdf | image
+    file_size            = db.Column(db.Integer,     nullable=True)
+    year                 = db.Column(db.String(10),  nullable=True)
+    semester             = db.Column(db.String(20),  nullable=True)
+    description          = db.Column(db.String(300), nullable=True)
+    status               = db.Column(db.String(20),  default='pending')  # pending|collected|rejected
+    xp_awarded           = db.Column(db.Boolean,     default=False)
+    collected_at         = db.Column(db.DateTime,    nullable=True)
+    uploaded_at          = db.Column(db.DateTime,    default=lambda: datetime.now(timezone.utc), nullable=False)
 
     user    = db.relationship('User',    backref='past_papers')
     subject = db.relationship('Subject', backref='student_past_papers')
+
+    @property
+    def is_cloudinary(self) -> bool:
+        """True when the file is stored in Cloudinary (production)."""
+        return self.file_path.startswith('https://')
 
     def to_dict(self) -> dict:
         return {

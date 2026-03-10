@@ -189,11 +189,12 @@ _NOTES_SCHEMA: dict = {
                                     "enum": [
                                         "paragraph", "definition", "theorem",
                                         "proof", "note", "formula", "example",
-                                        "worked_example", "list"
+                                        "worked_example", "list", "table"
                                     ]
                                 },
                                 "label": {"type": "string"},
                                 "text":  {"type": "string"},
+                                "caption": {"type": "string"},
                                 "items": {
                                     "type": "array",
                                     "items": {"type": "string"}
@@ -201,6 +202,17 @@ _NOTES_SCHEMA: dict = {
                                 "steps": {
                                     "type": "array",
                                     "items": {"type": "string"}
+                                },
+                                "headers": {
+                                    "type": "array",
+                                    "items": {"type": "string"}
+                                },
+                                "rows": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "array",
+                                        "items": {"type": "string"}
+                                    }
                                 },
                             }
                         }

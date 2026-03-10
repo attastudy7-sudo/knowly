@@ -7,7 +7,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import (Blueprint, abort, current_app, flash,
+from flask import (Blueprint, current_app, flash,
                    redirect, render_template, request, url_for)
 from flask_login import current_user, login_required
 
@@ -17,40 +17,29 @@ from app.models import StudentPastPaper, Subject, Programme, XpTransaction
 bp = Blueprint('past_papers', __name__, url_prefix='/past-papers')
 
 ALLOWED_EXTENSIONS = {'.pdf', '.jpg', '.jpeg', '.png'}
-MAX_FILE_SIZE      = 20 * 1024 * 1024   # 20MB
+MAX_FILE_SIZE      = 20 * 1024 * 1024
 XP_REWARD          = 50
 
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _allowed(filename: str) -> bool:
     return Path(filename).suffix.lower() in ALLOWED_EXTENSIONS
 
 
 def _award_xp(user, amount: int, reason: str) -> None:
-    """Award XP to user and log the transaction."""
     user.add_xp(amount)
-    log = XpTransaction(user_id=user.id, amount=amount, reason=reason)
-    db.session.add(log)
+    db.session.add(XpTransaction(user_id=user.id, amount=amount, reason=reason))
 
-
-# ── Routes ────────────────────────────────────────────────────────────────────
 
 @bp.route('/')
 @login_required
 def index():
-    """Dedicated past paper upload page."""
     programmes = Programme.query.order_by(Programme.name).all()
     my_papers  = (StudentPastPaper.query
                   .filter_by(user_id=current_user.id)
                   .order_by(StudentPastPaper.uploaded_at.desc())
                   .limit(20).all())
-    return render_template(
-        'past_papers/index.html',
-        programmes = programmes,
-        my_papers  = my_papers,
-        xp_reward  = XP_REWARD,
-    )
+    return render_template('past_papers/index.html',
+                           programmes=programmes, my_papers=my_papers, xp_reward=XP_REWARD)
 
 
 @bp.route('/upload', methods=['POST'])
@@ -63,7 +52,6 @@ def upload():
     file         = request.files.get('file')
     redirect_to  = request.form.get('redirect_to', 'past_papers.index')
 
-    # ── Validate ──────────────────────────────────────────────────────────────
     if not subject_slug:
         flash('Please select a subject.', 'danger')
         return redirect(url_for(redirect_to))
@@ -81,31 +69,38 @@ def upload():
         flash('Only PDF and image files (JPG, PNG) are allowed.', 'danger')
         return redirect(url_for(redirect_to))
 
-    # Check file size (read into memory briefly)
     file.seek(0, 2)
     size = file.tell()
     file.seek(0)
     if size > MAX_FILE_SIZE:
-        flash('File too large — maximum size is 20MB.', 'danger')
+        flash('File too large — maximum size is 20 MB.', 'danger')
         return redirect(url_for(redirect_to))
 
-    # ── Save file ─────────────────────────────────────────────────────────────
-    suffix   = Path(file.filename).suffix.lower()
-    ftype    = 'pdf' if suffix == '.pdf' else 'image'
-    ts = int(datetime.now(timezone.utc).timestamp())
-    safe     = f"pp_{current_user.id}_{subject_slug}_{year or 'unk'}_{ts}{suffix}"
-    upload_dir = Path(current_app.root_path) / 'static' / 'uploads' / 'past_papers'
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    file_path  = upload_dir / safe
-    file.save(str(file_path))
+    suffix = Path(file.filename).suffix.lower()
+    ftype  = 'pdf' if suffix == '.pdf' else 'image'
 
-    # ── Create DB record ──────────────────────────────────────────────────────
+    # ── Upload to Cloudinary ──────────────────────────────────────────────────
+    try:
+        import cloudinary.uploader
+        result = cloudinary.uploader.upload(
+            file,
+            folder='edushare/past_papers',
+            resource_type='auto',
+            use_filename=False,
+            unique_filename=True,
+        )
+        file_path = result['secure_url']
+    except Exception as exc:
+        current_app.logger.error("Past paper Cloudinary upload failed: %s", exc)
+        flash('File upload failed — please try again.', 'danger')
+        return redirect(url_for(redirect_to))
+
     paper = StudentPastPaper(
         user_id      = current_user.id,
         subject_id   = subject.id,
         subject_slug = subject_slug,
         filename     = file.filename,
-        file_path    = str(file_path),
+        file_path    = file_path,
         file_type    = ftype,
         file_size    = size,
         year         = year or None,
@@ -114,20 +109,11 @@ def upload():
         status       = 'pending',
     )
     db.session.add(paper)
-
-    # ── Award XP ──────────────────────────────────────────────────────────────
-    _award_xp(
-        current_user,
-        XP_REWARD,
-        f'Uploaded past paper for {subject.name}'
-    )
+    _award_xp(current_user, XP_REWARD, f'Uploaded past paper for {subject.name}')
     paper.xp_awarded = True
     db.session.commit()
 
-    flash(
-        f'Past paper uploaded successfully! You earned {XP_REWARD} XP 🎉',
-        'success'
-    )
-    return redirect(url_for(redirect_to, slug=subject_slug)
-                    if redirect_to != 'past_papers.index'
-                    else url_for('past_papers.index'))
+    flash(f'Past paper uploaded successfully! You earned {XP_REWARD} XP 🎉', 'success')
+    return (redirect(url_for(redirect_to, slug=subject_slug))
+            if redirect_to != 'past_papers.index'
+            else redirect(url_for('past_papers.index')))

@@ -155,6 +155,9 @@ def create_app(config_class=Config):
 
     from app.internal import routes as internal_routes
     app.register_blueprint(internal_routes.bp)
+    # The internal blueprint uses X-Internal-Key header auth (not CSRF tokens).
+    # Exempt it so KnowlyGen can call POST/PATCH endpoints without a CSRF token.
+    csrf.exempt(internal_routes.bp)
 
     from app.past_papers import routes as past_papers_routes
     app.register_blueprint(past_papers_routes.bp)

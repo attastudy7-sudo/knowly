@@ -107,7 +107,7 @@ class Config:
     # File Upload Settings
     # ============================================================================
 
-    MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5 MB max file size
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB — large enough for generated PDFs
 
     # Allowed file extensions for security
     ALLOWED_DOCUMENT_EXTENSIONS = {'pdf', 'docx', 'pptx', 'txt', 'doc', 'ppt'}

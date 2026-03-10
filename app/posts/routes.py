@@ -415,12 +415,29 @@ def create():
         # by an admin user are trusted content — skip the moderation queue and
         # publish immediately, attaching quiz data in the same step.
         is_generated = request.form.get('source') == 'generated'
-        if is_generated and current_user.is_admin:
-            post.status = 'approved'
-            db.session.commit()
-            on_post_approved(post)
-            flash('Generated post published automatically.', 'success')
-            return redirect(url_for('posts.view', post_id=post.id))
+        if is_generated:
+            if current_user.is_admin:
+                post.status = 'approved'
+                db.session.commit()
+                on_post_approved(post)
+                flash('Generated post published automatically.', 'success')
+                return redirect(url_for('posts.view', post_id=post.id))
+            else:
+                # source=generated was sent but the logged-in user is NOT admin.
+                # This means KnowlyGen's session expired or it logged in with the
+                # wrong account.  Return a 403 so KnowlyGen treats it as a hard
+                # failure rather than silently marking the job as "posted" while
+                # the post sits in the pending queue forever.
+                current_app.logger.error(
+                    "KnowlyGen upload rejected: source=generated but "
+                    "current_user.id=%s is not admin (is_admin=%s). "
+                    "Session may have expired — KnowlyGen should re-login.",
+                    current_user.id, current_user.is_admin
+                )
+                db.session.delete(post)
+                db.session.commit()
+                from flask import abort
+                abort(403)
 
         flash(
             'Your post has been submitted and is awaiting admin approval. '
@@ -621,8 +638,37 @@ def view(post_id):
         doc_type = meta.get("document_type", "") or post.content_type or ""
 
         if doc_type in ("notes", "cheatsheet"):
-            structured_content = _json.loads(quiz_data.questions)
-            structured_type    = doc_type
+            _loaded = _json.loads(quiz_data.questions)
+            current_app.logger.warning(
+                "DEBUG post %s: doc_type=%r, questions type=%s, first_item=%r",
+                post.id, doc_type, type(_loaded).__name__,
+                _loaded[0] if isinstance(_loaded, list) and _loaded else _loaded
+            )
+            if isinstance(_loaded, list):
+                structured_content = _loaded
+                structured_type    = doc_type
+            else:
+                # questions field contains a bad value (e.g. an old error string).
+                # Re-process from sidecar if available so it self-heals.
+                current_app.logger.warning(
+                    "Post %s quiz_data.questions is not a list (%s) — re-processing sidecar.",
+                    post.id, type(_loaded).__name__
+                )
+                if post.document and post.document.json_sidecar_path:
+                    try:
+                        from app.services.quiz_service import quiz_from_sidecar
+                        quiz_data = quiz_from_sidecar(post)
+                        if quiz_data:
+                            meta               = _json.loads(quiz_data.meta) if quiz_data.meta else {}
+                            structured_content = _json.loads(quiz_data.questions)
+                            structured_type    = meta.get("document_type") or post.content_type
+                        else:
+                            structured_type = doc_type
+                    except Exception:
+                        current_app.logger.exception("Re-processing sidecar failed for post %s", post.id)
+                        structured_type = doc_type
+                else:
+                    structured_type = doc_type
         elif doc_type == "quiz" or not doc_type:
             has_quiz = True
     else:
@@ -638,6 +684,11 @@ def view(post_id):
                     structured_content = _json.loads(quiz_data.questions)
                     structured_type    = meta.get("document_type") or post.content_type
                 else:
+                    current_app.logger.warning(
+                        "Lazy sidecar processing returned None for post %s — "
+                        "check quiz_service logs for validation errors.",
+                        post.id
+                    )
                     structured_type = post.content_type
             except Exception:
                 current_app.logger.exception("Lazy sidecar processing failed for post %s", post.id)

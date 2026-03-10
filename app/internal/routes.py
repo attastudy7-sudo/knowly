@@ -10,7 +10,7 @@ import os
 from functools import wraps
 from pathlib import Path
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 from sqlalchemy import func
 
 from app import db
@@ -159,10 +159,26 @@ def student_papers():
 @bp.route("/student-papers/<int:paper_id>/file")
 @internal_key_required
 def student_paper_file(paper_id: int):
-    """Stream the actual file to KnowlyGen."""
-    from flask import send_file
+    """
+    Serve the paper file to KnowlyGen.
+
+    Production (Cloudinary): issues a redirect to the Cloudinary URL — no disk
+    access required, so this works regardless of Render's ephemeral filesystem.
+
+    Local dev: streams the file directly from the local filesystem path stored
+    in paper.file_path (absolute path on the dev machine).
+    """
     from app.models import StudentPastPaper
     paper = StudentPastPaper.query.get_or_404(paper_id)
+
+    if paper.is_cloudinary:
+        # Redirect KnowlyGen straight to the Cloudinary CDN URL.
+        # The X-Internal-Key header is not forwarded, which is fine — the
+        # Cloudinary URL is already authenticated via a signed path or public.
+        from flask import redirect as _redirect
+        return _redirect(paper.file_path)
+
+    # Local dev fallback: stream from disk.
     if not Path(paper.file_path).exists():
         return jsonify({"error": "File not found on disk"}), 404
     return send_file(paper.file_path, as_attachment=True,
