@@ -73,7 +73,7 @@ def upgrade():
             batch_op.add_column(sa.Column('programme', sa.String(length=200), nullable=True))
         batch_op.alter_column('username', existing_type=sa.TEXT(), type_=sa.String(length=80), nullable=False)
         batch_op.alter_column('email', existing_type=sa.TEXT(), type_=sa.String(length=120), nullable=False)
-        batch_op.alter_column('password_hash', existing_type=sa.TEXT(), type_=sa.String(length=255), nullable=False)
+        batch_op.alter_column('password_hash', existing_type=sa.TEXT(), type_=sa.String(length=255), nullable=True)
         batch_op.alter_column('full_name', existing_type=sa.TEXT(), type_=sa.String(length=120), existing_nullable=True)
         batch_op.alter_column('profile_picture', existing_type=sa.TEXT(), type_=sa.String(length=200), existing_nullable=True)
         batch_op.alter_column('created_at', existing_type=sa.TIMESTAMP(), nullable=False)

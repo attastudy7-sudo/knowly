@@ -1,10 +1,12 @@
 """
-Email notification service for eDuShare platform.
+Email notification service for knowly platform.
 
 Handles automatic email notifications for:
 - New user signups (welcome emails)
 - Purchase confirmations
 - Subscription activations
+- Programme-relevant post notifications
+- Password resets
 """
 
 import requests
@@ -13,311 +15,343 @@ from app import db
 from app.models import User, Purchase, Document
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# SHARED HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _base_url():
+    scheme = current_app.config.get('PREFERRED_URL_SCHEME', 'https')
+    host   = current_app.config.get('SERVER_NAME', 'knowly-ly8l.onrender.com')
+    return f"{scheme}://{host}"
+
+
 def _send_brevo_email(to_email, subject, html_content):
     """
-    Send an email using Brevo (Sendinblue) API.
-    
-    Args:
-        to_email: Recipient's email address
-        subject: Email subject
-        html_content: HTML content of the email
-        
+    Send an email via the Brevo (Sendinblue) API.
+
     Returns:
-        bool: True if email was sent successfully, False otherwise
+        bool: True if the email was accepted (HTTP 201).
     """
     api_key = current_app.config.get('BREVO_API_KEY')
     if not api_key:
         current_app.logger.error('BREVO_API_KEY not configured')
         return False
-        
+
     sender = (
         current_app.config.get('MAIL_DEFAULT_SENDER') or
         current_app.config.get('MAIL_USERNAME')
     )
-    
     if not sender:
         current_app.logger.error('MAIL_DEFAULT_SENDER or MAIL_USERNAME not configured')
         return False
-        
+
     try:
         response = requests.post(
-            "https://api.brevo.com/v3/smtp/email",
-            headers={
-                "api-key": api_key,
-                "Content-Type": "application/json"
-            },
+            'https://api.brevo.com/v3/smtp/email',
+            headers={'api-key': api_key, 'Content-Type': 'application/json'},
             json={
-                "sender": {"email": sender},
-                "to": [{"email": to_email}],
-                "subject": subject,
-                "htmlContent": html_content
+                'sender': {'name': 'knowly', 'email': sender},
+                'to': [{'email': to_email}],
+                'subject': subject,
+                'htmlContent': html_content,
             },
-            timeout=15
+            timeout=15,
         )
-        
         if response.status_code == 201:
-            current_app.logger.info(f"Email sent successfully to {to_email}")
+            current_app.logger.info(f'Email sent to {to_email}')
             return True
-        else:
-            current_app.logger.error(f"Brevo error for {to_email}: {response.text}")
-            return False
-            
+        current_app.logger.error(f'Brevo error for {to_email}: {response.text}')
+        return False
     except Exception as e:
-        current_app.logger.error(f"Failed to send email to {to_email}: {e}")
+        current_app.logger.error(f'Failed to send email to {to_email}: {e}')
         return False
 
 
-def send_welcome_email(user):
-    """
-    Send a welcome email to a new user.
-    
-    Args:
-        user: User object (from app.models.User)
-        
-    Returns:
-        bool: True if email was sent successfully
-    """
-    subject = "Welcome to eDuShare!"
-    
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-                margin: 0;
-                padding: 20px;
-            }}
-            .email-container {{
-                background-color: white;
-                max-width: 600px;
-                margin: 0 auto;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }}
-            .header {{
-                background-color: #6366f1;
-                color: white;
-                padding: 20px;
-                text-align: center;
-                border-radius: 8px 8px 0 0;
-                margin: -20px -20px 20px -20px;
-            }}
-            .content {{
-                color: #333;
-                line-height: 1.6;
-            }}
-            .button {{
-                display: inline-block;
-                background-color: #6366f1;
-                color: white;
-                padding: 12px 24px;
-                text-decoration: none;
-                border-radius: 4px;
-                margin: 20px 0;
-            }}
-            .footer {{
-                margin-top: 30px;
-                padding-top: 20px;
-                border-top: 1px solid #eee;
-                color: #666;
-                font-size: 14px;
-                text-align: center;
-            }}
-        </style>
-    </head>
-    <body>
-<div class="email-container">
-    <div class="header">
-        <h1>Welcome to eDuShare!</h1>
-    </div>
-    
-    <div class="content">
-        <p>Hi {user.full_name or user.username},</p>
-        
-        <p>Chale, welcome to eDuShare — your platform wey you fit use share and discover educational materials with students all over the world.</p>
-        
-        <p>See some cool things wey you fit do for here:</p>
-        <ul>
-            <li>📚 Browse and download study materials</li>
-            <li>🤝 Connect with other students</li>
-            <li>📝 Share your own notes and documents</li>
-            <li>🎯 Take quizzes and earn XP</li>
-        </ul>
-        
-        <p>You fit start by checking our 
-            <a href="{current_app.config['PREFERRED_URL_SCHEME']}://{current_app.config.get('SERVER_NAME', 'localhost:5000')}/explore">
-                Explore
-            </a> 
-            page to find materials for your courses.
-        </p>
-        
-        <p>
-            <a href="{current_app.config['PREFERRED_URL_SCHEME']}://{current_app.config.get('SERVER_NAME', 'localhost:5000')}/explore" class="button">
-                Start Exploring
-            </a>
-        </p>
-        
-        <p>If you get any questions or you need help, no hesitate to contact our support team. We dey here for you.</p>
-        
-        <p>Happy learning!</p>
-        <p>The eDuShare Team</p>
-    </div>
-    
-    <div class="footer">
-        <p>eDuShare — Empowering Students Through Shared Knowledge</p>
-        <p>You dey receive this email because you create account on eDuShare.</p>
-    </div>
-</div>
-</body>    </html>
-    """
-    
-    return _send_brevo_email(user.email, subject, html_content)
+# ─────────────────────────────────────────────────────────────────────────────
+# SHARED EMAIL SHELL  (dark card, blue-to-teal gradient header)
+# ─────────────────────────────────────────────────────────────────────────────
 
+def _email_shell(header_html: str, body_html: str) -> str:
+    """
+    Wrap content in the knowly branded email shell.
+
+    Args:
+        header_html: Content placed inside the gradient header card.
+        body_html:   Content placed in the body area.
+    """
+    base = _base_url()
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>knowly</title>
+<style>
+  body, table, td, p, a {{ margin:0; padding:0; border:0; }}
+  body {{
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background-color: #060d1f;
+    color: #f1f5f9;
+    -webkit-font-smoothing: antialiased;
+  }}
+  .outer {{
+    width: 100%;
+    background-color: #060d1f;
+    padding: 32px 16px 48px;
+  }}
+  .card {{
+    max-width: 580px;
+    margin: 0 auto;
+    background-color: #0f1629;
+    border: 1px solid #1e2a45;
+    border-radius: 16px;
+    overflow: hidden;
+  }}
+  .card-header {{
+    background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+    padding: 28px 28px 24px;
+    text-align: center;
+  }}
+  .brand {{
+    display: inline-block;
+    margin-bottom: 16px;
+    text-decoration: none;
+  }}
+  .brand img {{
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    vertical-align: middle;
+    margin-right: 8px;
+  }}
+  .brand-name {{
+    font-size: 20px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.03em;
+    vertical-align: middle;
+  }}
+  .header-title {{
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.3;
+    margin: 0 0 6px;
+  }}
+  .header-sub {{
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+    margin: 0;
+  }}
+  .card-body {{
+    padding: 28px 28px 24px;
+    color: #cbd5e1;
+    font-size: 15px;
+    line-height: 1.7;
+  }}
+  .card-body p {{ margin-bottom: 14px; }}
+  .card-body p:last-child {{ margin-bottom: 0; }}
+  .card-body strong {{ color: #f1f5f9; }}
+  .card-body a {{ color: #60a5fa; }}
+  .info-box {{
+    background: #1a2540;
+    border: 1px solid #2e3f66;
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 20px 0;
+    font-size: 14px;
+  }}
+  .info-box p {{ margin-bottom: 8px; color: #94a3b8; }}
+  .info-box p:last-child {{ margin-bottom: 0; }}
+  .info-box strong {{ color: #e2e8f0; }}
+  .btn-wrap {{ text-align: center; margin: 24px 0; }}
+  .btn {{
+    display: inline-block;
+    background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+    color: #ffffff !important;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    padding: 14px 32px;
+    border-radius: 10px;
+    letter-spacing: 0.01em;
+  }}
+  .warning {{
+    background: #2a1e10;
+    border: 1px solid #4a3010;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #fcd34d;
+    font-size: 13px;
+    margin-top: 18px;
+  }}
+  .benefits {{
+    background: #1a2540;
+    border: 1px solid #2e3f66;
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 20px 0;
+  }}
+  .benefits h3 {{
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #60a5fa;
+    margin: 0 0 10px;
+  }}
+  .benefits ul {{ padding-left: 18px; margin: 0; }}
+  .benefits li {{
+    color: #cbd5e1;
+    font-size: 14px;
+    margin-bottom: 7px;
+    line-height: 1.5;
+  }}
+  .card-footer {{
+    border-top: 1px solid #1e2a45;
+    padding: 16px 28px;
+    text-align: center;
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.6;
+  }}
+  .card-footer a {{ color: #475569; text-decoration: underline; }}
+</style>
+</head>
+<body>
+<div class="outer">
+  <div class="card">
+
+    <div class="card-header">
+      <a href="{base}" class="brand">
+        <img src="{base}/static/images/knowly.png" alt="knowly">
+        <span class="brand-name">knowly</span>
+      </a>
+      {header_html}
+    </div>
+
+    <div class="card-body">
+      {body_html}
+    </div>
+
+    <div class="card-footer">
+      <p><strong style="color:#64748b;">knowly</strong> — Empowering Students Through Shared Knowledge</p>
+      <p style="margin-top:6px;">
+        <a href="{base}">Home</a> &nbsp;·&nbsp;
+        <a href="{base}/explore">Explore</a> &nbsp;·&nbsp;
+        <a href="{base}/library">Library</a>
+      </p>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>"""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WELCOME EMAIL
+# ─────────────────────────────────────────────────────────────────────────────
+
+def send_welcome_email(user):
+    """Send a welcome email to a new user."""
+    base = _base_url()
+    name = user.full_name or user.username
+
+    header = """
+      <h1 class="header-title">Welcome to knowly! 👋</h1>
+      <p class="header-sub">Your study hub is ready</p>
+    """
+
+    body = f"""
+      <p>Hi <strong>{name}</strong>,</p>
+      <p>Chale, welcome to knowly — your platform wey you fit use share and discover
+         educational materials with students all over Ghana and beyond.</p>
+      <p>See some cool things wey you fit do for here:</p>
+      <div class="benefits">
+        <ul>
+          <li>📚 Browse and download study materials</li>
+          <li>🤝 Connect with students from your school and programme</li>
+          <li>📝 Share your own notes, past papers, and cheat sheets</li>
+          <li>🎯 Take quizzes and earn XP to climb the leaderboard</li>
+          <li>🏆 Build your streak and earn your Founder Badge</li>
+        </ul>
+      </div>
+      <p>Start by exploring materials for your courses:</p>
+      <div class="btn-wrap">
+        <a href="{base}/explore" class="btn">Start Exploring →</a>
+      </div>
+      <p>If you get any questions or need help, our support team dey here for you.</p>
+      <p>Happy learning!<br><strong>The knowly Team</strong></p>
+    """
+
+    return _send_brevo_email(
+        user.email,
+        'Welcome to knowly — Your Study Hub is Ready 🎉',
+        _email_shell(header, body),
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PURCHASE CONFIRMATION
+# ─────────────────────────────────────────────────────────────────────────────
 
 def send_purchase_confirmation_email(user, purchase, document):
-    """
-    Send a purchase confirmation email to a user who bought a document.
-    
-    Args:
-        user: User object
-        purchase: Purchase object
-        document: Document object
-        
-    Returns:
-        bool: True if email was sent successfully
-    """
-    subject = "Purchase Confirmation — eDuShare"
-    
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-                margin: 0;
-                padding: 20px;
-            }}
-            .email-container {{
-                background-color: white;
-                max-width: 600px;
-                margin: 0 auto;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }}
-            .header {{
-                background-color: #6366f1;
-                color: white;
-                padding: 20px;
-                text-align: center;
-                border-radius: 8px 8px 0 0;
-                margin: -20px -20px 20px -20px;
-            }}
-            .content {{
-                color: #333;
-                line-height: 1.6;
-            }}
-            .purchase-details {{
-                background-color: #f8f9fa;
-                padding: 15px;
-                border-radius: 4px;
-                margin: 20px 0;
-            }}
-            .purchase-details p {{
-                margin: 5px 0;
-            }}
-            .button {{
-                display: inline-block;
-                background-color: #6366f1;
-                color: white;
-                padding: 12px 24px;
-                text-decoration: none;
-                border-radius: 4px;
-                margin: 20px 0;
-            }}
-            .footer {{
-                margin-top: 30px;
-                padding-top: 20px;
-                border-top: 1px solid #eee;
-                color: #666;
-                font-size: 14px;
-                text-align: center;
-            }}
-        </style>
-    </head>
-<body>
-    <div class="email-container">
-        <div class="header">
-            <h1>Purchase Confirmed!</h1>
-        </div>
-        
-        <div class="content">
-            <p>Hi {user.full_name or user.username},</p>
-            
-            <p>Chale, we say big thank you for your purchase! Your payment go through successfully, and now you get full access to the document.</p>
-            
-            <div class="purchase-details">
-                <p><strong>Document:</strong> {document.original_filename}</p>
-                <p><strong>Amount Paid:</strong> GHS {purchase.amount_paid:.2f}</p>
-                <p><strong>Transaction ID:</strong> {purchase.transaction_id}</p>
-                <p><strong>Purchase Date:</strong> {purchase.purchased_at.strftime('%Y-%m-%d %H:%M:%S')}</p>
-            </div>
-            
-            <p>
-                <a href="{current_app.config['PREFERRED_URL_SCHEME']}://{current_app.config.get('SERVER_NAME', 'localhost:5000')}/payments/my-purchases" class="button">
-                    View My Purchases
-                </a>
-            </p>
-            
-            <p>Make we tell you something — every time you buy a document, you no just dey pay for notes. You dey support the growth of eDuShare as one of our founding members. Your support dey help us improve the platform, add more features, and bring more quality materials for students like you.</p>
-            
-            <p>So anytime you purchase, you dey invest in a bigger student community. And we truly appreciate you for that.</p>
-            
-            <p>If you get any questions about your purchase or you need help accessing the document, no hesitate to contact our support team. We dey here to help.</p>
-            
-            <p>Thank you once again for choosing eDuShare. More wins ahead!</p>
-            <p>The eDuShare Team</p>
-        </div>
-        
-        <div class="footer">
-            <p>eDuShare — Empowering Students Through Shared Knowledge</p>
-            <p>You dey receive this email because you make a purchase on eDuShare.</p>
-        </div>
-    </div>
-</body>    </html>
-    """
-    
-    return _send_brevo_email(user.email, subject, html_content)
+    """Send a purchase confirmation email."""
+    base = _base_url()
+    name = user.full_name or user.username
 
+    header = """
+      <h1 class="header-title">Purchase Confirmed ✅</h1>
+      <p class="header-sub">You now have full access to the document</p>
+    """
+
+    body = f"""
+      <p>Hi <strong>{name}</strong>,</p>
+      <p>Chale, your payment went through successfully. You now get full access
+         to the document below.</p>
+      <div class="info-box">
+        <p><strong>Document:</strong> {document.original_filename}</p>
+        <p><strong>Amount Paid:</strong> GHS {purchase.amount_paid:.2f}</p>
+        <p><strong>Transaction ID:</strong> {purchase.transaction_id}</p>
+        <p><strong>Date:</strong> {purchase.purchased_at.strftime('%d %b %Y, %H:%M UTC')}</p>
+      </div>
+      <div class="btn-wrap">
+        <a href="{base}/payments/my-purchases" class="btn">View My Purchases →</a>
+      </div>
+      <p>Every purchase you make supports the growth of knowly. You're not just
+         buying notes — you're investing in a bigger student community. We truly
+         appreciate you for that.</p>
+      <p>If you have any questions about your purchase or need help accessing
+         the document, reach out to our support team anytime.</p>
+      <p>Thank you, and more wins ahead!<br><strong>The knowly Team</strong></p>
+    """
+
+    return _send_brevo_email(
+        user.email,
+        'Purchase Confirmed — knowly',
+        _email_shell(header, body),
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUBSCRIPTION ACTIVATION
+# ─────────────────────────────────────────────────────────────────────────────
 
 def send_subscription_activation_email(user, tier=None):
-    """
-    Send a subscription activation email to a user who bought a subscription.
-    
-    Args:
-        user: User object
-        tier: Optional subscription tier (default: user.subscription_tier)
-        
-    Returns:
-        bool: True if email was sent successfully
-    """
+    """Send a subscription activation email."""
+    base = _base_url()
+    name = user.full_name or user.username
     subscription_tier = tier or user.subscription_tier
-    subject = f"Subscription Activated — {subscription_tier.capitalize()} Plan"
-    
-    # Subscription benefits based on tier
-    benefits = {
+    tier_label = subscription_tier.capitalize()
+
+    benefits_map = {
         'pro': [
             '✨ Unlimited document downloads',
             '🎯 Unlimited quiz attempts',
             '🚀 Priority support',
             '📊 Advanced analytics',
-            '💾 Cloud storage for your documents'
+            '💾 Cloud storage for your documents',
         ],
         'enterprise': [
             '✨ All Pro features',
@@ -325,306 +359,127 @@ def send_subscription_activation_email(user, tier=None):
             '🔒 Custom security settings',
             '📈 Custom reporting',
             '🎓 Dedicated account manager',
-            '⏰ 24/7 priority support'
-        ]
+            '⏰ 24/7 priority support',
+        ],
     }
-    
-    tier_benefits = benefits.get(subscription_tier, [])
-    
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-                margin: 0;
-                padding: 20px;
-            }}
-            .email-container {{
-                background-color: white;
-                max-width: 600px;
-                margin: 0 auto;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }}
-            .header {{
-                background-color: #6366f1;
-                color: white;
-                padding: 20px;
-                text-align: center;
-                border-radius: 8px 8px 0 0;
-                margin: -20px -20px 20px -20px;
-            }}
-            .content {{
-                color: #333;
-                line-height: 1.6;
-            }}
-            .benefits {{
-                background-color: #f8f9fa;
-                padding: 15px;
-                border-radius: 4px;
-                margin: 20px 0;
-            }}
-            .benefits ul {{
-                margin: 10px 0;
-                padding-left: 20px;
-            }}
-            .benefits li {{
-                margin: 8px 0;
-            }}
-            .button {{
-                display: inline-block;
-                background-color: #6366f1;
-                color: white;
-                padding: 12px 24px;
-                text-decoration: none;
-                border-radius: 4px;
-                margin: 20px 0;
-            }}
-            .footer {{
-                margin-top: 30px;
-                padding-top: 20px;
-                border-top: 1px solid #eee;
-                color: #666;
-                font-size: 14px;
-                text-align: center;
-            }}
-        </style>
-    </head>
-<body>
-    <div class="email-container">
-        <div class="header">
-            <h1>Welcome to eDuShare {subscription_tier.capitalize()}!</h1>
-        </div>
-        
-        <div class="content">
-            <p>Hi {user.full_name or user.username},</p>
-            
-            <p>Big congratulations! Your {subscription_tier.capitalize()} subscription don activate successfully. You now get full access to all the premium features wey eDuShare get to offer.</p>
-            
-            <div class="benefits">
-                <h3>Your {subscription_tier.capitalize()} Benefits:</h3>
-                <ul>
-                    {''.join(f'<li>{benefit}</li>' for benefit in tier_benefits)}
-                </ul>
-            </div>
-            
-            <p>
-                <a href="{current_app.config['PREFERRED_URL_SCHEME']}://{current_app.config.get('SERVER_NAME', 'localhost:5000')}/explore" class="button">
-                    Start Exploring
-                </a>
-            </p>
-            
-            <p>Your subscription go stay active till {user.subscription_end_date.strftime('%Y-%m-%d')}. Make you enjoy every benefit wey come with am.</p>
-            
-            <p>By upgrading, you no just unlock premium features — you join the core group of students wey dey push this project forward. Your support dey help us build better tools, improve quality, and grow the eDuShare community stronger every day.</p>
-            
-            <p>We truly appreciate you for believing in the vision.</p>
-            
-            <p>If you get any questions about your subscription or you need any help at all, no hesitate to contact our support team. We dey for you.</p>
-            
-            <p>Thank you for choosing eDuShare. Let’s level up!</p>
-            <p>The eDuShare Team</p>
-        </div>
-        
-        <div class="footer">
-            <p>eDuShare — Empowering Students Through Shared Knowledge</p>
-            <p>You dey receive this email because you activate a subscription on eDuShare.</p>
-        </div>
-    </div>
-</body>
-    </html>
-    """
-    
-    return _send_brevo_email(user.email, subject, html_content)
+    tier_benefits = benefits_map.get(subscription_tier, [])
+    benefits_html = ''.join(f'<li>{b}</li>' for b in tier_benefits)
 
+    header = f"""
+      <h1 class="header-title">Welcome to knowly {tier_label}! 🚀</h1>
+      <p class="header-sub">Your subscription is now active</p>
+    """
+
+    body = f"""
+      <p>Hi <strong>{name}</strong>,</p>
+      <p>Big congratulations! Your <strong>{tier_label}</strong> subscription has
+         activated successfully. You now have full access to all premium features
+         on knowly.</p>
+      <div class="benefits">
+        <h3>Your {tier_label} Benefits</h3>
+        <ul>{benefits_html}</ul>
+      </div>
+      <div class="btn-wrap">
+        <a href="{base}/explore" class="btn">Start Exploring →</a>
+      </div>
+      <p>Your subscription stays active until
+         <strong>{user.subscription_end_date.strftime('%d %b %Y')}</strong>.
+         Make sure to enjoy every benefit that comes with it.</p>
+      <p>By upgrading, you join the core group of students pushing knowly forward.
+         Your support helps us build better tools, improve quality, and grow the
+         community stronger every day. We truly appreciate you for believing in
+         the vision.</p>
+      <p>If you have any questions, our support team is always here.</p>
+      <p>Let's level up!<br><strong>The knowly Team</strong></p>
+    """
+
+    return _send_brevo_email(
+        user.email,
+        f'Subscription Activated — knowly {tier_label}',
+        _email_shell(header, body),
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PROGRAMME-RELEVANT POST NOTIFICATION
+# ─────────────────────────────────────────────────────────────────────────────
 
 def send_programme_relevant_post_email(user, post):
+    """Notify a student when a post matching their programme is uploaded."""
+    base = _base_url()
+    name = user.full_name or user.username
+    email_subject = (
+        f'New material for {post.subject.name}: {post.title}'
+        if post.subject else
+        f'New material: {post.title}'
+    )
+    subject_html      = f'<p><strong>Subject:</strong> {post.subject.name}</p>' if post.subject else ''
+    description_html  = f'<p>{post.description}</p>' if post.description else ''
+
+    header = """
+      <h1 class="header-title">New Material Just Dropped 📚</h1>
+      <p class="header-sub">Relevant to your programme</p>
     """
-    Send an email notification to a student when a relevant post is uploaded
-    that matches their programme of study.
-    
-    Args:
-        user: User object
-        post: Post object
-        
-    Returns:
-        bool: True if email was sent successfully
+
+    body = f"""
+      <p>Hi <strong>{name}</strong>,</p>
+      <p>Chale, something just dropped — and it matches your programme:
+         <strong>{user.programme}</strong>.</p>
+      <p>This new material fit be exactly what you need before your next
+         class, test, or exams. Don't miss it.</p>
+      <div class="info-box">
+        <p><strong>{post.title}</strong></p>
+        {subject_html}
+        {description_html}
+      </div>
+      <div class="btn-wrap">
+        <a href="{base}/posts/{post.id}" class="btn">View Material →</a>
+      </div>
+      <p>Students in your programme are already checking it out. The earlier
+         you see it, the better advantage you get.</p>
+      <p>Stay sharp and keep learning!<br><strong>The knowly Team</strong></p>
     """
-    subject = f"New Relevant Material: {post.title}"
-    
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-                margin: 0;
-                padding: 20px;
-            }}
-            .email-container {{
-                background-color: white;
-                max-width: 600px;
-                margin: 0 auto;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }}
-            .header {{
-                background-color: #6366f1;
-                color: white;
-                padding: 20px;
-                text-align: center;
-                border-radius: 8px 8px 0 0;
-                margin: -20px -20px 20px -20px;
-            }}
-            .content {{
-                color: #333;
-                line-height: 1.6;
-            }}
-            .post-details {{
-                background-color: #f8f9fa;
-                padding: 15px;
-                border-radius: 4px;
-                margin: 20px 0;
-            }}
-            .post-details h3 {{
-                margin-top: 0;
-            }}
-            .post-details p {{
-                margin: 5px 0;
-            }}
-            .button {{
-                display: inline-block;
-                background-color: #6366f1;
-                color: white;
-                padding: 12px 24px;
-                text-decoration: none;
-                border-radius: 4px;
-                margin: 20px 0;
-            }}
-            .footer {{
-                margin-top: 30px;
-                padding-top: 20px;
-                border-top: 1px solid #eee;
-                color: #666;
-                font-size: 14px;
-                text-align: center;
-            }}
-        </style>
-    </head>
-<body>
-    <div class="email-container">
-        <div class="header">
-            <h1>New Relevant Material Just Landed!</h1>
-        </div>
-        
-        <div class="content">
-            <p>Hi {user.full_name or user.username},</p>
-            
-            <p>Chale, something important just drop — and e match your programme: <strong>{user.programme}</strong>.</p>
-            
-            <p>This new material fit be exactly what you need before your next class, test, or exams. Don’t miss am.</p>
-            
-            <div class="post-details">
-                <h3>{post.title}</h3>
-                <p>{post.description}</p>
-                {f'<p><strong>Subject:</strong> {post.subject.name}' if post.subject else ''}
-            </div>
-            
-            <p>
-                <a href="{current_app.config['PREFERRED_URL_SCHEME']}://{current_app.config.get('SERVER_NAME', 'localhost:5000')}/posts/{post.id}" class="button">
-                    View Post Now
-                </a>
-            </p>
-            
-            <p>This material was uploaded very recently, and students wey dey your programme already dey check am out. The earlier you see am, the better advantage you get.</p>
-            
-            <p>No dull — opportunities like this no dey stay long. Click make you see wetin dey inside.</p>
-            
-            <p>If you need any help or you get questions, our support team dey ready to assist you.</p>
-            
-            <p>Stay sharp and keep learning!</p>
-            <p>The eDuShare Team</p>
-        </div>
-        
-        <div class="footer">
-            <p>eDuShare — Empowering Students Through Shared Knowledge</p>
-            <p>You dey receive this email because the content match your programme of study.</p>
-        </div>
-    </div>
-</body>
-    </html>
-    """
-    
-    return _send_brevo_email(user.email, subject, html_content)
+
+    return _send_brevo_email(
+        user.email,
+        email_subject,
+        _email_shell(header, body),
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PASSWORD RESET
+# ─────────────────────────────────────────────────────────────────────────────
 
 def send_password_reset_email(user, reset_url):
-    """
-    Send a password reset link to the user.
+    """Send a password reset link to the user."""
+    name = user.full_name or user.username
 
-    Args:
-        user:      User object
-        reset_url: Full URL containing the signed reset token
-
-    Returns:
-        bool: True if email was sent successfully
-    """
-    subject = "Reset Your knowly Password"
-
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body {{font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px;}}
-            .email-container {{background-color: white; max-width: 600px; margin: 0 auto; padding: 20px;
-                border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);}}
-            .header {{background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%); color: white;
-                padding: 24px 20px; text-align: center; border-radius: 8px 8px 0 0;
-                margin: -20px -20px 24px -20px;}}
-            .header h1 {{margin: 0; font-size: 1.4rem;}}
-            .content {{color: #333; line-height: 1.7;}}
-            .reset-box {{background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 8px;
-                padding: 20px; text-align: center; margin: 24px 0;}}
-            .btn {{display: inline-block; background: linear-gradient(135deg, #2563eb, #06b6d4);
-                color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px;
-                font-weight: 700; font-size: 1rem; letter-spacing: .01em;}}
-            .warning {{background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px;
-                padding: 12px 16px; color: #92400e; font-size: .875rem; margin-top: 20px;}}
-            .footer {{margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;
-                color: #666; font-size: .8rem; text-align: center;}}
-        </style>
-    </head>
-    <body>
-        <div class="email-container">
-            <div class="header"><h1>🔑 Password Reset Request</h1></div>
-            <div class="content">
-                <p>Hi {user.full_name or user.username},</p>
-                <p>We received a request to reset your knowly password. Click the button below to choose a new one:</p>
-                <div class="reset-box">
-                    <a href="{reset_url}" class="btn">Reset My Password</a>
-                </div>
-                <p>Or copy and paste this link into your browser:</p>
-                <p style="word-break:break-all; color:#2563eb; font-size:.85rem;">{reset_url}</p>
-                <div class="warning">
-                    ⚠️ This link expires in <strong>30 minutes</strong>.
-                    If you did not request a password reset, you can safely ignore this email —
-                    your password will not change.
-                </div>
-            </div>
-            <div class="footer">
-                <p>knowly — Empowering Students Through Shared Knowledge</p>
-                <p>You received this email because a password reset was requested for your account.</p>
-            </div>
-        </div>
-    </body>
-    </html>
+    header = """
+      <h1 class="header-title">Password Reset Request 🔑</h1>
+      <p class="header-sub">Someone requested a reset for your account</p>
     """
 
-    return _send_brevo_email(user.email, subject, html_content)
+    body = f"""
+      <p>Hi <strong>{name}</strong>,</p>
+      <p>We received a request to reset your knowly password. Click the button
+         below to choose a new one:</p>
+      <div class="btn-wrap">
+        <a href="{reset_url}" class="btn">Reset My Password →</a>
+      </div>
+      <p style="font-size:13px; color:#64748b;">
+        Or copy and paste this link into your browser:<br>
+        <a href="{reset_url}" style="color:#60a5fa; word-break:break-all;">{reset_url}</a>
+      </p>
+      <div class="warning">
+        ⚠️ This link expires in <strong>30 minutes</strong>. If you did not
+        request a password reset, you can safely ignore this email — your
+        password will not change.
+      </div>
+    """
+
+    return _send_brevo_email(
+        user.email,
+        'Reset Your knowly Password',
+        _email_shell(header, body),
+    )
