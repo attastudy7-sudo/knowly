@@ -464,6 +464,7 @@
 }
 @keyframes sheetUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @media (min-width: 640px) {
+  .st-tab { padding: 0.3rem 1rem}
   .content-modal { align-items: center; padding: 1rem; }
   .cm-sheet { border-radius: 22px; max-width: 440px; max-height: none; }
   .subj-panel { border-radius: 22px; }
@@ -509,7 +510,7 @@
   .post-row-author-name { display: none; }
 }
 </style>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script>
 function openModal() {
   document.getElementById('contentModal').classList.add('active');
@@ -550,7 +551,7 @@ document.addEventListener('click', function(e) {
   iconEl.className = 'cm-icon ' + cfg.cls;
   iconEl.innerHTML = `<i class="fas ${cfg.icon}"></i>`;
   document.getElementById('cmTitle').textContent = title;
-  document.getElementById('cmDesc').textContent  = desc.length > 160 ? desc.slice(0, 160) + '…' : desc;
+  document.getElementById('cmDesc').innerHTML = marked.parse(desc.length > 160 ? desc.slice(0, 160) + '…' : desc);
   document.getElementById('cmMeta').innerHTML    = `<span><i class="fas fa-tag"></i> ${cfg.label}</span>`;
 
   var html = '';

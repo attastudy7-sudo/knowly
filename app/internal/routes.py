@@ -72,7 +72,10 @@ def internal_subjects(programme_slug: str):
     if not programme:
         return jsonify({"error": f"Programme '{programme_slug}' not found"}), 404
 
-    subjects = programme.subjects.order_by(Subject.name).all()
+    subjects = Subject.query.filter(
+        Subject.is_active == True,
+        Subject.programmes.any(Programme.id == programme.id)
+    ).order_by(Subject.name).all()
     return jsonify({
         "programme": {"id": programme.id, "slug": programme.slug, "name": programme.name},
         "subjects": [
@@ -163,11 +166,7 @@ def subjects_search():
     """
     q = request.args.get("q", "").strip().lower()
 
-    query = (
-        db.session.query(Subject, Programme)
-        .join(Programme, Subject.programme_id == Programme.id)
-        .filter(Subject.is_active == True)
-    )
+    query = Subject.query.filter(Subject.is_active == True)
     if q:
         query = query.filter(
             db.or_(
@@ -180,13 +179,13 @@ def subjects_search():
     return jsonify({
         "subjects": [
             {
-                "id":          s.id,
-                "slug":        s.slug,
-                "name":        s.name,
-                "programme":   p.name,
-                "programme_slug": p.slug,
+                "id":             s.id,
+                "slug":           s.slug,
+                "name":           s.name,
+                "programme":      s.programmes.first().name if s.programmes.first() else None,
+                "programme_slug": s.programmes.first().slug if s.programmes.first() else None,
             }
-            for s, p in results
+            for s in results
         ]
     })
 
@@ -306,11 +305,11 @@ def create_subject():
         })
 
     subject = Subject(
-        name         = name,
-        slug         = slug,
-        programme_id = programme.id,
-        is_active    = True,
+        name      = name,
+        slug      = slug,
+        is_active = True,
     )
+    subject.programmes.append(programme)
     db.session.add(subject)
     db.session.commit()
 
@@ -320,3 +319,33 @@ def create_subject():
         "name":    subject.name,
         "created": True,
     }), 201
+
+@bp.route("/subject/<subject_slug>/add-programme", methods=["POST"])
+@internal_key_required
+def add_subject_programme(subject_slug: str):
+    """
+    Link a subject to an additional programme.
+    Body (JSON): { "programme_slug": "bsc-cs" }
+    Called by KnowlyGen after uploading a post with shared_programmes set.
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    programme_slug = (data.get("programme_slug") or "").strip()
+
+    if not programme_slug:
+        return jsonify({"error": "programme_slug is required"}), 400
+
+    subject = Subject.query.filter_by(slug=subject_slug).first()
+    if not subject:
+        return jsonify({"error": f"Subject '{subject_slug}' not found"}), 404
+
+    programme = Programme.query.filter_by(slug=programme_slug).first()
+    if not programme:
+        return jsonify({"error": f"Programme '{programme_slug}' not found"}), 404
+
+    if programme in subject.programmes.all():
+        return jsonify({"message": "already linked", "subject": subject_slug, "programme": programme_slug}), 200
+
+    subject.programmes.append(programme)
+    db.session.commit()
+
+    return jsonify({"message": "linked", "subject": subject_slug, "programme": programme_slug}), 200

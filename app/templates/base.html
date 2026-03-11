@@ -10,10 +10,17 @@
 <meta name="apple-mobile-web-app-title" content="knowly">
 <meta name="description" content="knowly - Educational social media platform for students">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<meta property="og:image" content="https://knowly-ly8l.onrender.com/static/images/knowly.png"><title>{% block title %}{% endblock %} - knowly</title>
-<meta property="og:title" content="knowly">
-<meta property="og:description" content="Study materials for university students">
-<meta property="og:url" content="https://knowly-ly8l.onrender.com">
+<title>{% block title %}{% endblock %} - knowly</title>
+<meta property="og:type"        content="website">
+<meta property="og:site_name"   content="knowly">
+<meta property="og:title"       content="{% block og_title %}knowly — Study materials for university students{% endblock %}">
+<meta property="og:description" content="{% block og_description %}Notes, quizzes and cheatsheets for Ghanaian university students.{% endblock %}">
+<meta property="og:url"         content="{{ request.url }}">
+<meta property="og:image"       content="{% block og_image %}{{ request.host_url }}static/images/icon-512x512.png{% endblock %}">
+<meta property="og:image:width"  content="512">
+<meta property="og:image:height" content="512">
+<meta name="twitter:card"        content="summary">
+<meta name="twitter:image"       content="{% block twitter_image %}{{ request.host_url }}static/images/icon-512x512.png{% endblock %}">
 <link rel="manifest" href="/static/manifest.json">
 <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/static/images/icon-32x32.png">
@@ -238,6 +245,10 @@
         color: var(--primary);
         border-color: rgba(99,102,241,0.18);
     }
+
+    .nav-icon-btn { transition: all 0.15s ease, transform 0.12s ease; }
+.nav-icon-btn:hover { transform: translateY(-1px); }
+.nav-icon-btn:active { transform: scale(0.92); }
 
     .create-btn {
         display: inline-flex !important; align-items: center !important;
@@ -481,7 +492,7 @@
         position: fixed;
         bottom: 0; left: 0; right: 0;
         z-index: 200;
-        height: 62px;
+        height: calc(62px + env(safe-area-inset-bottom));
         background: rgba(255,255,255,0.94);
         backdrop-filter: blur(18px) saturate(180%);
         -webkit-backdrop-filter: blur(18px) saturate(180%);
@@ -489,7 +500,7 @@
         box-shadow: 0 -4px 24px rgba(99,102,241,0.07);
         grid-template-columns: repeat(5, 1fr);
         align-items: center;
-        padding: 0 0.25rem;
+        padding: 0 0.25rem env(safe-area-inset-bottom);
         gap: 0;
     }
     @media (max-width: 768px) { .bottom-nav { display: grid; } }
@@ -504,20 +515,22 @@
         font-family: var(--font-body);
         font-size: 0.625rem; font-weight: 600;
         border-radius: 12px;
-        transition: color 0.18s, background 0.18s;
+        transition: color 0.18s, background 0.18s, transform 0.12s;
         position: relative;
     }
     .bottom-nav .nav-item i { font-size: 1.2rem; transition: transform 0.2s; }
     .bottom-nav .nav-item:hover,
     .bottom-nav .nav-item.active { color: var(--primary); }
     .bottom-nav .nav-item.active i { transform: scale(1.1); }
+    .bottom-nav .nav-item:active { transform: scale(0.88); }
+.bottom-nav .nav-item.create:active { transform: scale(0.88) translateY(0); }
     .bottom-nav .nav-item.active::after {
-        content: '';
-        position: absolute; bottom: 3px; left: 50%;
-        transform: translateX(-50%);
-        width: 4px; height: 4px; border-radius: 50%;
-        background: var(--primary);
-    }
+    content: '';
+    position: absolute; top: 4px; left: 50%;
+    transform: translateX(-50%);
+    width: 24px; height: 3px; border-radius: 0 0 3px 3px;
+    background: var(--primary);
+}
     .bottom-nav .nav-item.create {
         color: #fff;
         background: var(--brand-gradient);
@@ -930,11 +943,6 @@ body { opacity: 0; transition: opacity .18s ease; }
                     </div>
                 </div>
                 {% endif %}
-                <button class="hamburger-btn" id="hamburgerBtn"
-                        aria-label="Open menu" aria-expanded="false"
-                        aria-controls="mobileMenu">
-                    <span></span><span></span><span></span>
-                </button>
             </div>
 
         </div><!-- /nav-content -->
@@ -1048,11 +1056,10 @@ body { opacity: 0; transition: opacity .18s ease; }
     <a href="{{ url_for('posts.create') }}" class="nav-item create" aria-label="Create post">
         <i class="fas fa-plus" aria-hidden="true"></i>
     </a>
-    <button class="nav-item" id="bottomNavNotif" aria-label="Notifications" style="background:none;border:none;cursor:pointer;position:relative;">
-        <i class="fas fa-bell" aria-hidden="true"></i>
-        <span class="notif-badge" id="bottomNavBadge" style="top:-2px;right:6px;"></span>
-        <span>Alerts</span>
-    </button>
+    <a href="{{ url_for('users.search') }}" class="nav-item {% if request.endpoint == 'users.search' %}active{% endif %}" aria-label="Search">
+        <i class="fas fa-search" aria-hidden="true"></i>
+        <span>Search</span>
+    </a>
     <a href="{{ url_for('users.profile', username=current_user.username) }}" class="nav-item {% if request.endpoint == 'users.profile' %}active{% endif %}" aria-label="Profile">
         <img src="{{ current_user.profile_picture_url }}" alt="{{ current_user.username }}" class="bottom-nav-avatar">
         <span>Profile</span>

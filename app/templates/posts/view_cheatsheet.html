@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ post.title }}{% endblock %}
+{% block og_title %}{{ post.title }} - knowly{% endblock %}
+{% block og_description %}{{ post.description | striptags | truncate(160) if post.description else 'Cheatsheet on knowly' }}{% endblock %}
 
 {% block content %}
-{# ── MathJax for LaTeX formulas ─────────────────────────────────────────── #}
 <script>
 window.MathJax = {
   tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
@@ -13,16 +14,14 @@ window.MathJax = {
 
 <div class="cs-root">
 
-  {# ══ TOP BAR ══════════════════════════════════════════════════════════════ #}
+  {# ══ TOP BAR ══ #}
   <header class="cs-topbar">
-    <a href="{{ url_for('main.library_subject', slug=post.subject.slug) if post.subject else url_for('main.index') }}" class="cs-back">
+    <a href="{{ url_for('main.library_subject', slug=post.subject.slug) if post.subject else url_for('main.index') }}" class="cs-back" title="Back">
       <i class="fas fa-arrow-left"></i>
     </a>
 
     <div class="cs-topbar-meta">
-      <span class="cs-type-pill">
-        <i class="fas fa-clone"></i> Cheatsheet
-      </span>
+      <span class="cs-type-pill"><i class="fas fa-clone"></i> Cheatsheet</span>
       {% if post.subject %}
       <span class="cs-subject-pill" style="--sc:{{ post.subject.color }}">
         <i class="fas fa-{{ post.subject.icon }}"></i> {{ post.subject.name }}
@@ -36,8 +35,7 @@ window.MathJax = {
     <div class="cs-topbar-actions">
       {% if current_user.is_authenticated %}
       <button class="cs-icon-btn {% if post.is_liked_by(current_user) %}is-liked{% endif %}"
-              id="likeBtn"
-              data-post-id="{{ post.id }}"
+              id="likeBtn" data-post-id="{{ post.id }}"
               data-liked="{{ 'true' if post.is_liked_by(current_user) else 'false' }}"
               data-base="{{ ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}"
               onclick="toggleLike(this)" title="Like">
@@ -59,112 +57,100 @@ window.MathJax = {
 
   <div class="cs-wrap">
 
-    {# ══ DOCUMENT HEADER ══════════════════════════════════════════════════ #}
-    <div class="cs-doc-header">
-      <div class="cs-doc-header-left">
-        <h1 class="cs-doc-title">{{ post.title }}</h1>
+    {# ══ HERO BAND ══ #}
+    <div class="cs-hero">
+      <div class="cs-hero-left">
 
-        <div class="cs-doc-byline">
+        <div class="cs-hero-eyebrow">
+          {% if quiz_meta.get('level') %}<span class="cs-level-badge">{{ quiz_meta.get('level') }}</span>{% endif %}
+          {% if post.subject %}<span class="cs-subject-inline" style="color:{{ post.subject.color }}"><i class="fas fa-{{ post.subject.icon }}"></i> {{ post.subject.name }}</span>{% endif %}
+        </div>
+
+        <h1 class="cs-title">{{ post.title }}</h1>
+
+        <div class="cs-byline">
           <a href="{{ url_for('users.profile', username=post.author.username) }}" class="cs-author-link">
-            <img src="{{ post.author.profile_picture_url }}" class="cs-author-avatar" alt="{{ post.author.username }}">
-            {{ post.author.full_name or post.author.username }}
+            <img src="{{ post.author.profile_picture_url }}" class="cs-author-avatar" alt="">
+            <span>{{ post.author.full_name or post.author.username }}</span>
           </a>
           <span class="cs-dot">·</span>
           <span>{{ post.created_at.strftime('%b %d, %Y') }}</span>
           {% if quiz_meta.get('course') %}
           <span class="cs-dot">·</span>
-          <span class="cs-course-tag"><i class="fas fa-graduation-cap"></i> {{ quiz_meta.get('course') }}</span>
+          <span><i class="fas fa-graduation-cap" style="font-size:.62rem;opacity:.6"></i> {{ quiz_meta.get('course') }}</span>
           {% endif %}
         </div>
 
-        {# Description with show-more #}
         {% if post.description %}
         <div class="cs-desc-wrap" id="descWrap">
-          <div class="cs-desc-text" id="descText">{{ post.description | markdown | safe }}</div>
-          <button class="cs-show-more" id="descToggle" onclick="toggleDesc()">
-            <i class="fas fa-chevron-down"></i> Show more
+          <div class="cs-desc" id="descText">{{ post.description | markdown | safe }}</div>
+          <button class="cs-desc-toggle" id="descToggle" onclick="toggleDesc()">
+            <span id="descLabel">Show more</span>
+            <i class="fas fa-chevron-down" id="descChevron"></i>
           </button>
         </div>
         {% endif %}
 
-        {# Metadata bar: purpose + exam context + topics #}
         {% if quiz_meta %}
-        <div class="cs-meta-bar">
-          {% set cs_meta = quiz_meta %}
-          {# purpose is stored in quiz_meta only if we add it — check post description fallback too #}
-          {% if cs_meta.get('purpose') or cs_meta.get('exam_context') %}
-          <div class="cs-meta-row">
-            {% if cs_meta.get('purpose') %}
-            <span class="cs-meta-chip cs-meta-chip--purpose">
-              <i class="fas fa-bullseye"></i> {{ cs_meta.get('purpose') }}
-            </span>
-            {% endif %}
-            {% if cs_meta.get('exam_context') %}
-            <span class="cs-meta-chip cs-meta-chip--exam">
-              <i class="fas fa-calendar-check"></i> {{ cs_meta.get('exam_context') }}
-            </span>
-            {% endif %}
-          </div>
+        <div class="cs-chips-row">
+          {% if quiz_meta.get('purpose') %}
+          <span class="cs-chip cs-chip--purpose"><i class="fas fa-bullseye"></i> {{ quiz_meta.get('purpose') }}</span>
           {% endif %}
-          {% if cs_meta.get('topics') %}
-          <div class="cs-topics-row">
-            {% for topic in cs_meta.topics %}
-            <span class="cs-topic-tag">{{ topic }}</span>
+          {% if quiz_meta.get('exam_context') %}
+          <span class="cs-chip cs-chip--exam"><i class="fas fa-calendar-check"></i> {{ quiz_meta.get('exam_context') }}</span>
+          {% endif %}
+          {% if quiz_meta.get('topics') %}
+            {% for topic in quiz_meta.topics %}
+            <span class="cs-chip">{{ topic }}</span>
             {% endfor %}
-          </div>
           {% endif %}
         </div>
         {% endif %}
 
       </div>
 
-      <div class="cs-doc-header-right">
+      <div class="cs-hero-right">
         {% if structured_content %}
-        <span class="cs-section-count">
-          <i class="fas fa-layer-group"></i>
-          {{ structured_content | length }} section{{ 's' if structured_content | length != 1 }}
-        </span>
+        <span class="cs-section-count"><i class="fas fa-layer-group"></i> {{ structured_content | length }} section{{ 's' if structured_content | length != 1 }}</span>
         {% endif %}
-        {% if post.has_document and post.document %}
-        <a href="{{ url_for('posts.download_document', document_id=post.document.id) }}" class="cs-dl-btn">
+        {% if post.has_document and post.document_id %}
+<a href="{{ url_for('posts.download_document', document_id=post.document_id) }}" class="cs-dl-btn">
           <i class="fas fa-download"></i> Download
         </a>
         {% endif %}
       </div>
     </div>
 
-    {# ── CONTENTS BOX ── #}
+    {# ══ TOC ══ #}
     {% if structured_content %}
-    <div class="cs-toc-box">
-      <div class="cs-toc-label"><i class="fas fa-list"></i> Contents</div>
-      <ol class="cs-toc-list">
+    <div class="cs-toc">
+      <span class="cs-toc-label">Contents</span>
+      <div class="cs-toc-items">
         {% for section in structured_content %}
-        <li>
-          <a href="#cs-section-{{ loop.index }}" class="cs-toc-link">
-            <span class="cs-toc-num">
-              {%- if section.section_type == 'formulas' %}<i class="fas fa-square-root-alt"></i>
-              {%- elif section.section_type == 'definitions' %}<i class="fas fa-book"></i>
-              {%- elif section.section_type == 'rules' %}<i class="fas fa-gavel"></i>
-              {%- elif section.section_type == 'steps' %}<i class="fas fa-list-ol"></i>
-              {%- elif section.section_type == 'examples' %}<i class="fas fa-flask"></i>
-              {%- elif section.section_type == 'summary_table' %}<i class="fas fa-table"></i>
-              {%- else %}{{ loop.index }}{%- endif %}
-            </span>
-            <span class="cs-toc-text">{{ section.section_title }}</span>
-          </a>
-        </li>
+        <a href="#cs-s-{{ loop.index }}" class="cs-toc-link">
+          <span class="cs-toc-icon">
+            {%- if section.section_type == 'formulas' %}<i class="fas fa-square-root-alt"></i>
+            {%- elif section.section_type == 'definitions' %}<i class="fas fa-book"></i>
+            {%- elif section.section_type == 'rules' %}<i class="fas fa-gavel"></i>
+            {%- elif section.section_type == 'steps' %}<i class="fas fa-list-ol"></i>
+            {%- elif section.section_type == 'examples' %}<i class="fas fa-flask"></i>
+            {%- elif section.section_type == 'summary_table' %}<i class="fas fa-table"></i>
+            {%- else %}{{ loop.index }}{%- endif %}
+          </span>
+          <span>{{ section.section_title }}</span>
+        </a>
         {% endfor %}
-      </ol>
+      </div>
     </div>
     {% endif %}
 
-    {# ══ SECTIONS ═════════════════════════════════════════════════════════ #}
+    {# ══ SECTIONS ══ #}
     {% if structured_content %}
       {% for section in structured_content %}
-      <section class="cs-section" id="cs-section-{{ loop.index }}">
+      <section class="cs-section" id="cs-s-{{ loop.index }}">
 
-        <div class="cs-section-header cs-sh--{{ section.section_type or 'other' }}">
-          <div class="cs-section-icon">
+        <div class="cs-section-head cs-sh--{{ section.section_type or 'other' }}">
+          <div class="cs-section-icon-wrap">
             {%- if section.section_type == 'formulas' %}<i class="fas fa-square-root-alt"></i>
             {%- elif section.section_type == 'definitions' %}<i class="fas fa-book"></i>
             {%- elif section.section_type == 'rules' %}<i class="fas fa-gavel"></i>
@@ -175,59 +161,43 @@ window.MathJax = {
             {%- endif %}
           </div>
           <h2 class="cs-section-title">{{ section.section_title }}</h2>
-          <span class="cs-entry-count">
-            {{ (section.entries or []) | length }} entr{{ 'y' if (section.entries or []) | length == 1 else 'ies' }}
-          </span>
+          <span class="cs-entry-count">{{ (section.entries or []) | length }} entr{{ 'y' if (section.entries or []) | length == 1 else 'ies' }}</span>
         </div>
 
-        {# Steps sections render as numbered list, not table #}
         {% if section.section_type == 'steps' %}
-        <div class="cs-steps-list">
+        <div class="cs-steps">
           {% for entry in section.entries %}
           {% if entry is mapping %}
-          <div class="cs-step-item">
+          <div class="cs-step">
             <div class="cs-step-num">{{ loop.index }}</div>
             <div class="cs-step-body">
               <div class="cs-step-label">{{ entry.label }}</div>
               {% if entry.content %}<div class="cs-step-content">{{ entry.content }}</div>{% endif %}
-              {% if entry.notes %}
-              <div class="cs-entry-note"><i class="fas fa-info-circle"></i><span class="cs-note-text">{{ entry.notes }}</span></div>
-              {% endif %}
-              {% if entry.example %}
-              <div class="cs-entry-example"><span class="cs-eg-label">e.g.</span> {{ entry.example }}</div>
-              {% endif %}
+              {% if entry.notes %}<div class="cs-entry-note"><i class="fas fa-info-circle"></i><span>{{ entry.notes }}</span></div>{% endif %}
+              {% if entry.example %}<div class="cs-entry-eg"><span class="cs-eg-tag">e.g.</span> {{ entry.example }}</div>{% endif %}
             </div>
           </div>
           {% endif %}
           {% endfor %}
         </div>
 
-        {# Summary table renders as a proper table when label/content pairs form columns #}
         {% elif section.section_type == 'summary_table' %}
-        <div class="cs-entries cs-entries--summary_table">
-          <div class="cs-summary-table-header">
-            <div>Term / Concept</div>
-            <div>Description</div>
-          </div>
+        <div class="cs-entries cs-entries--table">
+          <div class="cs-table-head"><div>Term / Concept</div><div>Description</div></div>
           {% for entry in section.entries %}
           {% if entry is mapping %}
-          <div class="cs-entry cs-entry--table-row">
+          <div class="cs-entry">
             <div class="cs-entry-label">{{ entry.label }}</div>
             <div class="cs-entry-content">
               {{ entry.content }}
-              {% if entry.notes %}
-              <div class="cs-entry-note"><i class="fas fa-info-circle"></i><span class="cs-note-text">{{ entry.notes }}</span></div>
-              {% endif %}
-              {% if entry.example %}
-              <div class="cs-entry-example"><span class="cs-eg-label">e.g.</span> {{ entry.example }}</div>
-              {% endif %}
+              {% if entry.notes %}<div class="cs-entry-note"><i class="fas fa-info-circle"></i><span>{{ entry.notes }}</span></div>{% endif %}
+              {% if entry.example %}<div class="cs-entry-eg"><span class="cs-eg-tag">e.g.</span> {{ entry.example }}</div>{% endif %}
             </div>
           </div>
           {% endif %}
           {% endfor %}
         </div>
 
-        {# All other section types: standard label | content grid #}
         {% else %}
         <div class="cs-entries cs-entries--{{ section.section_type or 'other' }}">
           {% for entry in section.entries %}
@@ -235,22 +205,11 @@ window.MathJax = {
           <div class="cs-entry">
             <div class="cs-entry-label">{{ entry.label }}</div>
             <div class="cs-entry-content {% if section.section_type == 'formulas' %}cs-formula{% endif %}">
-              {% if section.section_type in ('definitions', 'rules') %}
-                {{ entry.content | markdown | safe }}
-              {% else %}
-                {{ entry.content }}
-              {% endif %}
+              {% if section.section_type in ('definitions', 'rules') %}{{ entry.content | markdown | safe }}
+              {% else %}{{ entry.content }}{% endif %}
             </div>
-            {% if entry.notes %}
-            <div class="cs-entry-note">
-              <i class="fas fa-info-circle"></i><span class="cs-note-text">{{ entry.notes }}</span>
-            </div>
-            {% endif %}
-            {% if entry.example %}
-            <div class="cs-entry-example">
-              <span class="cs-eg-label">e.g.</span> {{ entry.example }}
-            </div>
-            {% endif %}
+            {% if entry.notes %}<div class="cs-entry-note"><i class="fas fa-info-circle"></i><span>{{ entry.notes }}</span></div>{% endif %}
+            {% if entry.example %}<div class="cs-entry-eg"><span class="cs-eg-tag">e.g.</span> {{ entry.example }}</div>{% endif %}
           </div>
           {% endif %}
           {% endfor %}
@@ -259,21 +218,15 @@ window.MathJax = {
 
       </section>
       {% endfor %}
-
     {% else %}
-    <div class="cs-empty">
-      <i class="fas fa-clone"></i>
-      <p>No cheatsheet content available.</p>
-    </div>
+    <div class="cs-empty"><i class="fas fa-clone"></i><p>No cheatsheet content available.</p></div>
     {% endif %}
 
-    {# ══ COMMENTS ═════════════════════════════════════════════════════════ #}
+    {# ══ COMMENTS ══ #}
     <div class="cs-comments" id="comments">
-      <div class="cs-comments-header">
-        <h3 class="cs-comments-title">
-          <i class="fas fa-comments"></i> Discussion
-        </h3>
-        <span class="cs-count-pill">{{ post.comment_count() }}</span>
+      <div class="cs-comments-head">
+        <h3 class="cs-comments-title"><i class="fas fa-comments"></i> Discussion</h3>
+        <span class="cs-pill">{{ post.comment_count() }}</span>
       </div>
 
       {% if current_user.is_authenticated %}
@@ -286,251 +239,347 @@ window.MathJax = {
         </div>
       </form>
       {% else %}
-      <div class="cs-login-nudge">
-        <a href="{{ url_for('auth.login') }}">Log in</a> to join the discussion
-      </div>
+      <div class="cs-login-nudge"><a href="{{ url_for('auth.login') }}">Log in</a> to join the discussion</div>
       {% endif %}
 
       <div class="cs-comment-list">
         {% for comment in comments.items %}
         <div class="cs-comment">
           <a href="{{ url_for('users.profile', username=comment.author.username) }}">
-            <img src="{{ comment.author.profile_picture_url }}" class="cs-comment-avatar" alt="{{ comment.author.username }}">
+            <img src="{{ comment.author.profile_picture_url }}" class="cs-comment-avatar" alt="">
           </a>
           <div class="cs-comment-body">
             <div class="cs-comment-head">
-              <a href="{{ url_for('users.profile', username=comment.author.username) }}" class="cs-comment-author">
-                {{ comment.author.full_name or comment.author.username }}
-              </a>
+              <a href="{{ url_for('users.profile', username=comment.author.username) }}" class="cs-comment-author">{{ comment.author.full_name or comment.author.username }}</a>
               <span class="cs-comment-time">{{ comment.created_at.strftime('%b %d') }}</span>
             </div>
             <p class="cs-comment-text">{{ comment.content }}</p>
           </div>
         </div>
         {% endfor %}
-
         {% if not comments.items %}
-        <div class="cs-no-comments">
-          <i class="fas fa-comment-medical"></i>
-          <p>No comments yet — start the conversation.</p>
-        </div>
+        <div class="cs-no-comments"><i class="fas fa-comment-medical"></i><p>No comments yet — start the conversation.</p></div>
         {% endif %}
       </div>
 
       {% if comments.has_prev or comments.has_next %}
       <div class="cs-pagination">
-        {% if comments.has_prev %}
-        <a href="{{ url_for('posts.view', post_id=post.id, page=comments.prev_num) }}" class="cs-page-btn">
-          <i class="fas fa-chevron-left"></i> Prev
-        </a>
-        {% endif %}
+        {% if comments.has_prev %}<a href="{{ url_for('posts.view', post_id=post.id, page=comments.prev_num) }}" class="cs-page-btn"><i class="fas fa-chevron-left"></i> Prev</a>{% endif %}
         <span class="cs-page-info">{{ comments.page }} / {{ comments.pages }}</span>
-        {% if comments.has_next %}
-        <a href="{{ url_for('posts.view', post_id=post.id, page=comments.next_num) }}" class="cs-page-btn">
-          Next <i class="fas fa-chevron-right"></i>
-        </a>
-        {% endif %}
+        {% if comments.has_next %}<a href="{{ url_for('posts.view', post_id=post.id, page=comments.next_num) }}" class="cs-page-btn">Next <i class="fas fa-chevron-right"></i></a>{% endif %}
       </div>
       {% endif %}
-
     </div>
+
   </div>
 </div>
 
 <style>
-.cs-root { min-height: 100vh; background: var(--bg-main); }
-.cs-wrap { max-width: 900px; margin: 0 auto; padding: 1.5rem 1.25rem 5rem; }
+/* ═══ ROOT ═══════════════════════════════════════════════════════════════════ */
+.cs-root { min-height: 100vh; background: var(--bg-main); overflow-x: hidden; }
+.cs-wrap { max-width: 900px; margin: 0 auto; padding: 0 1.25rem 5rem; }
 
-/* ── Top Bar ─────────────────────────────────────────────────────────────── */
+/* ═══ TOP BAR ════════════════════════════════════════════════════════════════ */
 .cs-topbar {
-  position: sticky; top: var(--nav-h, 62px); z-index: 100;
-  display: flex; align-items: center; gap: .75rem; padding: .6rem 1.25rem;
-  background: var(--bg-card); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px);
+  display: flex; align-items: center; gap: .65rem;
+  padding: .55rem 1.25rem;
+  background: var(--bg-card); border-bottom: 1px solid var(--border);
 }
-.cs-back { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--border); color: var(--text-muted); text-decoration: none; flex-shrink: 0; transition: all .15s; }
-.cs-back:hover { border-color: var(--primary); color: var(--primary); }
-.cs-topbar-meta { display: flex; align-items: center; gap: .5rem; flex: 1; overflow: hidden; }
-.cs-type-pill { display: inline-flex; align-items: center; gap: .3rem; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; padding: .2rem .55rem; border-radius: 6px; background: rgba(245,158,11,.1); color: #f59e0b; flex-shrink: 0; }
-.cs-subject-pill { display: inline-flex; align-items: center; gap: .3rem; font-size: .72rem; font-weight: 700; padding: .2rem .55rem; border-radius: 6px; color: var(--sc, var(--primary)); background: color-mix(in srgb, var(--sc, var(--primary)) 10%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cs-level-pill { display: inline-flex; align-items: center; font-size: .66rem; font-weight: 700; padding: .2rem .5rem; border-radius: 6px; background: var(--bg-hover); border: 1px solid var(--border); color: var(--text-muted); white-space: nowrap; }
-.cs-topbar-actions { display: flex; align-items: center; gap: .4rem; flex-shrink: 0; }
-.cs-icon-btn { display: inline-flex; align-items: center; gap: .3rem; padding: .35rem .65rem; border-radius: 8px; border: 1.5px solid var(--border); background: none; color: var(--text-muted); font-size: .78rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: all .15s; }
-.cs-icon-btn:hover { border-color: var(--primary); color: var(--primary); }
-.cs-icon-btn.is-liked { border-color: #f87171; color: #ef4444; background: rgba(239,68,68,.06); }
+.cs-back {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 8px;
+  color: var(--text-muted); text-decoration: none; flex-shrink: 0; transition: color .15s;
+}
+.cs-back:hover { color: var(--primary); }
+.cs-topbar-meta { display: flex; align-items: center; gap: .4rem; flex: 1; overflow: hidden; }
+.cs-type-pill {
+  display: inline-flex; align-items: center; gap: .28rem;
+  font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+  padding: .16rem .48rem; border-radius: 5px;
+  background: rgba(245,158,11,.1); color: #f59e0b; flex-shrink: 0;
+}
+.cs-subject-pill {
+  display: inline-flex; align-items: center; gap: .28rem;
+  font-size: .7rem; font-weight: 600; padding: .16rem .48rem; border-radius: 5px;
+  color: var(--sc, var(--primary));
+  background: color-mix(in srgb, var(--sc, var(--primary)) 10%, transparent);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cs-level-pill {
+  display: inline-flex; align-items: center;
+  font-size: .62rem; font-weight: 700; padding: .16rem .45rem; border-radius: 5px;
+  background: var(--bg-hover); border: 1px solid var(--border); color: var(--text-muted);
+}
+.cs-topbar-actions { display: flex; align-items: center; gap: .25rem; flex-shrink: 0; }
+.cs-icon-btn {
+  display: inline-flex; align-items: center; gap: .25rem;
+  padding: .3rem .55rem; border-radius: 7px;
+  border: none; background: none; color: var(--text-muted);
+  font-size: .73rem; font-weight: 600; cursor: pointer; text-decoration: none;
+  transition: color .15s; font-family: var(--font-body);
+}
+.cs-icon-btn:hover { color: var(--primary); }
+.cs-icon-btn.is-liked { color: #ef4444; }
 
-/* ── Document Header ─────────────────────────────────────────────────────── */
-.cs-doc-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1.5rem 0 1.25rem; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; flex-wrap: wrap; }
-.cs-doc-header-left { flex: 1; min-width: 0; }
-.cs-doc-title { font-family: var(--font-display, 'Syne', sans-serif); font-size: clamp(1.2rem, 3vw, 1.65rem); font-weight: 900; color: var(--text-primary); letter-spacing: -.03em; margin: 0 0 .5rem; line-height: 1.2; }
-.cs-doc-byline { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; font-size: .75rem; color: var(--text-muted); margin-bottom: .6rem; }
-.cs-author-link { display: inline-flex; align-items: center; gap: .3rem; text-decoration: none; color: var(--text-muted); transition: color .15s; }
+/* ═══ HERO ════════════════════════════════════════════════════════════════════ */
+.cs-hero {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 1.5rem; padding: 1.75rem 0 1.5rem;
+  border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; flex-wrap: wrap;
+}
+.cs-hero-left { flex: 1; min-width: 0; }
+.cs-hero-eyebrow { display: flex; align-items: center; gap: .45rem; margin-bottom: .6rem; flex-wrap: wrap; }
+.cs-level-badge {
+  font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .09em;
+  padding: .14rem .45rem; border-radius: 4px;
+  background: rgba(245,158,11,.1); color: #f59e0b;
+}
+.cs-subject-inline {
+  font-size: .72rem; font-weight: 600; display: inline-flex; align-items: center; gap: .25rem; opacity: .85;
+}
+
+.cs-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: clamp(1.25rem, 3vw, 1.7rem); font-weight: 900;
+  letter-spacing: -.03em; line-height: 1.2;
+  color: var(--text-primary); margin: 0 0 .6rem; word-break: break-word;
+}
+.cs-byline {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: .3rem; font-size: .72rem; color: var(--text-muted); margin-bottom: .85rem;
+}
+.cs-author-link {
+  display: inline-flex; align-items: center; gap: .28rem;
+  text-decoration: none; color: var(--text-muted); font-weight: 600; transition: color .15s;
+}
 .cs-author-link:hover { color: var(--primary); }
-.cs-author-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); }
-.cs-dot { color: var(--border); }
-.cs-course-tag { display: inline-flex; align-items: center; gap: .25rem; font-size: .72rem; color: var(--text-muted); }
-.cs-course-tag i { font-size: .6rem; }
+.cs-author-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); }
+.cs-dot { opacity: .4; font-size: .6rem; }
 
-/* Description show-more */
-.cs-desc-wrap { position: relative; margin-bottom: .75rem; }
-.cs-desc-text { font-size: .82rem; color: var(--text-muted); line-height: 1.6; margin: 0; overflow: hidden; max-height: 3.5em; transition: max-height .35s ease; }
-.cs-desc-wrap.is-open .cs-desc-text { max-height: 40em; }
-/* Markdown prose inside description */
-.cs-desc-text h2, .cs-desc-text h3 { font-size: .8rem; font-weight: 800; color: var(--text-primary); margin: .5rem 0 .2rem; letter-spacing: -.01em; }
-.cs-desc-text p  { margin: 0 0 .3rem; }
-.cs-desc-text ul, .cs-desc-text ol { margin: .2rem 0 .3rem 1rem; display: flex; flex-direction: column; gap: .15rem; }
-.cs-desc-text li { list-style: disc; }
-.cs-desc-text strong { font-weight: 700; color: var(--text-primary); }
-.cs-desc-text hr  { border: none; border-top: 1px solid var(--border); margin: .5rem 0; }
-/* MathJax inside formula entries */
+/* Description */
+.cs-desc-wrap { margin-bottom: .75rem; }
+.cs-desc {
+  font-size: .83rem; color: var(--text-secondary); line-height: 1.65;
+  overflow: hidden; max-height: 4.8em; transition: max-height .35s ease;
+}
+.cs-desc.is-open { max-height: 60em; }
+.cs-desc p { margin: 0 0 .3rem; }
+.cs-desc p:last-child { margin: 0; }
+.cs-desc strong { color: var(--text-primary); font-weight: 700; }
+.cs-desc h2, .cs-desc h3 { font-size: .8rem; font-weight: 800; color: var(--text-primary); margin: .5rem 0 .2rem; }
 .cs-formula .MathJax { color: var(--text-primary) !important; font-size: 1rem !important; }
-.cs-show-more { background: none; border: none; cursor: pointer; font-size: .72rem; font-weight: 700; color: var(--primary); padding: .25rem 0 0; display: inline-flex; align-items: center; gap: .25rem; transition: opacity .15s; }
-.cs-show-more:hover { opacity: .75; }
-.cs-show-more i { font-size: .6rem; transition: transform .25s; }
-.cs-desc-wrap.is-open .cs-show-more i { transform: rotate(180deg); }
+.cs-desc-toggle {
+  display: inline-flex; align-items: center; gap: .25rem; margin-top: .3rem;
+  background: none; border: none; cursor: pointer;
+  font-size: .72rem; font-weight: 700; color: var(--primary);
+  padding: 0; transition: opacity .15s; font-family: var(--font-body);
+}
+.cs-desc-toggle:hover { opacity: .7; }
+.cs-desc-toggle i { font-size: .58rem; transition: transform .3s; }
+.cs-desc-toggle.is-open i { transform: rotate(180deg); }
 
-/* Metadata bar */
-.cs-meta-bar { display: flex; flex-direction: column; gap: .4rem; margin-top: .25rem; }
-.cs-meta-row { display: flex; flex-wrap: wrap; gap: .4rem; }
-.cs-meta-chip { display: inline-flex; align-items: center; gap: .35rem; font-size: .72rem; font-weight: 600; padding: .25rem .6rem; border-radius: 6px; color: var(--text-secondary); border: 1px solid var(--border); }
-.cs-meta-chip i { font-size: .6rem; opacity: .7; }
-.cs-meta-chip--purpose { background: rgba(245,158,11,.06); border-color: rgba(245,158,11,.2); color: #d97706; }
-.cs-meta-chip--exam    { background: rgba(16,185,129,.06); border-color: rgba(16,185,129,.2); color: #059669; }
-.cs-topics-row { display: flex; flex-wrap: wrap; gap: .3rem; }
-.cs-topic-tag { display: inline-flex; align-items: center; font-size: .68rem; font-weight: 600; padding: .15rem .45rem; border-radius: 4px; background: var(--bg-hover); border: 1px solid var(--border); color: var(--text-muted); }
+/* Chips */
+.cs-chips-row { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .5rem; }
+.cs-chip {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-size: .68rem; font-weight: 600; padding: .22rem .55rem; border-radius: 5px;
+  background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-muted);
+}
+.cs-chip i { font-size: .6rem; }
+.cs-chip--purpose { background: rgba(245,158,11,.06); border-color: rgba(245,158,11,.2); color: #d97706; }
+.cs-chip--exam    { background: rgba(16,185,129,.06);  border-color: rgba(16,185,129,.2);  color: #059669; }
 
-.cs-doc-header-right { display: flex; align-items: center; gap: .65rem; flex-shrink: 0; padding-top: .25rem; }
-.cs-section-count { font-size: .75rem; color: var(--text-muted); display: flex; align-items: center; gap: .3rem; }
-.cs-dl-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .875rem; border-radius: 9px; background: var(--bg-hover); border: 1.5px solid var(--border); color: var(--text-muted); font-size: .78rem; font-weight: 700; text-decoration: none; transition: all .15s; white-space: nowrap; }
+.cs-hero-right { display: flex; align-items: center; gap: .65rem; flex-shrink: 0; padding-top: .2rem; }
+.cs-section-count { font-size: .72rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: .28rem; white-space: nowrap; }
+.cs-dl-btn {
+  display: inline-flex; align-items: center; gap: .38rem;
+  padding: .42rem .8rem; border-radius: 9px;
+  background: var(--bg-secondary); border: 1.5px solid var(--border);
+  color: var(--text-muted); font-size: .75rem; font-weight: 700;
+  text-decoration: none; transition: all .15s; white-space: nowrap;
+}
 .cs-dl-btn:hover { border-color: var(--primary); color: var(--primary); }
 
-/* ── Contents box ────────────────────────────────────────────────────────── */
-.cs-toc-box { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 14px; padding: 1rem 1.1rem; margin-bottom: 1.75rem; }
-.cs-toc-label { font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); margin-bottom: .6rem; display: flex; align-items: center; gap: .4rem; }
-.cs-toc-label i { font-size: .6rem; }
-.cs-toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .1rem; }
-.cs-toc-link { display: flex; align-items: baseline; gap: .6rem; padding: .35rem .5rem; border-radius: 8px; text-decoration: none; font-size: .8rem; color: var(--text-muted); transition: all .15s; line-height: 1.4; }
-.cs-toc-link:hover { background: var(--bg-hover); color: var(--text-primary); }
-.cs-toc-num { font-size: .65rem; font-weight: 800; color: var(--text-muted); min-width: 16px; flex-shrink: 0; display: flex; align-items: center; }
-.cs-toc-text { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+/* ═══ TOC STRIP ══════════════════════════════════════════════════════════════ */
+.cs-toc {
+  display: flex; align-items: flex-start; gap: .75rem;
+  padding: .875rem 0 1rem; margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.cs-toc-label {
+  font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--text-muted); padding-top: .2rem; flex-shrink: 0; white-space: nowrap;
+}
+.cs-toc-items { display: flex; flex-wrap: wrap; gap: .3rem; }
+.cs-toc-link {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-size: .73rem; font-weight: 600; color: var(--text-muted);
+  padding: .25rem .55rem; border-radius: 6px;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  text-decoration: none; transition: all .15s;
+}
+.cs-toc-link:hover { border-color: var(--primary); color: var(--primary); background: rgba(37,99,235,.04); }
+.cs-toc-icon { font-size: .6rem; }
 
-/* ── Section ─────────────────────────────────────────────────────────────── */
-.cs-section { margin-bottom: 2rem; scroll-margin-top: 120px; }
-.cs-section-header { display: flex; align-items: center; gap: .65rem; padding: .65rem .875rem; border-radius: 12px 12px 0 0; }
-.cs-sh--formulas      { background: rgba(245,158,11,.08);  border: 1px solid rgba(245,158,11,.2); }
-.cs-sh--definitions   { background: rgba(99,102,241,.08);  border: 1px solid rgba(99,102,241,.2); }
-.cs-sh--rules         { background: rgba(239,68,68,.08);   border: 1px solid rgba(239,68,68,.2); }
-.cs-sh--steps         { background: rgba(16,185,129,.08);  border: 1px solid rgba(16,185,129,.2); }
-.cs-sh--examples      { background: rgba(6,182,212,.08);   border: 1px solid rgba(6,182,212,.2); }
-.cs-sh--summary_table { background: rgba(139,92,246,.08);  border: 1px solid rgba(139,92,246,.2); }
-.cs-sh--other         { background: var(--bg-hover); border: 1px solid var(--border); }
+/* ═══ SECTION ════════════════════════════════════════════════════════════════ */
+.cs-section { margin-bottom: 2rem; scroll-margin-top: 100px; }
+.cs-section-head {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .6rem .875rem; border-radius: 10px 10px 0 0;
+}
+.cs-sh--formulas      { background: rgba(245,158,11,.07);  border: 1px solid rgba(245,158,11,.18); }
+.cs-sh--definitions   { background: rgba(99,102,241,.07);  border: 1px solid rgba(99,102,241,.18); }
+.cs-sh--rules         { background: rgba(239,68,68,.07);   border: 1px solid rgba(239,68,68,.18); }
+.cs-sh--steps         { background: rgba(16,185,129,.07);  border: 1px solid rgba(16,185,129,.18); }
+.cs-sh--examples      { background: rgba(6,182,212,.07);   border: 1px solid rgba(6,182,212,.18); }
+.cs-sh--summary_table { background: rgba(139,92,246,.07);  border: 1px solid rgba(139,92,246,.18); }
+.cs-sh--other         { background: var(--bg-secondary); border: 1px solid var(--border); }
 
-.cs-section-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .8rem; flex-shrink: 0; }
-.cs-sh--formulas      .cs-section-icon { background: rgba(245,158,11,.2);  color: #f59e0b; }
-.cs-sh--definitions   .cs-section-icon { background: rgba(99,102,241,.2);  color: #6366f1; }
-.cs-sh--rules         .cs-section-icon { background: rgba(239,68,68,.2);   color: #ef4444; }
-.cs-sh--steps         .cs-section-icon { background: rgba(16,185,129,.2);  color: #10b981; }
-.cs-sh--examples      .cs-section-icon { background: rgba(6,182,212,.2);   color: #06b6d4; }
-.cs-sh--summary_table .cs-section-icon { background: rgba(139,92,246,.2);  color: #8b5cf6; }
-.cs-sh--other         .cs-section-icon { background: var(--bg-hover); color: var(--text-muted); }
+.cs-section-icon-wrap {
+  width: 26px; height: 26px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; flex-shrink: 0;
+}
+.cs-sh--formulas      .cs-section-icon-wrap { background: rgba(245,158,11,.18);  color: #f59e0b; }
+.cs-sh--definitions   .cs-section-icon-wrap { background: rgba(99,102,241,.18);  color: #6366f1; }
+.cs-sh--rules         .cs-section-icon-wrap { background: rgba(239,68,68,.18);   color: #ef4444; }
+.cs-sh--steps         .cs-section-icon-wrap { background: rgba(16,185,129,.18);  color: #10b981; }
+.cs-sh--examples      .cs-section-icon-wrap { background: rgba(6,182,212,.18);   color: #06b6d4; }
+.cs-sh--summary_table .cs-section-icon-wrap { background: rgba(139,92,246,.18);  color: #8b5cf6; }
+.cs-sh--other         .cs-section-icon-wrap { background: var(--bg-hover); color: var(--text-muted); }
 
-.cs-section-title { font-family: var(--font-display, 'Syne', sans-serif); font-size: .95rem; font-weight: 800; color: var(--text-primary); letter-spacing: -.02em; margin: 0; flex: 1; }
-.cs-entry-count { font-size: .68rem; font-weight: 700; color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
+.cs-section-title {
+  font-family: 'Nunito', sans-serif; font-size: .9rem; font-weight: 800;
+  color: var(--text-primary); letter-spacing: -.02em; margin: 0; flex: 1;
+}
+.cs-entry-count { font-size: .65rem; font-weight: 700; color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
 
-/* ── Standard entries grid ───────────────────────────────────────────────── */
-.cs-entries { border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; }
-.cs-entry { display: grid; grid-template-columns: minmax(140px, 28%) 1fr; gap: 0; border-bottom: 1px solid var(--border); transition: background .12s; }
+/* ═══ ENTRIES GRID ═══════════════════════════════════════════════════════════ */
+.cs-entries {
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 10px 10px; overflow: hidden;
+}
+.cs-entry {
+  display: grid; grid-template-columns: minmax(130px, 26%) 1fr;
+  border-bottom: 1px solid var(--border); transition: background .1s;
+}
 .cs-entry:last-child { border-bottom: none; }
 .cs-entry:hover { background: var(--bg-hover); }
-.cs-entry-label { padding: .75rem .875rem; font-size: .8rem; font-weight: 700; color: var(--text-primary); border-right: 1px solid var(--border); background: var(--bg-secondary); display: flex; align-items: flex-start; line-height: 1.5; overflow-wrap: break-word; word-break: break-word; min-width: 0; }
-.cs-entry-content { padding: .75rem .875rem; font-size: .85rem; color: var(--text-secondary); line-height: 1.6; grid-column: 2; overflow-wrap: break-word; word-break: break-word; min-width: 0; }
-.cs-formula { font-family: 'Courier New', monospace; font-size: .88rem; color: #f59e0b; letter-spacing: .02em; overflow-x: auto; }
-.cs-entry-note { grid-column: 1 / -1; padding: .5rem .875rem .6rem; font-size: .78rem; color: var(--text-muted); background: var(--bg-hover); border-top: 1px dashed var(--border); display: flex; align-items: flex-start; gap: .35rem; line-height: 1.6; font-style: italic; overflow-wrap: break-word; word-break: break-word; white-space: normal; }
-.cs-entry-note i { color: var(--primary); font-size: .65rem; margin-top: .25rem; flex-shrink: 0; }
-.cs-entry-note p { margin: 0; }
-.cs-entry-note > *:not(i) { flex: 1; min-width: 0; }
-.cs-note-text { flex: 1; min-width: 0; }
-.cs-note-text p { margin: 0; }
-.cs-entry-example { grid-column: 1 / -1; padding: .5rem .875rem .6rem; font-size: .78rem; color: var(--text-muted); border-top: 1px dashed var(--border); line-height: 1.6; overflow-wrap: break-word; word-break: break-word; white-space: normal; }
-.cs-entry-example p { margin: 0; display: inline; }
-.cs-entry-content p { margin: 0; }
-.cs-step-content p { margin: 0; }
-.cs-eg-label { font-weight: 800; font-size: .68rem; color: #06b6d4; text-transform: uppercase; letter-spacing: .06em; margin-right: .3rem; }
+.cs-entry-label {
+  padding: .7rem .875rem; font-size: .78rem; font-weight: 700;
+  color: var(--text-primary); border-right: 1px solid var(--border);
+  background: var(--bg-secondary); display: flex; align-items: flex-start;
+  line-height: 1.45; overflow-wrap: break-word; word-break: break-word; min-width: 0;
+}
+.cs-entry-content {
+  padding: .7rem .875rem; font-size: .83rem; color: var(--text-secondary);
+  line-height: 1.6; grid-column: 2; min-width: 0; overflow-x: auto;
+}
+.cs-formula { font-family: 'Courier New', monospace; font-size: .86rem; color: #f59e0b; letter-spacing: .02em; overflow-x: auto; display: block; }
+.cs-entry-note {
+  grid-column: 1 / -1; padding: .45rem .875rem .5rem;
+  font-size: .75rem; color: var(--text-muted); background: var(--bg-hover);
+  border-top: 1px dashed var(--border); display: flex; align-items: flex-start;
+  gap: .3rem; line-height: 1.55; font-style: italic; overflow-x: auto;
+}
+.cs-entry-note i { color: var(--primary); font-size: .62rem; margin-top: .22rem; flex-shrink: 0; }
+.cs-entry-eg {
+  grid-column: 1 / -1; padding: .4rem .875rem .5rem;
+  font-size: .75rem; color: var(--text-muted); border-top: 1px dashed var(--border); line-height: 1.55; overflow-x: auto;
+}
+.cs-eg-tag { font-weight: 800; font-size: .65rem; color: #06b6d4; text-transform: uppercase; letter-spacing: .06em; margin-right: .28rem; }
+.cs-entry-content p, .cs-step-content p { margin: 0; }
 
-/* Section-type accent on label column */
-.cs-entries--formulas    .cs-entry-label { border-right-color: rgba(245,158,11,.3); }
-.cs-entries--definitions .cs-entry-label { border-right-color: rgba(99,102,241,.3); }
-.cs-entries--rules       .cs-entry-label { border-right-color: rgba(239,68,68,.3); }
-.cs-entries--examples    .cs-entry-label { border-right-color: rgba(6,182,212,.3); }
+/* Section-type accent */
+.cs-entries--formulas    .cs-entry-label { border-right-color: rgba(245,158,11,.25); }
+.cs-entries--definitions .cs-entry-label { border-right-color: rgba(99,102,241,.25); }
+.cs-entries--rules       .cs-entry-label { border-right-color: rgba(239,68,68,.25); }
+.cs-entries--examples    .cs-entry-label { border-right-color: rgba(6,182,212,.25); }
 
-/* Summary table header row */
-.cs-summary-table-header { display: grid; grid-template-columns: minmax(140px, 28%) 1fr; background: var(--bg-hover); border-bottom: 2px solid var(--border); font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); }
-.cs-summary-table-header > div { padding: .5rem .875rem; }
-.cs-summary-table-header > div:first-child { border-right: 1px solid var(--border); }
-.cs-entry--table-row .cs-entry-content { display: flex; flex-direction: column; gap: .3rem; }
+/* Summary table header */
+.cs-table-head {
+  display: grid; grid-template-columns: minmax(130px, 26%) 1fr;
+  background: var(--bg-secondary); border-bottom: 1.5px solid var(--border);
+  font-size: .62rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-muted);
+}
+.cs-table-head > div { padding: .45rem .875rem; }
+.cs-table-head > div:first-child { border-right: 1px solid var(--border); }
 
-/* ── Steps list ──────────────────────────────────────────────────────────── */
-.cs-steps-list { border: 1px solid rgba(16,185,129,.2); border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; }
-.cs-step-item { display: flex; gap: 0; border-bottom: 1px solid var(--border); transition: background .12s; }
-.cs-step-item:last-child { border-bottom: none; }
-.cs-step-item:hover { background: var(--bg-hover); }
-.cs-step-num { display: flex; align-items: flex-start; justify-content: center; min-width: 42px; padding: .75rem; font-size: .78rem; font-weight: 800; color: #10b981; background: rgba(16,185,129,.06); border-right: 1px solid rgba(16,185,129,.15); padding-top: .9rem; }
-.cs-step-body { flex: 1; padding: .75rem .875rem; }
-.cs-step-label { font-size: .85rem; font-weight: 700; color: var(--text-primary); margin-bottom: .3rem; line-height: 1.4; }
-.cs-step-content { font-size: .82rem; color: var(--text-secondary); line-height: 1.6; }
-.cs-step-body .cs-entry-note { margin-top: .4rem; padding: 0; border: none; background: none; }
-.cs-step-body .cs-entry-example { margin-top: .3rem; padding: 0; border: none; }
+/* ═══ STEPS ══════════════════════════════════════════════════════════════════ */
+.cs-steps {
+  border: 1px solid rgba(16,185,129,.18); border-top: none;
+  border-radius: 0 0 10px 10px; overflow: hidden;
+}
+.cs-step {
+  display: flex; border-bottom: 1px solid var(--border); transition: background .1s;
+}
+.cs-step:last-child { border-bottom: none; }
+.cs-step:hover { background: var(--bg-hover); }
+.cs-step-num {
+  display: flex; align-items: flex-start; justify-content: center;
+  min-width: 40px; padding: .7rem; padding-top: .85rem;
+  font-size: .75rem; font-weight: 800; color: #10b981;
+  background: rgba(16,185,129,.05); border-right: 1px solid rgba(16,185,129,.15);
+}
+.cs-step-body { flex: 1; padding: .7rem .875rem; min-width: 0; overflow-x: auto; }
+.cs-step-label { font-size: .83rem; font-weight: 700; color: var(--text-primary); margin-bottom: .25rem; line-height: 1.4; }
+.cs-step-content { font-size: .8rem; color: var(--text-secondary); line-height: 1.6; }
+.cs-step-body .cs-entry-note, .cs-step-body .cs-entry-eg { margin-top: .35rem; padding: 0; border: none; background: none; grid-column: unset; overflow-x: visible; }
 
-/* ── Empty state ─────────────────────────────────────────────────────────── */
+/* ═══ EMPTY ══════════════════════════════════════════════════════════════════ */
 .cs-empty { text-align: center; padding: 4rem 1rem; color: var(--text-muted); }
-.cs-empty i { font-size: 2rem; opacity: .2; display: block; margin-bottom: .75rem; }
+.cs-empty i { font-size: 2rem; opacity: .15; display: block; margin-bottom: .75rem; }
 
-/* ── Comments ────────────────────────────────────────────────────────────── */
+/* ═══ COMMENTS ═══════════════════════════════════════════════════════════════ */
 .cs-comments { margin-top: 3rem; padding-top: 2rem; border-top: 2px solid var(--border); }
-.cs-comments-header { display: flex; align-items: center; gap: .6rem; margin-bottom: 1.25rem; }
-.cs-comments-title { font-family: var(--font-display, 'Syne', sans-serif); font-size: 1rem; font-weight: 800; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: .4rem; }
-.cs-comments-title i { color: var(--primary); font-size: .85rem; }
-.cs-count-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 .4rem; border-radius: 50px; background: var(--bg-hover); border: 1px solid var(--border); font-size: .68rem; font-weight: 800; color: var(--text-muted); }
-.cs-comment-form { display: flex; gap: .75rem; align-items: flex-start; margin-bottom: 1.5rem; }
-.cs-commenter-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; margin-top: .2rem; }
-.cs-comment-input-wrap { flex: 1; display: flex; flex-direction: column; gap: .5rem; }
-.cs-comment-input { width: 100%; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 10px; padding: .6rem .875rem; font-size: .85rem; color: var(--text-primary); font-family: var(--font-body, sans-serif); resize: vertical; min-height: 72px; transition: border-color .15s; box-sizing: border-box; }
+.cs-comments-head { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.1rem; }
+.cs-comments-title { font-family: 'Nunito', sans-serif; font-size: .9rem; font-weight: 800; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: .35rem; }
+.cs-comments-title i { color: var(--primary); font-size: .75rem; }
+.cs-pill { display: inline-flex; align-items: center; height: 19px; padding: 0 .4rem; border-radius: 50px; background: var(--bg-secondary); border: 1px solid var(--border); font-size: .62rem; font-weight: 700; color: var(--text-muted); }
+.cs-comment-form { display: flex; gap: .65rem; align-items: flex-start; margin-bottom: 1.5rem; }
+.cs-commenter-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; margin-top: .15rem; }
+.cs-comment-input-wrap { flex: 1; display: flex; flex-direction: column; gap: .4rem; }
+.cs-comment-input { width: 100%; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 10px; padding: .6rem .875rem; font-family: var(--font-body); font-size: .84rem; color: var(--text-primary); resize: vertical; min-height: 68px; transition: border-color .15s; box-sizing: border-box; }
 .cs-comment-input:focus { outline: none; border-color: var(--primary); }
-.cs-comment-submit { align-self: flex-end; padding: .5rem 1rem; border-radius: 8px; background: var(--primary); color: #fff; font-size: .8rem; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s; }
+.cs-comment-submit { align-self: flex-end; padding: .45rem .9rem; border-radius: 8px; background: var(--primary); color: #fff; font-family: var(--font-body); font-size: .78rem; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s; }
 .cs-comment-submit:hover { opacity: .85; }
-.cs-login-nudge { font-size: .85rem; color: var(--text-muted); padding: .875rem 1rem; background: var(--bg-hover); border-radius: 10px; margin-bottom: 1.25rem; }
+.cs-login-nudge { font-size: .83rem; color: var(--text-muted); padding: .75rem 1rem; background: var(--bg-secondary); border-radius: 10px; margin-bottom: 1.25rem; }
 .cs-login-nudge a { color: var(--primary); text-decoration: none; font-weight: 700; }
-.cs-comment-list { display: flex; flex-direction: column; gap: 1rem; }
-.cs-comment { display: flex; gap: .65rem; align-items: flex-start; }
-.cs-comment-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; }
+.cs-comment-list { display: flex; flex-direction: column; gap: .875rem; }
+.cs-comment { display: flex; gap: .6rem; align-items: flex-start; }
+.cs-comment-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; }
 .cs-comment-body { flex: 1; min-width: 0; }
-.cs-comment-head { display: flex; align-items: center; gap: .5rem; margin-bottom: .2rem; }
-.cs-comment-author { font-size: .8rem; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+.cs-comment-head { display: flex; align-items: center; gap: .4rem; margin-bottom: .15rem; }
+.cs-comment-author { font-size: .77rem; font-weight: 700; color: var(--text-primary); text-decoration: none; }
 .cs-comment-author:hover { color: var(--primary); }
-.cs-comment-time { font-size: .7rem; color: var(--text-muted); }
-.cs-comment-text { font-size: .84rem; color: var(--text-secondary); line-height: 1.6; margin: 0; }
-.cs-no-comments { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: .85rem; }
-.cs-no-comments i { font-size: 1.5rem; opacity: .2; display: block; margin-bottom: .5rem; }
+.cs-comment-time { font-size: .67rem; color: var(--text-muted); }
+.cs-comment-text { font-size: .82rem; color: var(--text-secondary); line-height: 1.65; margin: 0; }
+.cs-no-comments { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: .83rem; }
+.cs-no-comments i { font-size: 1.4rem; opacity: .15; display: block; margin-bottom: .5rem; }
 .cs-pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-.cs-page-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .4rem .875rem; font-size: .8rem; font-weight: 600; color: var(--primary); background: rgba(37,99,235,.08); border-radius: 8px; text-decoration: none; transition: background .15s; }
-.cs-page-btn:hover { background: rgba(37,99,235,.16); color: var(--primary); }
-.cs-page-info { font-size: .75rem; color: var(--text-muted); }
+.cs-page-btn { display: inline-flex; align-items: center; gap: .3rem; padding: .38rem .75rem; font-size: .77rem; font-weight: 600; color: var(--primary); background: rgba(37,99,235,.07); border-radius: 8px; text-decoration: none; transition: background .15s; }
+.cs-page-btn:hover { background: rgba(37,99,235,.14); }
+.cs-page-info { font-size: .7rem; color: var(--text-muted); }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
+/* ═══ RESPONSIVE ═════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  .cs-wrap { padding: 1.25rem 1rem 5rem; }
-  .cs-doc-header { flex-direction: column; gap: .75rem; }
-  .cs-doc-header-right { width: 100%; justify-content: space-between; }
+  .cs-hero { flex-direction: column; gap: .75rem; padding: 1.25rem 0 1.25rem; }
+  .cs-hero-right { width: 100%; justify-content: space-between; }
   .cs-entry { grid-template-columns: 1fr; }
   .cs-entry-label { border-right: none; border-bottom: 1px solid var(--border); padding: .5rem .875rem; }
   .cs-entry-content { grid-column: 1; }
-  .cs-summary-table-header { grid-template-columns: 1fr; }
-  .cs-summary-table-header > div:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+  .cs-table-head { grid-template-columns: 1fr; }
+  .cs-table-head > div:first-child { border-right: none; border-bottom: 1px solid var(--border); }
 }
-@media (max-width: 600px) {
-  .cs-wrap { padding: 1rem .875rem 5rem; }
-  .cs-topbar { padding: .5rem .875rem; gap: .4rem; }
+@media (max-width: 480px) {
+  .cs-wrap { padding: 0 .875rem 5rem; }
+  .cs-topbar { padding: .45rem .875rem; }
   .cs-icon-btn span { display: none; }
   .cs-subject-pill { display: none; }
+  .cs-title { font-size: 1.2rem; }
+  .cs-toc { gap: .5rem; }
 }
 </style>
 
@@ -538,34 +587,42 @@ window.MathJax = {
 async function toggleLike(btn) {
   if (btn.disabled) return;
   btn.disabled = true;
-  const postId   = btn.dataset.postId;
-  const isLiked  = btn.dataset.liked === 'true';
-  const countEl  = document.getElementById('likeCount');
-  const base     = parseInt(btn.dataset.base || '0', 10);
+  const postId = btn.dataset.postId, isLiked = btn.dataset.liked === 'true';
+  const countEl = document.getElementById('likeCount');
+  const base = parseInt(btn.dataset.base || '0', 10);
   const newLiked = !isLiked;
-  btn.dataset.liked = newLiked;
-  btn.classList.toggle('is-liked', newLiked);
+  btn.dataset.liked = newLiked; btn.classList.toggle('is-liked', newLiked);
   if (countEl) { const d = parseInt(countEl.textContent, 10); countEl.textContent = newLiked ? d + 1 : Math.max(base, d - 1); }
   try {
     const res = await fetch(`/posts/${postId}/like`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '' } });
-    if (!res.ok) throw new Error('failed');
+    if (!res.ok) throw new Error();
     const data = await res.json().catch(() => null);
-    if (data && data.like_count !== undefined && countEl) countEl.textContent = data.like_count + base;
-  } catch(e) {
-    btn.dataset.liked = isLiked;
-    btn.classList.toggle('is-liked', isLiked);
+    if (data?.like_count !== undefined && countEl) countEl.textContent = data.like_count + base;
+  } catch {
+    btn.dataset.liked = isLiked; btn.classList.toggle('is-liked', isLiked);
     if (countEl) { const d = parseInt(countEl.textContent, 10); countEl.textContent = isLiked ? d + 1 : Math.max(base, d - 1); }
   } finally { btn.disabled = false; }
 }
 
 function toggleDesc() {
-  const wrap = document.getElementById('descWrap');
-  const btn  = document.getElementById('descToggle');
-  const open = wrap.classList.toggle('is-open');
-  btn.innerHTML = open
-    ? '<i class="fas fa-chevron-up"></i> Show less'
-    : '<i class="fas fa-chevron-down"></i> Show more';
+  const desc = document.getElementById('descText');
+  const toggle = document.getElementById('descToggle');
+  const label = document.getElementById('descLabel');
+  const chevron = document.getElementById('descChevron');
+  const open = desc.classList.toggle('is-open');
+  toggle.classList.toggle('is-open', open);
+  label.textContent = open ? 'Show less' : 'Show more';
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const desc = document.getElementById('descText'), toggle = document.getElementById('descToggle');
+  if (desc && toggle) {
+    desc.style.maxHeight = 'none';
+    const full = desc.scrollHeight;
+    desc.style.maxHeight = '';
+    if (full <= desc.clientHeight + 4) toggle.style.display = 'none';
+  }
+});
 </script>
 
 {% endblock %}

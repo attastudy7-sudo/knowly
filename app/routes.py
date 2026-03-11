@@ -375,8 +375,10 @@ from sqlalchemy import func
 def library():
     programmes = Programme.query.filter_by(is_active=True).order_by(Programme.order, Programme.name).all()
 
-    ungrouped = Subject.query.filter_by(is_active=True, programme_id=None)\
-                             .order_by(Subject.order, Subject.name).all()
+    ungrouped = Subject.query.filter(
+        Subject.is_active == True,
+        ~Subject.programmes.any()
+    ).order_by(Subject.order, Subject.name).all()
 
     # Build faculty groups
     faculty_map = {}
@@ -460,8 +462,10 @@ def library_faculty(faculty_slug):
 def library_programme(slug):
     """Programme page — shows all subjects/courses within a programme."""
     programme = Programme.query.filter_by(slug=slug, is_active=True).first_or_404()
-    subjects = programme.subjects.filter_by(is_active=True)\
-                                   .order_by(Subject.order, Subject.name).all()
+    subjects = Subject.query.filter(
+        Subject.is_active == True,
+        Subject.programmes.any(Programme.id == programme.id)
+    ).order_by(Subject.order, Subject.name).all()
 
     subject_ids = [s.id for s in subjects]
     counts_by_subject = {s.id: {'notes': 0, 'cheatsheets': 0, 'quizzes': 0, 'mixed': 0, 'total': 0} for s in subjects}
@@ -541,7 +545,7 @@ def library_subject(slug):
         'quiz':       base_query.filter(Post.content_type == 'quiz').count(),
     }
 
-    programme = subject.programme  # may be None
+    programme = subject.programmes.first()  # may be None
 
     return render_template(
         'library/subject.html',

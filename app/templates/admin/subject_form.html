@@ -73,11 +73,41 @@
                 </div>
             </div>
 
+            {% if subject %}
             <div class="form-group">
-                {{ form.programme_id.label }}
-                {{ form.programme_id(class="form-control") }}
-                <small class="form-hint">Assign this subject to a programme (optional)</small>
+                <label>Programmes</label>
+                {% set progs = subject.programmes.all() %}
+                {% if progs %}
+                <ul style="margin: .4rem 0 .5rem 1rem; padding: 0; list-style: disc;">
+                    {% for p in progs %}
+                    <li style="font-size: .85rem; margin-bottom: .25rem;">
+                        {{ p.name }}
+                        <form method="post" action="{{ url_for('admin.remove_subject_programme', subject_id=subject.id, programme_id=p.id) }}" style="display:inline; margin-left:.5rem;">
+                            {{ form.hidden_tag() }}
+                            <button type="submit" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:.75rem;">✕ remove</button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p style="font-size:.85rem; color:var(--text-muted);">No programmes assigned.</p>
+                {% endif %}
+                <div style="display:flex; gap:.5rem; margin-top:.5rem;">
+                    <select name="add_programme_id" class="form-control" style="flex:1;">
+                        <option value="0">— Add to a programme —</option>
+                        {% for p in all_programmes %}
+                        <option value="{{ p.id }}">{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <form method="post" action="{{ url_for('admin.add_subject_programme', subject_id=subject.id) }}">
+                        {{ form.hidden_tag() }}
+                        <input type="hidden" name="add_programme_id" id="add_programme_id_hidden">
+                        <button type="submit" class="btn btn-sm btn-primary" onclick="document.getElementById('add_programme_id_hidden').value = document.querySelector('[name=add_programme_id]').value;">Add</button>
+                    </form>
+                </div>
+                <small class="form-hint">Add or remove this subject from programmes</small>
             </div>
+            {% endif %}
             
             {% if subject %}
             <div class="preview-card">

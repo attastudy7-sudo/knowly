@@ -125,7 +125,7 @@ def edit_programme(programme_id):
 def delete_programme(programme_id):
     prog = Programme.query.get_or_404(programme_id)
     for s in prog.subjects.all():
-        s.programme_id = None
+        s.programmes.remove(prog)
     name = prog.name
     db.session.delete(prog)
     db.session.commit()
@@ -157,10 +157,6 @@ def subjects():
 @admin_required
 def create_subject():
     form = SubjectForm()
-    form.programme_id.choices = [(0, '— None —')] + [
-        (p.id, p.name) for p in Programme.query.order_by(Programme.name).all()
-    ]
-
     if form.validate_on_submit():
         slug = slugify(form.name.data)
         if Subject.query.filter_by(slug=slug).first():
@@ -174,7 +170,6 @@ def create_subject():
             color=form.color.data or '#6366f1',
             order=int(form.order.data) if form.order.data else 0,
             is_active=form.is_active.data,
-            programme_id=form.programme_id.data if form.programme_id.data else None,
         )
         db.session.add(subject)
         db.session.commit()
@@ -190,10 +185,6 @@ def create_subject():
 def edit_subject(subject_id):
     subject = Subject.query.get_or_404(subject_id)
     form = SubjectForm()
-    form.programme_id.choices = [(0, '— None —')] + [
-        (p.id, p.name) for p in Programme.query.order_by(Programme.name).all()
-    ]
-
     if form.validate_on_submit():
         new_slug = slugify(form.name.data)
         if new_slug != subject.slug:
@@ -202,28 +193,53 @@ def edit_subject(subject_id):
                 flash('A subject with this name already exists.', 'danger')
                 return redirect(url_for('admin.edit_subject', subject_id=subject.id))
             subject.slug = new_slug
-        subject.name         = form.name.data
-        subject.description  = form.description.data
-        subject.icon         = form.icon.data or 'book'
-        subject.color        = form.color.data or '#6366f1'
-        subject.order        = int(form.order.data) if form.order.data else 0
-        subject.is_active    = form.is_active.data
-        subject.programme_id = form.programme_id.data if form.programme_id.data else None
+        subject.name        = form.name.data
+        subject.description = form.description.data
+        subject.icon        = form.icon.data or 'book'
+        subject.color       = form.color.data or '#6366f1'
+        subject.order       = int(form.order.data) if form.order.data else 0
+        subject.is_active   = form.is_active.data
         db.session.commit()
         flash(f'Subject "{subject.name}" updated successfully!', 'success')
         return redirect(url_for('admin.subjects'))
 
     elif request.method == 'GET':
-        form.name.data         = subject.name
-        form.description.data  = subject.description
-        form.icon.data         = subject.icon
-        form.color.data        = subject.color
-        form.order.data        = str(subject.order)
-        form.is_active.data    = subject.is_active
-        form.programme_id.data = subject.programme_id or 0
+        form.name.data        = subject.name
+        form.description.data = subject.description
+        form.icon.data        = subject.icon
+        form.color.data       = subject.color
+        form.order.data       = str(subject.order)
+        form.is_active.data   = subject.is_active
 
-    return render_template('admin/subject_form.html', title='Edit Subject', form=form, subject=subject)
+    all_programmes = Programme.query.order_by(Programme.name).all()
+    return render_template('admin/subject_form.html', title='Edit Subject', form=form, subject=subject, all_programmes=all_programmes)
 
+@bp.route('/subjects/<int:subject_id>/add-programme', methods=['POST'])
+@admin_required
+def add_subject_programme(subject_id):
+    subject = Subject.query.get_or_404(subject_id)
+    programme_id = request.form.get('add_programme_id', 0, type=int)
+    if programme_id:
+        programme = Programme.query.get(programme_id)
+        if programme and programme not in subject.programmes.all():
+            subject.programmes.append(programme)
+            db.session.commit()
+            flash(f'Subject linked to "{programme.name}".', 'success')
+        elif programme in subject.programmes.all():
+            flash('Subject is already linked to that programme.', 'warning')
+    return redirect(url_for('admin.edit_subject', subject_id=subject_id))
+
+
+@bp.route('/subjects/<int:subject_id>/remove-programme/<int:programme_id>', methods=['POST'])
+@admin_required
+def remove_subject_programme(subject_id, programme_id):
+    subject = Subject.query.get_or_404(subject_id)
+    programme = Programme.query.get_or_404(programme_id)
+    if programme in subject.programmes.all():
+        subject.programmes.remove(programme)
+        db.session.commit()
+        flash(f'Subject unlinked from "{programme.name}".', 'success')
+    return redirect(url_for('admin.edit_subject', subject_id=subject_id))
 
 @bp.route('/subjects/<int:subject_id>/delete', methods=['POST'])
 @admin_required

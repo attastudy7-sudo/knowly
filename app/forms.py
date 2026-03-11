@@ -132,7 +132,6 @@ class SubjectForm(FlaskForm):
     ])
     order = StringField('Display Order', validators=[Optional()])
     is_active = BooleanField('Active')
-    programme_id = SelectField('Programme', coerce=int, validators=[Optional()])
     submit = SubmitField('Save Subject')
 
 

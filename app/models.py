@@ -120,7 +120,7 @@ class User(UserMixin, db.Model):
     subscription_tier = db.Column(db.String(20), default='free', nullable=False)
     subscription_start_date = db.Column(db.DateTime)
     subscription_end_date = db.Column(db.DateTime)
-    free_quiz_attempts = db.Column(db.Integer, default=3, nullable=False)
+    free_quiz_attempts = db.Column(db.Integer, default=999, nullable=False)
     free_quiz_attempts_reset_date = db.Column(db.Date)
 
     # Profile information
@@ -310,7 +310,7 @@ class Post(db.Model):
         """Return icon based on content type."""
         icons = {
             'notes': 'sticky-note',
-            'cheatsheet': 'list-alt',
+            'cheatsheet': 'clone',
             'quiz': 'brain',
             'mixed': 'layer-group'
         }
@@ -479,6 +479,12 @@ class Document(db.Model):
     def __repr__(self):
         return f'<Document {self.original_filename}>'
 
+# Association table — subject shared across multiple programmes
+subject_programme = db.Table(
+    'subject_programme',
+    db.Column('subject_id',   db.Integer, db.ForeignKey('subject.id'),   primary_key=True),
+    db.Column('programme_id', db.Integer, db.ForeignKey('programme.id'), primary_key=True),
+)
 
 class Programme(db.Model):
     """
@@ -498,8 +504,8 @@ class Programme(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     faculty = db.Column(db.String(200), nullable=True, index=True)
     
-    # Relationship to subjects - use lazy='dynamic' for query-style access
-    subjects = db.relationship('Subject', back_populates='programme', lazy='dynamic')
+    # Relationship to subjects via association table
+    subjects = db.relationship('Subject', secondary='subject_programme', back_populates='programmes', lazy='dynamic')
 
     def __repr__(self):
         return f'<Programme {self.name}>'
@@ -518,11 +524,8 @@ class Subject(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     post_count = db.Column(db.Integer, default=0)
     
-    # Foreign key to link subjects to programmes
-    programme_id = db.Column(db.Integer, db.ForeignKey('programme.id'), nullable=True)
-    
-    # Relationship to Programme using back_populates
-    programme = db.relationship('Programme', back_populates='subjects')
+    # Many-to-many relationship to programmes via association table
+    programmes = db.relationship('Programme', secondary='subject_programme', back_populates='subjects', lazy='dynamic')
     posts = db.relationship('Post', backref='subject', lazy='dynamic')
 
     def update_post_count(self):

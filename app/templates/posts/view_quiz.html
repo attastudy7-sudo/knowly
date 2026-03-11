@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ post.title }}{% endblock %}
+{% block og_title %}{{ post.title }} - knowly{% endblock %}
+{% block og_description %}{{ post.description | striptags | truncate(160) if post.description else 'Study ' + post.content_type + ' on knowly' }}{% endblock %}
 
 {% block content %}
 
@@ -13,9 +15,9 @@
 
 <div class="qv-root">
 
-  {# ══════ TOP BAR ══════ #}
+  {# ══ TOP BAR ══ #}
   <header class="qv-topbar">
-    <a href="{{ url_for('main.library_subject', slug=post.subject.slug) if post.subject else url_for('main.index') }}" class="qv-back">
+    <a href="{{ url_for('main.library_subject', slug=post.subject.slug) if post.subject else url_for('main.index') }}" class="qv-back" title="Back">
       <i class="fas fa-arrow-left"></i>
     </a>
 
@@ -29,14 +31,11 @@
     </div>
 
     <div class="qv-topbar-actions">
-      {# Like #}
       {% if current_user.is_authenticated %}
       <button class="qv-icon-btn {% if post.is_liked_by(current_user) %}is-liked{% endif %}"
-              id="likeBtn"
-              data-post-id="{{ post.id }}"
+              id="likeBtn" data-post-id="{{ post.id }}"
               data-liked="{{ 'true' if post.is_liked_by(current_user) else 'false' }}"
-              data-base="{{ like_base }}"
-              onclick="toggleLike(this)" title="Like">
+              data-base="{{ like_base }}" onclick="toggleLike(this)" title="Like">
         <i class="fas fa-heart"></i>
         <span id="likeCount">{{ post.like_count() + like_base }}</span>
       </button>
@@ -46,19 +45,13 @@
         <span>{{ post.like_count() + like_base }}</span>
       </span>
       {% endif %}
-
-      {# Comments #}
       <a href="#comments" class="qv-icon-btn" title="Comments">
         <i class="fas fa-comment"></i>
         <span>{{ post.comment_count() }}</span>
       </a>
-
-      {# Share #}
       <button class="qv-icon-btn" onclick="shareQuiz()" title="Share">
         <i class="fas fa-share-nodes"></i>
       </button>
-
-      {# Edit #}
       {% if current_user.is_authenticated and current_user.id == post.user_id %}
       <a href="{{ url_for('posts.edit', post_id=post.id) }}" class="qv-icon-btn" title="Edit">
         <i class="fas fa-pen"></i>
@@ -67,35 +60,40 @@
     </div>
   </header>
 
-  <div class="qv-wrap">
+  {# ══ HERO BAND ══ #}
+  <div class="qv-hero-band">
+    <div class="qv-hero-band-inner">
 
-    {# ══════ HERO ══════ #}
-    <div class="qv-hero">
       <div class="qv-hero-left">
-
-        {% if q_level %}
-        <span class="qv-level-pill qv-level--{{ q_level | lower }}">{{ q_level }}</span>
-        {% endif %}
+        <div class="qv-hero-eyebrow">
+          {% if q_level %}<span class="qv-level-pill qv-level--{{ q_level | lower }}">{{ q_level }}</span>{% endif %}
+          {% if post.subject %}<span class="qv-subject-inline" style="color:{{ post.subject.color }}"><i class="fas fa-{{ post.subject.icon }}"></i> {{ post.subject.name }}</span>{% endif %}
+        </div>
 
         <h1 class="qv-title">{{ post.title }}</h1>
 
         <div class="qv-byline">
           <a href="{{ url_for('users.profile', username=post.author.username) }}" class="qv-author-link">
             <img src="{{ post.author.profile_picture_url }}" class="qv-author-avatar" alt="">
-            {{ post.author.full_name or post.author.username }}
+            <span>{{ post.author.full_name or post.author.username }}</span>
           </a>
           <span class="qv-dot">·</span>
           <span>{{ post.created_at.strftime('%b %d, %Y') }}</span>
-          {% if post.subject %}
           <span class="qv-dot">·</span>
-          <span style="color:{{ post.subject.color }}">
-            <i class="fas fa-{{ post.subject.icon }}"></i> {{ post.subject.name }}
-          </span>
-          {% endif %}
+          <span><i class="fas fa-users" style="font-size:.65rem;opacity:.6"></i> {{ total_participants }} attempt{{ 's' if total_participants != 1 }}</span>
         </div>
 
+        {# Stats row — inline, lightweight #}
+        <div class="qv-stats-row">
+          {% if q_count %}<div class="qv-stat-chip"><i class="fas fa-list-check"></i> {{ q_count }} question{{ 's' if q_count != 1 }}</div>{% endif %}
+          {% if q_marks %}<div class="qv-stat-chip"><i class="fas fa-star-half-stroke"></i> {{ q_marks }} marks</div>{% endif %}
+          {% if q_time  %}<div class="qv-stat-chip"><i class="fas fa-clock"></i> {{ q_time }}</div>{% endif %}
+          {% if q_xp    %}<div class="qv-stat-chip qv-stat-chip--xp"><i class="fas fa-bolt"></i> +{{ q_xp }} XP</div>{% endif %}
+        </div>
+
+        {# Description #}
         {% if post.description %}
-        <div class="qv-desc-wrap">
+        <div class="qv-desc-wrap" id="descWrap">
           <div class="qv-desc" id="qvDesc">{{ post.description | markdown | safe }}</div>
           <button class="qv-desc-toggle" id="qvDescToggle" onclick="toggleDesc()">
             <span id="qvDescLabel">Show more</span>
@@ -103,66 +101,34 @@
           </button>
         </div>
         {% endif %}
+      </div>
 
-        {# ── STATS ── #}
-        <div class="qv-stats">
-          {% if q_count %}
-          <div class="qv-stat">
-            <i class="fas fa-list-check"></i>
-            <div>
-              <span class="qv-stat-val">{{ q_count }}</span>
-              <span class="qv-stat-lbl">Question{{ 's' if q_count != 1 }}</span>
-            </div>
+      {# ── ACTION CARD ── #}
+      <div class="qv-action-card">
+        {% if user_entry %}
+        <div class="qv-score-display">
+          <div class="qv-score-ring">
+            <svg viewBox="0 0 64 64" class="qv-ring-svg">
+              <circle cx="32" cy="32" r="26" fill="none" stroke="var(--border)" stroke-width="4"/>
+              <circle cx="32" cy="32" r="26" fill="none"
+                stroke="{% if user_entry.score_pct >= 80 %}#10b981{% elif user_entry.score_pct >= 50 %}#f59e0b{% else %}#ef4444{% endif %}"
+                stroke-width="4" stroke-linecap="round"
+                stroke-dasharray="{{ (user_entry.score_pct / 100 * 163.4) | round(1) }} 163.4"
+                stroke-dashoffset="40.85"
+                transform="rotate(-90 32 32)"/>
+            </svg>
+            <span class="qv-ring-val">{{ user_entry.score_pct | round(0) | int }}%</span>
           </div>
-          {% endif %}
-
-          {% if q_marks %}
-          <div class="qv-stat">
-            <i class="fas fa-star-half-stroke"></i>
-            <div>
-              <span class="qv-stat-val">{{ q_marks }}</span>
-              <span class="qv-stat-lbl">Total Marks</span>
-            </div>
-          </div>
-          {% endif %}
-
-          {% if q_xp %}
-          <div class="qv-stat qv-stat--xp">
-            <i class="fas fa-bolt"></i>
-            <div>
-              <span class="qv-stat-val">+{{ q_xp }}</span>
-              <span class="qv-stat-lbl">XP Reward</span>
-            </div>
-          </div>
-          {% endif %}
-
-          {% if q_time %}
-          <div class="qv-stat">
-            <i class="fas fa-clock"></i>
-            <div>
-              <span class="qv-stat-val">{{ q_time }}</span>
-            </div>
-          </div>
-          {% endif %}
-
-          <div class="qv-stat">
-            <i class="fas fa-users"></i>
-            <div>
-              <span class="qv-stat-val">{{ total_participants }}</span>
-              <span class="qv-stat-lbl">Attempt{{ 's' if total_participants != 1 }}</span>
-            </div>
+          <div class="qv-score-meta">
+            <span class="qv-score-label">Your best score</span>
+            <span class="qv-score-marks">{{ user_entry.earned_marks | round(1) }} / {{ q_marks }} marks</span>
           </div>
         </div>
+        {% endif %}
 
-        {# ── CTA ── #}
-        <div class="qv-cta">
+        <div class="qv-cta-area">
           {% if current_user.is_authenticated %}
             {% if user_entry %}
-            <div class="qv-best-score">
-              <i class="fas fa-trophy"></i>
-              Your best: <strong>{{ user_entry.score_pct | round(1) }}%</strong>
-              &nbsp;({{ user_entry.earned_marks | round(1) }} / {{ q_marks }} marks)
-            </div>
             <a href="{{ url_for('quiz.quiz_start', post_id=post.id) }}" class="qv-btn qv-btn--retake">
               <i class="fas fa-rotate-right"></i> Retake Quiz
             </a>
@@ -178,58 +144,68 @@
           {% endif %}
         </div>
 
-      </div>{# /hero-left #}
-
-      {# ── RULES CARD ── #}
-      <div class="qv-rules-card">
-        <div class="qv-rules-title">
-          <i class="fas fa-circle-info"></i> Before you start
-        </div>
         <ul class="qv-rules-list">
-          {% if q_time %}
-          <li><i class="fas fa-clock"></i> You should complete this quiz in <strong>{{ q_time }} </strong></li>
-          {% endif %}
-          {% if q_count %}
-          <li><i class="fas fa-list-check"></i> <strong>{{ q_count }} question{{ 's' if q_count != 1 }}</strong> — answer all of them</li>
-          {% endif %}
-          {% if q_marks %}
-          <li><i class="fas fa-star"></i> Worth <strong>{{ q_marks }} mark{{ 's' if q_marks != 1 }}</strong> total</li>
-          {% endif %}
-          {% if q_xp %}
-          <li><i class="fas fa-bolt"></i> Earn up to <strong>{{ q_xp }} XP</strong> on completion</li>
-          {% endif %}
-          <li><i class="fas fa-eye-slash"></i> Results shown immediately after submission</li>
-          <li><i class="fas fa-rotate-right"></i> You can retake to improve your score</li>
+          {% if q_time %}<li><i class="fas fa-clock"></i> Complete in <strong>{{ q_time }}</strong></li>{% endif %}
+          {% if q_count %}<li><i class="fas fa-list-check"></i> <strong>{{ q_count }}</strong> question{{ 's' if q_count != 1 }}, answer all</li>{% endif %}
+          <li><i class="fas fa-eye-slash"></i> Results shown after submission</li>
+          <li><i class="fas fa-rotate-right"></i> Retake anytime to improve</li>
         </ul>
       </div>
 
-    </div>{# /hero #}
+    </div>
+  </div>{# /hero-band #}
 
-    {# ══════ LEADERBOARD ══════ #}
+  <div class="qv-body">
+
+    {# ══ LEADERBOARD ══ #}
     {% if leaderboard_entries %}
-    <div class="qv-leaderboard">
-      <div class="qv-section-header">
-        <h2 class="qv-section-title">
-          <i class="fas fa-ranking-star"></i> Leaderboard
-        </h2>
-        <span class="qv-count-pill">{{ total_participants }} participant{{ 's' if total_participants != 1 }}</span>
+    <section class="qv-section">
+      <div class="qv-section-head">
+        <h2 class="qv-section-title"><i class="fas fa-ranking-star"></i> Leaderboard</h2>
+        <span class="qv-pill">{{ total_participants }} participant{{ 's' if total_participants != 1 }}</span>
       </div>
 
-      <div class="qv-lb-table-wrap">
+      <div class="qv-lb-wrap">
+        {# Top 3 podium on desktop #}
+        {% if leaderboard_entries | length >= 3 %}
+        <div class="qv-podium">
+          {% set top3 = leaderboard_entries[:3] %}
+          {# Order: 2nd, 1st, 3rd #}
+          {% for idx in [1, 0, 2] %}
+          {% if idx < top3 | length %}
+          {% set entry = top3[idx] %}
+          <div class="qv-podium-slot qv-podium-slot--{{ ['silver','gold','bronze'][idx] }}">
+            <img src="{{ entry.user.profile_picture_url }}" class="qv-podium-avatar" alt="">
+            <div class="qv-podium-medal">
+              {% if idx == 0 %}<i class="fas fa-trophy"></i>
+              {% elif idx == 1 %}<i class="fas fa-medal"></i>
+              {% else %}<i class="fas fa-medal"></i>{% endif %}
+            </div>
+            <a href="{{ url_for('users.profile', username=entry.user.username) }}" class="qv-podium-name">
+              {{ (entry.user.full_name or entry.user.username) | truncate(14, True, '') }}
+            </a>
+            <span class="qv-podium-score">{{ entry.score_pct | round(1) }}%</span>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {# Full table #}
         <table class="qv-lb-table">
           <thead>
             <tr>
-              <th class="qv-th-rank">Rank</th>
+              <th class="qv-th-rank">#</th>
               <th>Student</th>
-              <th class="qv-th-num">Score</th>
-              <th class="qv-th-num">Marks</th>
-              <th class="qv-th-num qv-hide-sm">Time</th>
-              <th class="qv-th-num qv-hide-sm">XP</th>
+              <th class="qv-th-r">Score</th>
+              <th class="qv-th-r">Marks</th>
+              <th class="qv-th-r qv-hide-sm">Time</th>
+              <th class="qv-th-r qv-hide-sm">XP</th>
             </tr>
           </thead>
           <tbody>
             {% for entry in leaderboard_entries %}
-            <tr class="qv-lb-row {% if current_user.is_authenticated and entry.user_id == current_user.id %}qv-lb-row--me{% endif %}">
+            <tr class="qv-lb-row {% if current_user.is_authenticated and entry.user_id == current_user.id %}qv-lb-me{% endif %}">
               <td class="qv-td-rank">
                 {% if loop.index == 1 %}<span class="qv-medal qv-medal--gold"><i class="fas fa-trophy"></i></span>
                 {% elif loop.index == 2 %}<span class="qv-medal qv-medal--silver"><i class="fas fa-medal"></i></span>
@@ -247,41 +223,37 @@
                   </a>
                 </div>
               </td>
-              <td class="qv-td-num">
-                <span class="qv-score-pct {% if entry.score_pct >= 80 %}qv-score--high{% elif entry.score_pct >= 50 %}qv-score--mid{% else %}qv-score--low{% endif %}">
+              <td class="qv-td-r">
+                <span class="qv-score-pct {% if entry.score_pct >= 80 %}hi{% elif entry.score_pct >= 50 %}mid{% else %}lo{% endif %}">
                   {{ entry.score_pct | round(1) }}%
                 </span>
               </td>
-              <td class="qv-td-num qv-td-muted">{{ entry.earned_marks | round(1) }}/{{ q_marks }}</td>
-              <td class="qv-td-num qv-td-muted qv-hide-sm">
-                {{ '%d:%02d' | format(entry.time_taken // 60, entry.time_taken % 60) }}
-              </td>
-              <td class="qv-td-num qv-hide-sm">
-                <span class="qv-xp-badge">+{{ entry.xp_earned }}</span>
-              </td>
+              <td class="qv-td-r qv-td-muted">{{ entry.earned_marks | round(1) }}/{{ q_marks }}</td>
+              <td class="qv-td-r qv-td-muted qv-hide-sm">{{ '%d:%02d' | format(entry.time_taken // 60, entry.time_taken % 60) }}</td>
+              <td class="qv-td-r qv-hide-sm"><span class="qv-xp-tag">+{{ entry.xp_earned }}</span></td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
-      </div>
 
-      {% if current_user.is_authenticated and user_entry %}
-        {% set in_board = leaderboard_entries | selectattr('user_id', 'equalto', current_user.id) | list %}
-        {% if not in_board %}
-        <div class="qv-lb-outside">
-          <i class="fas fa-user-clock"></i>
-          Your best: <strong>{{ user_entry.score_pct | round(1) }}%</strong> — not yet in the top {{ leaderboard_entries | length }}. Keep going!
-        </div>
+        {% if current_user.is_authenticated and user_entry %}
+          {% set in_board = leaderboard_entries | selectattr('user_id', 'equalto', current_user.id) | list %}
+          {% if not in_board %}
+          <div class="qv-lb-nudge">
+            <i class="fas fa-user-clock"></i>
+            Your best: <strong>{{ user_entry.score_pct | round(1) }}%</strong> — not in the top {{ leaderboard_entries | length }} yet. Keep going!
+          </div>
+          {% endif %}
         {% endif %}
-      {% endif %}
-    </div>
+      </div>
+    </section>
     {% endif %}
 
-    {# ══════ COMMENTS ══════ #}
-    <div class="qv-comments" id="comments">
-      <div class="qv-section-header">
+    {# ══ COMMENTS ══ #}
+    <section class="qv-section" id="comments">
+      <div class="qv-section-head">
         <h3 class="qv-section-title"><i class="fas fa-comments"></i> Discussion</h3>
-        <span class="qv-count-pill">{{ post.comment_count() }}</span>
+        <span class="qv-pill">{{ post.comment_count() }}</span>
       </div>
 
       {% if current_user.is_authenticated %}
@@ -307,16 +279,13 @@
           </a>
           <div class="qv-comment-body">
             <div class="qv-comment-head">
-              <a href="{{ url_for('users.profile', username=comment.author.username) }}" class="qv-comment-author">
-                {{ comment.author.full_name or comment.author.username }}
-              </a>
+              <a href="{{ url_for('users.profile', username=comment.author.username) }}" class="qv-comment-author">{{ comment.author.full_name or comment.author.username }}</a>
               <span class="qv-comment-time">{{ comment.created_at.strftime('%b %d') }}</span>
             </div>
             <p class="qv-comment-text">{{ comment.content }}</p>
           </div>
         </div>
         {% endfor %}
-
         {% if not comments.items %}
         <div class="qv-no-comments">
           <i class="fas fa-comment-medical"></i>
@@ -328,24 +297,20 @@
       {% if comments.has_prev or comments.has_next %}
       <div class="qv-pagination">
         {% if comments.has_prev %}
-        <a href="{{ url_for('posts.view', post_id=post.id, page=comments.prev_num) }}" class="qv-page-btn">
-          <i class="fas fa-chevron-left"></i> Prev
-        </a>
+        <a href="{{ url_for('posts.view', post_id=post.id, page=comments.prev_num) }}" class="qv-page-btn"><i class="fas fa-chevron-left"></i> Prev</a>
         {% endif %}
         <span class="qv-page-info">{{ comments.page }} / {{ comments.pages }}</span>
         {% if comments.has_next %}
-        <a href="{{ url_for('posts.view', post_id=post.id, page=comments.next_num) }}" class="qv-page-btn">
-          Next <i class="fas fa-chevron-right"></i>
-        </a>
+        <a href="{{ url_for('posts.view', post_id=post.id, page=comments.next_num) }}" class="qv-page-btn">Next <i class="fas fa-chevron-right"></i></a>
         {% endif %}
       </div>
       {% endif %}
+    </section>
 
-    </div>
-  </div>{# /qv-wrap #}
+  </div>{# /qv-body #}
 </div>{# /qv-root #}
 
-{# ══════ SHARE SHEET ══════ #}
+{# ══ SHARE SHEET ══ #}
 <div id="shareSheet" class="qv-share-overlay" onclick="if(event.target===this)closeShare()">
   <div class="qv-share-sheet">
     <div class="qv-share-handle"></div>
@@ -354,35 +319,24 @@
       <button class="qv-share-close" onclick="closeShare()"><i class="fas fa-times"></i></button>
     </div>
     <div class="qv-share-url-row">
-      <input id="shareUrlInput" class="qv-share-url-input" type="text" readonly
-             value="{{ request.url }}">
-      <button class="qv-share-copy" onclick="copyLink()">
-        <i class="fas fa-copy" id="copyIcon"></i>
-      </button>
+      <input id="shareUrlInput" class="qv-share-url-input" type="text" readonly value="{{ request.url }}">
+      <button class="qv-share-copy" onclick="copyLink()"><i class="fas fa-copy" id="copyIcon"></i></button>
     </div>
     <div class="qv-share-options">
       <a class="qv-share-opt" id="waShare" href="#" target="_blank" rel="noopener">
-        <div class="qv-share-opt-icon" style="background:#25D366">
-          <i class="fab fa-whatsapp"></i>
-        </div>
+        <div class="qv-share-opt-icon" style="background:#25D366"><i class="fab fa-whatsapp"></i></div>
         <span>WhatsApp</span>
       </a>
       <a class="qv-share-opt" id="tgShare" href="#" target="_blank" rel="noopener">
-        <div class="qv-share-opt-icon" style="background:#229ED9">
-          <i class="fab fa-telegram"></i>
-        </div>
+        <div class="qv-share-opt-icon" style="background:#229ED9"><i class="fab fa-telegram"></i></div>
         <span>Telegram</span>
       </a>
       <a class="qv-share-opt" id="twShare" href="#" target="_blank" rel="noopener">
-        <div class="qv-share-opt-icon" style="background:#000">
-          <i class="fab fa-x-twitter"></i>
-        </div>
+        <div class="qv-share-opt-icon" style="background:#000"><i class="fab fa-x-twitter"></i></div>
         <span>X / Twitter</span>
       </a>
       <button class="qv-share-opt" onclick="nativeShare()">
-        <div class="qv-share-opt-icon" style="background:var(--primary)">
-          <i class="fas fa-share-alt"></i>
-        </div>
+        <div class="qv-share-opt-icon" style="background:var(--primary)"><i class="fas fa-share-alt"></i></div>
         <span>More</span>
       </button>
     </div>
@@ -390,403 +344,359 @@
 </div>
 
 <style>
-/* ── Root & layout ───────────────────────────────────────────────────────── */
-.qv-root { min-height: 100vh; background: var(--bg-main); font-family: var(--font-body); overflow-x: hidden; }
-.qv-wrap { max-width: 900px; margin: 0 auto; padding: 1.5rem 1.25rem 5rem; box-sizing: border-box; }
+/* ═══ ROOT ═══════════════════════════════════════════════════════════════════ */
+.qv-root { min-height: 100vh; background: var(--bg-main); overflow-x: hidden; }
 
-/* ── Top bar ─────────────────────────────────────────────────────────────── */
+/* ═══ TOP BAR ════════════════════════════════════════════════════════════════ */
 .qv-topbar {
   top: var(--nav-h, 62px); z-index: 100;
   display: flex; align-items: center; gap: .65rem;
-  padding: .55rem 1.25rem;
-  background: var(--bg-card); border-bottom: 1px solid var(--border);
+  padding: .5rem 1.25rem;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
   backdrop-filter: blur(14px);
 }
 .qv-back {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 8px;
-  border: 1.5px solid var(--border); color: var(--text-muted);
-  text-decoration: none; flex-shrink: 0; transition: all .15s;
+  width: 30px; height: 30px; border-radius: 8px;
+  color: var(--text-muted); text-decoration: none; flex-shrink: 0;
+  transition: color .15s;
 }
-.qv-back:hover { border-color: var(--primary); color: var(--primary); }
-.qv-topbar-meta { display: flex; align-items: center; gap: .45rem; flex: 1; overflow: hidden; }
+.qv-back:hover { color: var(--primary); }
+.qv-topbar-meta { display: flex; align-items: center; gap: .4rem; flex: 1; overflow: hidden; }
 .qv-type-pill {
-  display: inline-flex; align-items: center; gap: .3rem;
-  font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
-  padding: .18rem .5rem; border-radius: 6px;
+  display: inline-flex; align-items: center; gap: .28rem;
+  font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+  padding: .16rem .48rem; border-radius: 5px;
   background: rgba(99,102,241,.1); color: #6366f1; flex-shrink: 0;
 }
 .qv-subject-pill {
-  display: inline-flex; align-items: center; gap: .3rem;
-  font-size: .72rem; font-weight: 600; padding: .18rem .5rem; border-radius: 6px;
+  display: inline-flex; align-items: center; gap: .28rem;
+  font-size: .7rem; font-weight: 600; padding: .16rem .48rem; border-radius: 5px;
   color: var(--sc, var(--primary));
-  background: color-mix(in srgb, var(--sc, var(--primary)) 12%, transparent);
+  background: color-mix(in srgb, var(--sc, var(--primary)) 10%, transparent);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.qv-topbar-actions { display: flex; align-items: center; gap: .35rem; flex-shrink: 0; }
+.qv-topbar-actions { display: flex; align-items: center; gap: .25rem; flex-shrink: 0; }
 .qv-icon-btn {
-  display: inline-flex; align-items: center; gap: .28rem;
-  padding: .32rem .6rem; border-radius: 8px;
-  border: 1.5px solid var(--border); background: none;
-  color: var(--text-muted); font-size: .75rem; font-weight: 600;
-  cursor: pointer; text-decoration: none; transition: all .15s;
+  display: inline-flex; align-items: center; gap: .25rem;
+  padding: .3rem .55rem; border-radius: 7px;
+  border: none; background: none;
+  color: var(--text-muted); font-size: .73rem; font-weight: 600;
+  cursor: pointer; text-decoration: none; transition: color .15s;
   font-family: var(--font-body);
 }
-.qv-icon-btn:hover { border-color: var(--primary); color: var(--primary); }
-.qv-icon-btn.is-liked { border-color: #f87171; color: #ef4444; background: rgba(239,68,68,.06); }
+.qv-icon-btn:hover { color: var(--primary); }
+.qv-icon-btn.is-liked { color: #ef4444; }
 
-/* ── Hero ────────────────────────────────────────────────────────────────── */
-.qv-hero {
-  display: grid; grid-template-columns: 1fr 268px;
-  gap: 1.75rem; align-items: start;
-  padding: 1.75rem 0 2rem;
-  border-bottom: 1px solid var(--border); margin-bottom: 2rem;
+/* ═══ HERO BAND ══════════════════════════════════════════════════════════════ */
+.qv-hero-band {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 2rem 0 2.25rem;
 }
+.qv-hero-band-inner {
+  max-width: 900px; margin: 0 auto;
+  padding: 0 1.5rem;
+  display: grid; grid-template-columns: 1fr 280px;
+  gap: 2.5rem; align-items: start;
+}
+
+/* Eyebrow */
+.qv-hero-eyebrow { display: flex; align-items: center; gap: .5rem; margin-bottom: .75rem; flex-wrap: wrap; }
 .qv-level-pill {
   display: inline-flex; align-items: center;
-  font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
-  padding: .18rem .55rem; border-radius: 6px; margin-bottom: .6rem;
+  font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .09em;
+  padding: .15rem .5rem; border-radius: 4px;
 }
 .qv-level--beginner     { background: rgba(16,185,129,.1);  color: #10b981; }
 .qv-level--elementary   { background: rgba(6,182,212,.1);   color: #06b6d4; }
 .qv-level--intermediate { background: rgba(245,158,11,.1);  color: #f59e0b; }
 .qv-level--advanced     { background: rgba(239,68,68,.1);   color: #ef4444; }
 .qv-level--expert       { background: rgba(139,92,246,.1);  color: #8b5cf6; }
+.qv-subject-inline {
+  font-size: .72rem; font-weight: 600; display: flex; align-items: center; gap: .25rem;
+  opacity: .85;
+}
 
+/* Title */
 .qv-title {
   font-family: 'Nunito', sans-serif;
-  font-size: clamp(1.25rem, 3vw, 1.75rem); font-weight: 900;
-  color: var(--text-primary); letter-spacing: -.03em; line-height: 1.2; margin: 0 0 .6rem;
+  font-size: clamp(1.35rem, 3.5vw, 1.9rem);
+  font-weight: 900; letter-spacing: -.03em; line-height: 1.18;
+  color: var(--text-primary); margin: 0 0 .65rem;
+  word-break: break-word;
 }
+
+/* Byline */
 .qv-byline {
   display: flex; align-items: center; flex-wrap: wrap;
-  gap: .3rem; font-size: .75rem; color: var(--text-muted); margin-bottom: .75rem;
-  font-family: var(--font-body);
+  gap: .3rem; font-size: .72rem; color: var(--text-muted); margin-bottom: 1rem;
 }
 .qv-author-link {
-  display: inline-flex; align-items: center; gap: .3rem;
+  display: inline-flex; align-items: center; gap: .28rem;
   text-decoration: none; color: var(--text-muted); font-weight: 600; transition: color .15s;
 }
 .qv-author-link:hover { color: var(--primary); }
-.qv-author-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); }
-.qv-dot { color: var(--border); font-size: .65rem; }
+.qv-author-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); }
+.qv-dot { opacity: .4; font-size: .6rem; }
 
-.qv-desc-wrap {
-  position: relative;
-  margin: 0 0 1.25rem;
+/* Stats row — single horizontal strip */
+.qv-stats-row {
+  display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.1rem;
 }
+.qv-stat-chip {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-size: .72rem; font-weight: 600; color: var(--text-secondary);
+  padding: .28rem .65rem; border-radius: 6px;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+}
+.qv-stat-chip i { font-size: .65rem; color: var(--text-muted); }
+.qv-stat-chip--xp { color: #f59e0b; background: rgba(245,158,11,.07); border-color: rgba(245,158,11,.2); }
+.qv-stat-chip--xp i { color: #f59e0b; }
+
+/* Description */
+.qv-desc-wrap { margin-bottom: 0; }
 .qv-desc {
-  font-family: var(--font-body);
-  font-size: .875rem; color: var(--text-secondary);
-  line-height: 1.7;
-  padding: .75rem 1rem;
-  background: var(--bg-secondary);
-  border-left: 3px solid var(--primary);
-  border-radius: 0 10px 10px 0;
-  max-height: 17.8rem;
-  overflow: hidden;
-  transition: max-height .35s ease;
+  font-size: .85rem; color: var(--text-secondary); line-height: 1.7;
+  overflow: hidden; max-height: 4.8em; transition: max-height .35s ease;
 }
-.qv-desc.is-expanded { max-height: 100%; }
+.qv-desc.is-expanded { max-height: 60em; }
 .qv-desc p { margin: 0 0 .4rem; }
 .qv-desc p:last-child { margin: 0; }
 .qv-desc strong { color: var(--text-primary); font-weight: 700; }
-.qv-desc ul, .qv-desc ol { margin: .25rem 0 .4rem 1.1rem; }
-.qv-desc code { font-size: .82rem; background: var(--bg-hover); padding: .1rem .3rem; border-radius: 4px; }
 .qv-desc-toggle {
-  display: flex; align-items: center; gap: .3rem;
-  margin-top: .35rem;
+  display: inline-flex; align-items: center; gap: .25rem; margin-top: .35rem;
   background: none; border: none; cursor: pointer;
-  font-family: var(--font-body); font-size: .75rem; font-weight: 700;
-  color: var(--primary); padding: 0; transition: opacity .15s;
+  font-size: .72rem; font-weight: 700; color: var(--primary);
+  padding: 0; transition: opacity .15s; font-family: var(--font-body);
 }
-.qv-desc-toggle:hover { opacity: .75; }
-.qv-desc-toggle i { font-size: .6rem; transition: transform .3s; }
+.qv-desc-toggle:hover { opacity: .7; }
+.qv-desc-toggle i { font-size: .58rem; transition: transform .3s; }
 .qv-desc-toggle.is-expanded i { transform: rotate(180deg); }
 
-/* ── Stats ───────────────────────────────────────────────────────────────── */
-.qv-stats { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem; }
-.qv-stat {
-  display: flex; align-items: center; gap: .45rem;
-  padding: .5rem .8rem; background: var(--bg-card);
-  border: 1.5px solid var(--border); border-radius: 12px;
+/* ═══ ACTION CARD ════════════════════════════════════════════════════════════ */
+.qv-action-card {
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  padding: 1.35rem;
+  display: flex; flex-direction: column; gap: 1.1rem;
+  position: sticky; top: calc(var(--nav-h, 62px) + 52px);
 }
-.qv-stat i { font-size: .85rem; color: var(--text-muted); width: 14px; text-align: center; flex-shrink: 0; }
-.qv-stat--xp i { color: #f59e0b; }
-.qv-stat div { display: flex; flex-direction: column; }
-.qv-stat-val { font-family: 'Nunito', sans-serif; font-size: .9rem; font-weight: 800; color: var(--text-primary); line-height: 1.1; }
-.qv-stat--xp .qv-stat-val { color: #f59e0b; }
-.qv-stat-lbl { font-size: .62rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-top: .05rem; }
 
-/* ── CTA ─────────────────────────────────────────────────────────────────── */
-.qv-cta { display: flex; align-items: center; gap: .875rem; flex-wrap: wrap; }
-.qv-best-score {
-  font-size: .82rem; color: var(--text-muted);
-  display: flex; align-items: center; gap: .35rem;
-  font-family: var(--font-body);
+/* Score ring */
+.qv-score-display { display: flex; align-items: center; gap: .875rem; }
+.qv-score-ring { position: relative; width: 58px; height: 58px; flex-shrink: 0; }
+.qv-ring-svg { width: 100%; height: 100%; }
+.qv-ring-val {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: 'Nunito', sans-serif; font-size: .82rem; font-weight: 900;
+  color: var(--text-primary);
 }
-.qv-best-score i { color: #f59e0b; }
-.qv-best-score strong { color: var(--text-primary); }
+.qv-score-meta { display: flex; flex-direction: column; gap: .1rem; }
+.qv-score-label { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); }
+.qv-score-marks { font-size: .8rem; font-weight: 700; color: var(--text-primary); }
+
+/* CTA */
 .qv-btn {
-  display: inline-flex; align-items: center; gap: .5rem;
-  padding: .7rem 1.6rem; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; gap: .45rem;
+  width: 100%; padding: .8rem 1rem; border-radius: 12px;
   font-family: var(--font-body); font-size: .875rem; font-weight: 700;
-  text-decoration: none; transition: all .18s; letter-spacing: -.01em;
-  border: none; cursor: pointer;
+  text-decoration: none; transition: all .18s; border: none; cursor: pointer;
+  letter-spacing: -.01em;
 }
 .qv-btn--start {
   background: var(--primary); color: #fff;
-  box-shadow: 0 4px 16px rgba(37,99,235,.28);
+  box-shadow: 0 4px 16px rgba(37,99,235,.22);
 }
-.qv-btn--start:hover { background: var(--primary-dark, #1d4ed8); color: #fff; transform: translateY(-1px); }
+.qv-btn--start:hover { background: var(--primary-dark, #1d4ed8); color: #fff; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,.3); }
 .qv-btn--retake {
-  background: var(--bg-card); color: var(--primary);
-  border: 2px solid var(--primary);
+  background: transparent; color: var(--primary);
+  border: 1.5px solid var(--primary);
 }
-.qv-btn--retake:hover { background: rgba(37,99,235,.06); color: var(--primary); transform: translateY(-1px); }
+.qv-btn--retake:hover { background: rgba(37,99,235,.05); transform: translateY(-1px); }
 
-/* ── Rules card ──────────────────────────────────────────────────────────── */
-.qv-rules-card {
-  background: var(--bg-card); border: 1.5px solid var(--border);
-  border-radius: 16px; padding: 1.1rem; align-self: start;
+/* Rules list */
+.qv-rules-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: .5rem;
+  border-top: 1px solid var(--border); padding-top: 1rem;
 }
-.qv-rules-title {
-  font-family: var(--font-body); font-size: .72rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .07em;
-  color: var(--text-muted); display: flex; align-items: center; gap: .4rem; margin-bottom: .8rem;
-}
-.qv-rules-title i { color: var(--primary); }
-.qv-rules-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .6rem; }
 .qv-rules-list li {
-  display: flex; align-items: flex-start; gap: .55rem;
-  font-family: var(--font-body); font-size: .8rem;
-  color: var(--text-secondary); line-height: 1.5;
+  display: flex; align-items: flex-start; gap: .5rem;
+  font-size: .78rem; color: var(--text-secondary); line-height: 1.45;
 }
-.qv-rules-list i { width: 14px; text-align: center; margin-top: .1rem; flex-shrink: 0; color: var(--text-muted); font-size: .75rem; }
+.qv-rules-list i { width: 13px; text-align: center; margin-top: .15rem; flex-shrink: 0; color: var(--text-muted); font-size: .68rem; }
 .qv-rules-list strong { color: var(--text-primary); font-weight: 700; }
 
-/* ── Section header ──────────────────────────────────────────────────────── */
-.qv-section-header { display: flex; align-items: center; gap: .55rem; margin-bottom: 1.1rem; }
+/* ═══ BODY ═══════════════════════════════════════════════════════════════════ */
+.qv-body { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
+
+/* ═══ SECTIONS ═══════════════════════════════════════════════════════════════ */
+.qv-section { margin-bottom: 2.5rem; }
+.qv-section-head { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.1rem; }
 .qv-section-title {
-  font-family: 'Nunito', sans-serif; font-size: .95rem; font-weight: 800;
-  color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: .4rem;
+  font-family: 'Nunito', sans-serif; font-size: .9rem; font-weight: 800;
+  color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: .35rem;
 }
-.qv-section-title i { color: var(--primary); font-size: .8rem; }
-.qv-count-pill {
-  display: inline-flex; align-items: center; justify-content: center;
-  height: 20px; padding: 0 .45rem; border-radius: 50px;
-  background: var(--bg-hover); border: 1px solid var(--border);
-  font-family: var(--font-body); font-size: .65rem; font-weight: 700; color: var(--text-muted);
+.qv-section-title i { color: var(--primary); font-size: .75rem; }
+.qv-pill {
+  display: inline-flex; align-items: center;
+  height: 19px; padding: 0 .4rem; border-radius: 50px;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  font-size: .62rem; font-weight: 700; color: var(--text-muted);
 }
 
-/* ── Leaderboard ─────────────────────────────────────────────────────────── */
-.qv-leaderboard { margin-bottom: 2.5rem; }
-.qv-lb-table-wrap { border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; }
-.qv-lb-table { width: 100%; border-collapse: collapse; font-family: var(--font-body); }
+/* ═══ PODIUM ═════════════════════════════════════════════════════════════════ */
+.qv-podium {
+  display: flex; justify-content: center; align-items: flex-end;
+  gap: .75rem; margin-bottom: 1.5rem; padding: 1.25rem 1rem .5rem;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, transparent 100%);
+  border-radius: 14px;
+}
+.qv-podium-slot {
+  display: flex; flex-direction: column; align-items: center; gap: .35rem;
+  flex: 1; max-width: 110px;
+}
+.qv-podium-slot--gold   { order: 2; }
+.qv-podium-slot--silver { order: 1; }
+.qv-podium-slot--bronze { order: 3; }
+.qv-podium-avatar {
+  border-radius: 50%; object-fit: cover; border: 2.5px solid var(--border);
+}
+.qv-podium-slot--gold   .qv-podium-avatar { width: 52px; height: 52px; border-color: #f59e0b; }
+.qv-podium-slot--silver .qv-podium-avatar { width: 42px; height: 42px; }
+.qv-podium-slot--bronze .qv-podium-avatar { width: 38px; height: 38px; }
+.qv-podium-medal { font-size: .9rem; }
+.qv-podium-slot--gold   .qv-podium-medal { color: #f59e0b; font-size: 1rem; }
+.qv-podium-slot--silver .qv-podium-medal { color: #94a3b8; }
+.qv-podium-slot--bronze .qv-podium-medal { color: #b4783c; }
+.qv-podium-name {
+  font-size: .7rem; font-weight: 700; color: var(--text-primary);
+  text-decoration: none; text-align: center; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.qv-podium-name:hover { color: var(--primary); }
+.qv-podium-score { font-family: 'Nunito', sans-serif; font-size: .78rem; font-weight: 800; color: var(--text-muted); }
+.qv-podium-slot--gold .qv-podium-score { color: var(--text-primary); }
+
+/* ═══ LEADERBOARD TABLE ══════════════════════════════════════════════════════ */
+.qv-lb-wrap { border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; }
+.qv-lb-table { width: 100%; border-collapse: collapse; }
 .qv-lb-table thead tr { background: var(--bg-secondary); border-bottom: 1px solid var(--border); }
 .qv-lb-table th {
-  padding: .6rem .875rem; font-size: .65rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); text-align: left;
+  padding: .55rem .875rem; font-size: .62rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); text-align: left;
 }
-.qv-th-rank { width: 52px; }
-.qv-th-num  { text-align: right !important; width: 80px; }
-.qv-lb-row { border-bottom: 1px solid var(--border); transition: background .12s; }
+.qv-th-rank { width: 48px; text-align: center; }
+.qv-th-r  { text-align: right !important; }
+.qv-lb-row { border-bottom: 1px solid var(--border); transition: background .1s; }
 .qv-lb-row:last-child { border-bottom: none; }
 .qv-lb-row:hover { background: var(--bg-hover); }
-.qv-lb-row--me { background: rgba(37,99,235,.04); }
-.qv-lb-row--me:hover { background: rgba(37,99,235,.08); }
+.qv-lb-me { background: rgba(37,99,235,.03); }
+.qv-lb-me:hover { background: rgba(37,99,235,.06); }
 .qv-lb-table td { padding: .6rem .875rem; }
 .qv-td-rank { text-align: center; }
-.qv-td-num  { text-align: right; font-size: .8rem; }
+.qv-td-r  { text-align: right; font-size: .78rem; }
 .qv-td-muted { color: var(--text-muted); }
-.qv-medal { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; font-size: .75rem; }
-.qv-medal--gold   { background: rgba(251,191,36,.15); color: #f59e0b; }
-.qv-medal--silver { background: rgba(148,163,184,.15); color: #94a3b8; }
-.qv-medal--bronze { background: rgba(180,120,60,.15);  color: #b4783c; }
-.qv-rank-num { font-size: .75rem; font-weight: 700; color: var(--text-muted); }
-.qv-lb-user { display: flex; align-items: center; gap: .45rem; }
-.qv-lb-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; }
-.qv-lb-name { font-size: .8rem; font-weight: 600; color: var(--text-primary); text-decoration: none; display: flex; align-items: center; gap: .3rem; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.qv-medal { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-size: .7rem; }
+.qv-medal--gold   { background: rgba(251,191,36,.12); color: #f59e0b; }
+.qv-medal--silver { background: rgba(148,163,184,.12); color: #94a3b8; }
+.qv-medal--bronze { background: rgba(180,120,60,.12);  color: #b4783c; }
+.qv-rank-num { font-size: .72rem; font-weight: 700; color: var(--text-muted); }
+.qv-lb-user { display: flex; align-items: center; gap: .4rem; min-width: 0; overflow: hidden; }
+.qv-lb-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; }
+.qv-lb-name {
+  font-size: .78rem; font-weight: 600; color: var(--text-primary);
+  text-decoration: none; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  max-width: 160px; display: flex; align-items: center; gap: .28rem;
+}
 .qv-lb-name:hover { color: var(--primary); }
-.qv-you-tag { font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: .1rem .3rem; border-radius: 4px; background: rgba(37,99,235,.12); color: var(--primary); }
-.qv-score-pct { font-weight: 800; font-size: .85rem; }
-.qv-score--high { color: #10b981; }
-.qv-score--mid  { color: #f59e0b; }
-.qv-score--low  { color: #ef4444; }
-.qv-xp-badge { display: inline-flex; align-items: center; padding: .12rem .38rem; border-radius: 6px; background: rgba(245,158,11,.1); color: #f59e0b; font-size: .72rem; font-weight: 700; }
-.qv-lb-outside { margin-top: .75rem; padding: .7rem .875rem; background: var(--bg-hover); border: 1px dashed var(--border); border-radius: 10px; font-family: var(--font-body); font-size: .8rem; color: var(--text-muted); display: flex; align-items: center; gap: .45rem; }
-.qv-lb-outside strong { color: var(--text-primary); }
+.qv-you-tag { font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: .08rem .28rem; border-radius: 3px; background: rgba(37,99,235,.1); color: var(--primary); flex-shrink: 0; }
+.qv-score-pct { font-weight: 800; font-size: .82rem; }
+.qv-score-pct.hi  { color: #10b981; }
+.qv-score-pct.mid { color: #f59e0b; }
+.qv-score-pct.lo  { color: #ef4444; }
+.qv-xp-tag { display: inline-flex; align-items: center; padding: .1rem .35rem; border-radius: 5px; background: rgba(245,158,11,.08); color: #f59e0b; font-size: .7rem; font-weight: 700; }
+.qv-lb-nudge { margin-top: .75rem; padding: .65rem .875rem; background: var(--bg-secondary); border-top: 1px solid var(--border); font-size: .78rem; color: var(--text-muted); display: flex; align-items: center; gap: .4rem; }
+.qv-lb-nudge strong { color: var(--text-primary); }
 
-/* ── Comments ────────────────────────────────────────────────────────────── */
-.qv-comments { padding-top: 2rem; border-top: 2px solid var(--border); }
-.qv-comment-form { display: flex; gap: .7rem; align-items: flex-start; margin-bottom: 1.5rem; }
-.qv-commenter-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; margin-top: .15rem; }
-.qv-comment-input-wrap { flex: 1; display: flex; flex-direction: column; gap: .45rem; }
+/* ═══ COMMENTS ═══════════════════════════════════════════════════════════════ */
+.qv-comment-form { display: flex; gap: .65rem; align-items: flex-start; margin-bottom: 1.5rem; }
+.qv-commenter-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; margin-top: .15rem; }
+.qv-comment-input-wrap { flex: 1; display: flex; flex-direction: column; gap: .4rem; }
 .qv-comment-input {
   width: 100%; background: var(--bg-card); border: 1.5px solid var(--border);
   border-radius: 10px; padding: .6rem .875rem;
   font-family: var(--font-body); font-size: .84rem; color: var(--text-primary);
-  resize: vertical; min-height: 70px; transition: border-color .15s; box-sizing: border-box;
+  resize: vertical; min-height: 68px; transition: border-color .15s; box-sizing: border-box;
 }
 .qv-comment-input:focus { outline: none; border-color: var(--primary); }
 .qv-comment-submit {
-  align-self: flex-end; padding: .48rem .95rem; border-radius: 8px;
+  align-self: flex-end; padding: .45rem .9rem; border-radius: 8px;
   background: var(--primary); color: #fff;
   font-family: var(--font-body); font-size: .78rem; font-weight: 700;
   border: none; cursor: pointer; transition: opacity .15s;
 }
 .qv-comment-submit:hover { opacity: .85; }
-.qv-login-nudge { font-family: var(--font-body); font-size: .84rem; color: var(--text-muted); padding: .8rem 1rem; background: var(--bg-hover); border-radius: 10px; margin-bottom: 1.25rem; }
+.qv-login-nudge { font-size: .83rem; color: var(--text-muted); padding: .75rem 1rem; background: var(--bg-secondary); border-radius: 10px; margin-bottom: 1.25rem; }
 .qv-login-nudge a { color: var(--primary); text-decoration: none; font-weight: 700; }
 .qv-comment-list { display: flex; flex-direction: column; gap: .875rem; }
 .qv-comment { display: flex; gap: .6rem; align-items: flex-start; }
-.qv-comment-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; }
+.qv-comment-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; }
 .qv-comment-body { flex: 1; min-width: 0; }
-.qv-comment-head { display: flex; align-items: center; gap: .45rem; margin-bottom: .18rem; }
-.qv-comment-author { font-family: var(--font-body); font-size: .78rem; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+.qv-comment-head { display: flex; align-items: center; gap: .4rem; margin-bottom: .15rem; }
+.qv-comment-author { font-size: .77rem; font-weight: 700; color: var(--text-primary); text-decoration: none; }
 .qv-comment-author:hover { color: var(--primary); }
-.qv-comment-time { font-size: .68rem; color: var(--text-muted); }
-.qv-comment-text { font-family: var(--font-body); font-size: .82rem; color: var(--text-secondary); line-height: 1.65; margin: 0; }
-.qv-no-comments { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-family: var(--font-body); font-size: .84rem; }
-.qv-no-comments i { font-size: 1.5rem; opacity: .2; display: block; margin-bottom: .5rem; }
+.qv-comment-time { font-size: .67rem; color: var(--text-muted); }
+.qv-comment-text { font-size: .82rem; color: var(--text-secondary); line-height: 1.65; margin: 0; }
+.qv-no-comments { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: .83rem; }
+.qv-no-comments i { font-size: 1.4rem; opacity: .18; display: block; margin-bottom: .5rem; }
 .qv-pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-.qv-page-btn { display: inline-flex; align-items: center; gap: .3rem; padding: .38rem .8rem; font-family: var(--font-body); font-size: .78rem; font-weight: 600; color: var(--primary); background: rgba(37,99,235,.08); border-radius: 8px; text-decoration: none; transition: background .15s; }
-.qv-page-btn:hover { background: rgba(37,99,235,.16); color: var(--primary); }
-.qv-page-info { font-size: .72rem; color: var(--text-muted); }
+.qv-page-btn { display: inline-flex; align-items: center; gap: .3rem; padding: .38rem .75rem; font-size: .77rem; font-weight: 600; color: var(--primary); background: rgba(37,99,235,.07); border-radius: 8px; text-decoration: none; transition: background .15s; }
+.qv-page-btn:hover { background: rgba(37,99,235,.14); }
+.qv-page-info { font-size: .7rem; color: var(--text-muted); }
 
-/* ── Share sheet ─────────────────────────────────────────────────────────── */
-.qv-share-overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.6); z-index: 500;
-  align-items: flex-end; justify-content: center;
-}
+/* ═══ SHARE SHEET ════════════════════════════════════════════════════════════ */
+.qv-share-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 500; align-items: flex-end; justify-content: center; }
 .qv-share-overlay.is-open { display: flex; }
-.qv-share-sheet {
-  background: var(--bg-card); border-radius: 22px 22px 0 0;
-  width: 100%; max-width: 480px; padding: .5rem 1.25rem 2.5rem;
-  animation: shareUp .22s cubic-bezier(.22,1,.36,1);
-}
-@keyframes shareUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.qv-share-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border); margin: .6rem auto 1.1rem; }
+.qv-share-sheet { background: var(--bg-card); border-radius: 22px 22px 0 0; width: 100%; max-width: 480px; padding: .5rem 1.25rem 2.5rem; animation: shareUp .22s cubic-bezier(.22,1,.36,1); }
+@keyframes shareUp { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.qv-share-handle { width: 34px; height: 3.5px; border-radius: 2px; background: var(--border); margin: .65rem auto 1rem; }
 .qv-share-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-.qv-share-title { font-family: 'Nunito', sans-serif; font-size: .9rem; font-weight: 800; color: var(--text-primary); }
+.qv-share-title { font-family: 'Nunito', sans-serif; font-size: .88rem; font-weight: 800; color: var(--text-primary); }
 .qv-share-close { background: none; border: none; color: var(--text-muted); font-size: 1rem; cursor: pointer; padding: .25rem; border-radius: 6px; transition: color .15s; }
 .qv-share-close:hover { color: var(--text-primary); }
 .qv-share-url-row { display: flex; gap: .5rem; margin-bottom: 1.25rem; }
-.qv-share-url-input {
-  flex: 1; background: var(--bg-secondary); border: 1.5px solid var(--border);
-  border-radius: 10px; padding: .55rem .875rem;
-  font-family: var(--font-body); font-size: .78rem; color: var(--text-secondary);
-  outline: none; min-width: 0;
-}
-.qv-share-copy {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 10px;
-  background: var(--primary); color: #fff; border: none; cursor: pointer;
-  font-size: .9rem; transition: opacity .15s; flex-shrink: 0;
-}
+.qv-share-url-input { flex: 1; background: var(--bg-secondary); border: 1.5px solid var(--border); border-radius: 10px; padding: .52rem .875rem; font-size: .77rem; color: var(--text-secondary); outline: none; min-width: 0; font-family: var(--font-body); }
+.qv-share-copy { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 10px; background: var(--primary); color: #fff; border: none; cursor: pointer; font-size: .88rem; transition: opacity .15s; flex-shrink: 0; }
 .qv-share-copy:hover { opacity: .85; }
 .qv-share-options { display: flex; justify-content: space-around; gap: .5rem; }
-.qv-share-opt {
-  display: flex; flex-direction: column; align-items: center; gap: .5rem;
-  font-family: var(--font-body); font-size: .72rem; font-weight: 600;
-  color: var(--text-secondary); text-decoration: none;
-  background: none; border: none; cursor: pointer; padding: .25rem; flex: 1;
-}
-.qv-share-opt-icon {
-  width: 46px; height: 46px; border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem; color: #fff;
-}
+.qv-share-opt { display: flex; flex-direction: column; align-items: center; gap: .45rem; font-size: .7rem; font-weight: 600; color: var(--text-secondary); text-decoration: none; background: none; border: none; cursor: pointer; padding: .2rem; flex: 1; font-family: var(--font-body); }
+.qv-share-opt-icon { width: 44px; height: 44px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: #fff; }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
-/* ── Overflow safety — nothing bleeds off screen ─────────────────────────── */
-.qv-root, .qv-wrap, .qv-hero, .qv-hero-left,
-.qv-title, .qv-byline, .qv-desc,
-.qv-leaderboard, .qv-comments { max-width: 100%; overflow-x: hidden; }
-
-.qv-title {
-  word-break: break-word;
-  overflow-wrap: break-word;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-}
-
-.qv-lb-name {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  max-width: 140px;
-  display: block;
-}
-
-.qv-lb-user { min-width: 0; overflow: hidden; }
-
-/* ── Tablet ──────────────────────────────────────────────────────────────── */
-@media (max-width: 700px) {
-  .qv-hero { grid-template-columns: 1fr; gap: 1rem; }
-  .qv-rules-card { order: -1; }
+/* ═══ RESPONSIVE ═════════════════════════════════════════════════════════════ */
+@media (max-width: 720px) {
+  .qv-hero-band-inner { grid-template-columns: 1fr; gap: 1.25rem; }
+  .qv-action-card { position: static; }
+  .qv-podium { display: none; }
   .qv-hide-sm { display: none !important; }
-  .qv-share-sheet { border-radius: 22px 22px 0 0; max-width: 100%; }
-  .qv-lb-table th, .qv-lb-table td { padding: .5rem .6rem; }
+  .qv-body { padding: 1.5rem 1rem 5rem; }
 }
-
-/* ── Mobile ──────────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .qv-wrap { padding: .75rem .75rem 5rem; }
-  .qv-topbar { padding: .45rem .875rem; gap: .4rem; }
+  .qv-hero-band { padding: 1.25rem 0 1.5rem; }
+  .qv-hero-band-inner { padding: 0 .875rem; }
+  .qv-title { font-size: 1.2rem; }
+  .qv-topbar { padding: .45rem .875rem; }
   .qv-icon-btn span { display: none; }
-  .qv-icon-btn { padding: .32rem .45rem; }
+  .qv-icon-btn { padding: .28rem .4rem; }
   .qv-subject-pill { display: none; }
-
-  /* Hero */
-  .qv-hero { padding: 1.1rem 0 1.25rem; gap: .875rem; }
-  .qv-title { font-size: 1.15rem; letter-spacing: -.025em; }
-  .qv-byline { font-size: .7rem; gap: .2rem; }
-  .qv-byline .qv-dot:nth-child(n+4),
-  .qv-byline span:nth-child(n+5) { display: none; }
-
-  /* Description */
-  .qv-desc { font-size: .82rem; padding: .65rem .875rem; }
-  .qv-desc p { margin: 0 0 .35rem; }
-
-  /* Stats — 2 columns on mobile */
-  .qv-stats { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
-  .qv-stat { padding: .5rem .65rem; border-radius: 10px; }
-  .qv-stat-val { font-size: .85rem; }
-  .qv-stat-lbl { font-size: .58rem; }
-
-  /* CTA */
-  .qv-cta { flex-direction: column; align-items: flex-start; gap: .6rem; }
-  .qv-btn { width: 100%; justify-content: center; padding: .65rem 1rem; font-size: .84rem; }
-  .qv-best-score { font-size: .78rem; }
-
-  /* Rules card */
-  .qv-rules-card { padding: .875rem; }
-  .qv-rules-list li { font-size: .76rem; }
-
-  /* Leaderboard */
-  .qv-leaderboard { margin-bottom: 1.75rem; }
-  .qv-lb-table-wrap { border-radius: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .qv-lb-table { min-width: 320px; }
-  .qv-lb-table th, .qv-lb-table td { padding: .45rem .5rem; font-size: .72rem; }
-  .qv-lb-name { max-width: 100px; }
-  .qv-lb-avatar { width: 22px; height: 22px; }
-  .qv-score-pct { font-size: .78rem; }
-  .qv-medal { width: 22px; height: 22px; font-size: .65rem; }
-  .qv-lb-outside { font-size: .75rem; }
-
-  /* Section header */
-  .qv-section-title { font-size: .85rem; }
-  .qv-count-pill { font-size: .6rem; }
-
-  /* Comments */
-  .qv-comment-input { font-size: .8rem; min-height: 60px; }
-  .qv-comment-text { font-size: .78rem; }
-  .qv-comment-author { font-size: .75rem; }
+  .qv-stats-row { gap: .3rem; }
+  .qv-stat-chip { font-size: .68rem; padding: .24rem .55rem; }
+  .qv-lb-name { max-width: 110px; }
+  .qv-share-sheet { border-radius: 22px 22px 0 0; max-width: 100%; }
 }
-
-/* ── Share sheet desktop ─────────────────────────────────────────────────── */
 @media (min-width: 640px) {
   .qv-share-overlay { align-items: center; }
   .qv-share-sheet { border-radius: 22px; padding-bottom: 1.5rem; }
@@ -795,100 +705,66 @@
 </style>
 
 <script>
-// ── Like toggle ───────────────────────────────────────────────────────────
 async function toggleLike(btn) {
   if (btn.disabled) return;
   btn.disabled = true;
-  const postId   = btn.dataset.postId;
-  const isLiked  = btn.dataset.liked === 'true';
-  const countEl  = document.getElementById('likeCount');
-  const base     = parseInt(btn.dataset.base || '0', 10);
+  const postId = btn.dataset.postId, isLiked = btn.dataset.liked === 'true';
+  const countEl = document.getElementById('likeCount');
+  const base = parseInt(btn.dataset.base || '0', 10);
   const newLiked = !isLiked;
   btn.dataset.liked = newLiked;
   btn.classList.toggle('is-liked', newLiked);
-  if (countEl) {
-    const d = parseInt(countEl.textContent, 10);
-    countEl.textContent = newLiked ? d + 1 : Math.max(base, d - 1);
-  }
+  if (countEl) { const d = parseInt(countEl.textContent, 10); countEl.textContent = newLiked ? d + 1 : Math.max(base, d - 1); }
   try {
-    const res = await fetch(`/posts/${postId}/like`, {
-      method: 'POST',
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
-      }
-    });
+    const res = await fetch(`/posts/${postId}/like`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '' } });
     if (!res.ok) throw new Error();
     const data = await res.json().catch(() => null);
-    if (data?.like_count !== undefined && countEl)
-      countEl.textContent = data.like_count + base;
+    if (data?.like_count !== undefined && countEl) countEl.textContent = data.like_count + base;
   } catch {
-    btn.dataset.liked = isLiked;
-    btn.classList.toggle('is-liked', isLiked);
-    if (countEl) {
-      const d = parseInt(countEl.textContent, 10);
-      countEl.textContent = isLiked ? d + 1 : Math.max(base, d - 1);
-    }
+    btn.dataset.liked = isLiked; btn.classList.toggle('is-liked', isLiked);
+    if (countEl) { const d = parseInt(countEl.textContent, 10); countEl.textContent = isLiked ? d + 1 : Math.max(base, d - 1); }
   } finally { btn.disabled = false; }
 }
 
-// ── Share sheet ───────────────────────────────────────────────────────────
 function shareQuiz() {
-  const url  = window.location.href;
+  const url = window.location.href;
   const text = encodeURIComponent('{{ post.title | replace("'", "\\'") }} — check out this quiz on knowly!');
-  const enc  = encodeURIComponent(url);
+  const enc = encodeURIComponent(url);
   document.getElementById('waShare').href = `https://wa.me/?text=${text}%20${enc}`;
   document.getElementById('tgShare').href = `https://t.me/share/url?url=${enc}&text=${text}`;
   document.getElementById('twShare').href = `https://twitter.com/intent/tweet?text=${text}&url=${enc}`;
   document.getElementById('shareSheet').classList.add('is-open');
   document.body.style.overflow = 'hidden';
 }
-function closeShare() {
-  document.getElementById('shareSheet').classList.remove('is-open');
-  document.body.style.overflow = '';
-}
+function closeShare() { document.getElementById('shareSheet').classList.remove('is-open'); document.body.style.overflow = ''; }
 async function copyLink() {
-  const input = document.getElementById('shareUrlInput');
-  const icon  = document.getElementById('copyIcon');
-  try {
-    await navigator.clipboard.writeText(input.value);
-  } catch {
-    input.select(); document.execCommand('copy');
-  }
+  const input = document.getElementById('shareUrlInput'), icon = document.getElementById('copyIcon');
+  try { await navigator.clipboard.writeText(input.value); } catch { input.select(); document.execCommand('copy'); }
   icon.className = 'fas fa-check';
   setTimeout(() => { icon.className = 'fas fa-copy'; }, 1800);
 }
 async function nativeShare() {
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: '{{ post.title | replace("'", "\\'") }}', url: window.location.href });
-      closeShare();
-    } catch {}
-  }
+  if (navigator.share) { try { await navigator.share({ title: '{{ post.title | replace("'", "\\'") }}', url: window.location.href }); closeShare(); } catch {} }
 }
-// ── Description show more/less ────────────────────────────────────────────
+
 function toggleDesc() {
-  const desc    = document.getElementById('qvDesc');
-  const toggle  = document.getElementById('qvDescToggle');
-  const label   = document.getElementById('qvDescLabel');
-  const chevron = document.getElementById('qvDescChevron');
+  const desc = document.getElementById('qvDesc'), toggle = document.getElementById('qvDescToggle');
+  const label = document.getElementById('qvDescLabel'), chevron = document.getElementById('qvDescChevron');
   const expanded = desc.classList.toggle('is-expanded');
   toggle.classList.toggle('is-expanded', expanded);
   label.textContent = expanded ? 'Show less' : 'Show more';
 }
 
-// Hide toggle button if content doesn't actually overflow
 document.addEventListener('DOMContentLoaded', () => {
-  const desc   = document.getElementById('qvDesc');
-  const toggle = document.getElementById('qvDescToggle');
+  const desc = document.getElementById('qvDesc'), toggle = document.getElementById('qvDescToggle');
   if (desc && toggle) {
-    // Temporarily expand to measure full height
     desc.style.maxHeight = 'none';
     const full = desc.scrollHeight;
     desc.style.maxHeight = '';
     if (full <= desc.clientHeight + 4) toggle.style.display = 'none';
   }
 });
+
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeShare(); });
 </script>
 

@@ -121,6 +121,7 @@ def _upload_cloudinary(file, form, json_file=None):
             use_filename=True,
             unique_filename=True,
             format=file_ext,
+            access_control=[{"access_type": "anonymous"}],
         )
 
         document = Document(
@@ -657,10 +658,9 @@ def view(post_id):
 
         if doc_type in ("notes", "cheatsheet"):
             _loaded = _json.loads(quiz_data.questions)
-            current_app.logger.warning(
-                "DEBUG post %s: doc_type=%r, questions type=%s, first_item=%r",
+            current_app.logger.debug(
+                "Post %s: doc_type=%r, questions type=%s",
                 post.id, doc_type, type(_loaded).__name__,
-                _loaded[0] if isinstance(_loaded, list) and _loaded else _loaded
             )
             if isinstance(_loaded, list):
                 structured_content = _loaded
@@ -758,6 +758,10 @@ def view(post_id):
     # meta is always a dict (initialised to {} above; populated from quiz_data.meta when present).
     # quiz_meta is therefore safe to pass to every template regardless of whether quiz_data exists.
     quiz_meta = meta
+    # Hoist nested metadata fields to the top level so templates can read them flat
+    _nested = quiz_meta.get('metadata', {})
+    if _nested:
+        quiz_meta = {**quiz_meta, **_nested}
 
 
     return render_template(
@@ -895,25 +899,21 @@ def download_document(document_id):
     document.download_count += 1
     db.session.commit()
 
-    # If file is stored on Cloudinary, proxy it through Flask
+    # If file is stored on Cloudinary, generate a signed download URL
     if document.file_path and document.file_path.startswith('https://res.cloudinary.com'):
         try:
-            import urllib.request as _ur
-            req = _ur.Request(document.file_path, headers={'User-Agent': 'Mozilla/5.0'})
-            with _ur.urlopen(req, timeout=30) as resp:
-                data = resp.read()
-            safe_name = document.original_filename or (document.filename.split('/')[-1] + '.' + document.file_type)
-            return Response(
-                data,
-                status=200,
-                headers={
-                    'Content-Type': resp.headers.get('Content-Type', 'application/octet-stream'),
-                    'Content-Disposition': f'attachment; filename="{safe_name}"',
-                    'Content-Length': str(len(data)),
+            import requests
+            resp = requests.get(document.file_path, stream=True, timeout=30)
+            if resp.status_code == 200:
+                safe_name = urllib.parse.quote(document.original_filename or 'download.pdf')
+                headers = {
+                    'Content-Disposition': f"attachment; filename*=UTF-8''{safe_name}",
+                    'Content-Type': resp.headers.get('Content-Type', 'application/pdf'),
                 }
-            )
+                return Response(stream_with_context(resp.iter_content(8192)), headers=headers)
+            raise ValueError(f"Cloudinary returned {resp.status_code}")
         except Exception as e:
-            current_app.logger.error(f"Cloudinary proxy failed: {e}")
+            current_app.logger.error(f"Cloudinary download failed: {e}")
             flash('Could not fetch file from storage. Please try again.', 'danger')
             return redirect(url_for('posts.view', post_id=document.post.id))
 
