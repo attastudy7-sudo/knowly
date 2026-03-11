@@ -133,15 +133,19 @@ def create_app(config_class=Config):
 
         from app.auth.routes import _get_or_create_google_user
         from flask_login import login_user
+        from flask import session as flask_session
         user, created = _get_or_create_google_user(google_email, google_name)
         login_user(user, remember=True)
 
         if created:
-            flash(f'Welcome to eDuShare, {user.username}! Account created via Google.', 'success')
+            flash(f'Welcome to knowly, {user.username}! Account created via Google.', 'success')
         else:
             flash(f'Welcome back, {user.username}!', 'success')
 
-        return False  # tell Flask-Dance not to save token to its own DB
+        # Redirect to saved next page or home — returning a Response
+        # stops Flask-Dance from doing its own redirect (which causes 404)
+        next_url = flask_session.pop('next_after_google', None) or url_for('main.index')
+        return redirect(next_url)
 
     # 3. Remaining blueprints
     from app.posts import bp as posts_bp

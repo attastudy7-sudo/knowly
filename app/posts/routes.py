@@ -895,8 +895,30 @@ def download_document(document_id):
     document.download_count += 1
     db.session.commit()
 
-    # On Cloudinary: redirect directly to the secure URL — no proxying needed
-    if not _is_local():
+    # If file is stored on Cloudinary, proxy it through Flask
+    if document.file_path and document.file_path.startswith('https://res.cloudinary.com'):
+        try:
+            import urllib.request as _ur
+            req = _ur.Request(document.file_path, headers={'User-Agent': 'Mozilla/5.0'})
+            with _ur.urlopen(req, timeout=30) as resp:
+                data = resp.read()
+            safe_name = document.original_filename or (document.filename.split('/')[-1] + '.' + document.file_type)
+            return Response(
+                data,
+                status=200,
+                headers={
+                    'Content-Type': resp.headers.get('Content-Type', 'application/octet-stream'),
+                    'Content-Disposition': f'attachment; filename="{safe_name}"',
+                    'Content-Length': str(len(data)),
+                }
+            )
+        except Exception as e:
+            current_app.logger.error(f"Cloudinary proxy failed: {e}")
+            flash('Could not fetch file from storage. Please try again.', 'danger')
+            return redirect(url_for('posts.view', post_id=document.post.id))
+
+    # Any other https URL — redirect directly
+    if document.file_path and document.file_path.startswith('https://'):
         return redirect(document.file_path)
 
     # Local: stream from disk
