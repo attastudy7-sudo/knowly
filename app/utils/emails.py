@@ -264,26 +264,173 @@ def send_welcome_email(user):
     """
 
     body = f"""
-      <p>Hi <strong>{name}</strong>,</p>
-      <p>Chale, welcome to knowly — your platform wey you fit use share and discover
-         educational materials with students all over Ghana and beyond.</p>
-      <p>See some cool things wey you fit do for here:</p>
-      <div class="benefits">
-        <ul>
-          <li>📚 Browse and download study materials</li>
-          <li>🤝 Connect with students from your school and programme</li>
-          <li>📝 Share your own notes, past papers, and cheat sheets</li>
-          <li>🎯 Take quizzes and earn XP to climb the leaderboard</li>
-          <li>🏆 Build your streak and earn your Founder Badge</li>
-        </ul>
-      </div>
-      <p>Start by exploring materials for your courses:</p>
-      <div class="btn-wrap">
-        <a href="{base}/explore" class="btn">Start Exploring →</a>
-      </div>
-      <p>If you get any questions or need help, our support team dey here for you.</p>
-      <p>Happy learning!<br><strong>The knowly Team</strong></p>
-    """
+      <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Welcome to knowly</title>
+</head>
+<body style="margin:0;padding:0;background:#060d1f;font-family:'Segoe UI',Arial,sans-serif;">
+
+<!-- Preheader -->
+<div style="display:none;max-height:0;overflow:hidden;font-size:1px;color:#060d1f;">
+  You just joined knowly — your first quiz is waiting. 🎯
+</div>
+
+<!-- Outer wrapper -->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#060d1f;">
+  <tr>
+    <td align="center" style="padding:32px 16px 48px;">
+
+      <!-- Card -->
+      <table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;background:#0f1629;border:1px solid #1e2a45;border-radius:16px;overflow:hidden;">
+
+        <!-- Top accent bar -->
+        <tr>
+          <td style="height:4px;background:linear-gradient(90deg,#2563eb,#06b6d4);font-size:0;line-height:0;">&nbsp;</td>
+        </tr>
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#0d1b3e 0%,#091628 100%);padding:32px 32px 28px;text-align:center;">
+
+            <!-- Logo -->
+            <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 20px;">
+              <tr>
+                <td style="vertical-align:middle;padding-right:8px;">
+                  <img src="https://knowly-ly8l.onrender.com/static/images/knowly.png"
+                       alt="knowly" width="36" height="36"
+                       style="display:block;border-radius:8px;">
+                </td>
+                <td style="vertical-align:middle;">
+                  <span style="font-size:22px;font-weight:800;letter-spacing:-0.03em;background:linear-gradient(135deg,#2563eb,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;color:#2563eb;">knowly</span>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Emoji + headline -->
+            <p style="margin:0 0 10px;font-size:36px;line-height:1;">🎯</p>
+            <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#ffffff;line-height:1.2;letter-spacing:-0.02em;">
+              Chale, you don land! Welcome.
+            </h1>
+            <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.65);line-height:1.5;">
+              Your first quiz is waiting — go show yourself 💪
+            </p>
+
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:28px 32px 8px;">
+
+            <p style="margin:0 0 16px;font-size:15px;color:#cbd5e1;line-height:1.7;">
+              Hey <strong style="color:#f1f5f9;">{name}</strong>,
+            </p>
+            <p style="margin:0 0 16px;font-size:15px;color:#cbd5e1;line-height:1.7;">
+              Welcome to knowly — the study platform wey Ghanaian students dey use to pass their exams. Notes, quizzes, past papers — everything dey inside.
+            </p>
+            <p style="margin:0 0 24px;font-size:15px;color:#cbd5e1;line-height:1.7;">
+              The best way to start? <strong style="color:#f1f5f9;">Take your first quiz.</strong> See how you stand, earn your first XP, and make the streak begin. 🔥
+            </p>
+
+            <!-- Quiz CTA -->
+            <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
+              <tr>
+                <td align="center">
+                  <a href="https://knowly-ly8l.onrender.com/index"
+                     style="display:inline-block;background:linear-gradient(135deg,#2563eb,#06b6d4);color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:10px;letter-spacing:0.01em;">
+                    Practice My First Quiz &nbsp;→
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Divider -->
+            <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:24px;">
+              <tr><td style="height:1px;background:linear-gradient(90deg,transparent,#1e2a45,transparent);font-size:0;">&nbsp;</td></tr>
+            </table>
+
+            <!-- What else is here -->
+            <p style="margin:0 0 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#475569;">While you dey here, check out</p>
+
+            <!-- Feature row 1 -->
+            <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:12px;">
+              <tr>
+                <td width="36" valign="top" style="padding-top:2px;">
+                  <div style="width:28px;height:28px;background:rgba(37,99,235,0.15);border-radius:8px;text-align:center;line-height:28px;font-size:14px;">📚</div>
+                </td>
+                <td style="padding-left:12px;" valign="top">
+                  <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:#f1f5f9;">Notes & Cheatsheets</p>
+                  <p style="margin:0;font-size:13px;color:#64748b;line-height:1.5;">Exam-focused materials for your exact courses</p>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Feature row 2 -->
+            <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:12px;">
+              <tr>
+                <td width="36" valign="top" style="padding-top:2px;">
+                  <div style="width:28px;height:28px;background:rgba(124,58,237,0.15);border-radius:8px;text-align:center;line-height:28px;font-size:14px;">📄</div>
+                </td>
+                <td style="padding-left:12px;" valign="top">
+                  <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:#f1f5f9;">Past Papers</p>
+                  <p style="margin:0;font-size:13px;color:#64748b;line-height:1.5;">Practice with real exam questions from your school</p>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Feature row 3 -->
+            <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
+              <tr>
+                <td width="36" valign="top" style="padding-top:2px;">
+                  <div style="width:28px;height:28px;background:rgba(16,185,129,0.15);border-radius:8px;text-align:center;line-height:28px;font-size:14px;">🤝</div>
+                </td>
+                <td style="padding-left:12px;" valign="top">
+                  <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:#f1f5f9;">Community Uploads</p>
+                  <p style="margin:0;font-size:13px;color:#64748b;line-height:1.5;">Share your notes, download others — together e go better</p>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Sign off -->
+            <p style="margin:0 0 4px;font-size:15px;color:#cbd5e1;line-height:1.7;">
+              We dey root for you. 🙏
+            </p>
+            <p style="margin:0 0 28px;font-size:15px;color:#cbd5e1;">
+              — Alan & the knowly team
+            </p>
+
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="border-top:1px solid #1e2a45;padding:16px 32px;text-align:center;">
+            <p style="margin:0 0 6px;font-size:12px;color:#334155;">
+              <strong style="color:#475569;">knowly</strong> — Empowering Students Through Shared Knowledge
+            </p>
+            <p style="margin:0;font-size:12px;color:#334155;">
+              <a href="https://knowly-ly8l.onrender.com" style="color:#475569;text-decoration:underline;">Home</a>
+              &nbsp;·&nbsp;
+              <a href="https://knowly-ly8l.onrender.com/explore" style="color:#475569;text-decoration:underline;">Explore</a>
+              &nbsp;·&nbsp;
+              <a href="https://knowly-ly8l.onrender.com/library" style="color:#475569;text-decoration:underline;">Library</a>
+            </p>
+          </td>
+        </tr>
+
+      </table>
+      <!-- /Card -->
+
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>"""
 
     return _send_brevo_email(
         user.email,
