@@ -421,7 +421,8 @@ window.MathJax = {
 .nv-doc-desc h2, .nv-doc-desc h3 { font-size: .75rem; font-weight: 800; color: var(--text-primary); margin: .4rem 0 .15rem; }
 .nv-doc-desc p { margin: 0 0 .25rem; }
 .nv-doc-desc ul, .nv-doc-desc ol { margin: .15rem 0 .25rem .9rem; display: flex; flex-direction: column; gap: .12rem; }
-.nv-doc-desc li { list-style: disc; }
+.nv-doc-desc ul > li { list-style: disc; }
+.nv-doc-desc ol > li { list-style: decimal; }
 .nv-doc-desc strong { font-weight: 700; color: var(--text-primary); }
 .nv-doc-desc hr { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
 .nv-show-more { background: none; border: none; cursor: pointer; font-size: .68rem; font-weight: 700; color: var(--primary); padding: .25rem 0 0; display: inline-flex; align-items: center; gap: .22rem; transition: opacity .15s; font-family: var(--font-body); }
@@ -519,7 +520,8 @@ mjx-container { max-width: 100%; display: inline-block; }
 .nv-tip-icon     { color: #f59e0b; font-size: .82rem; margin-top: .15rem; flex-shrink: 0; }
 .nv-warning-icon { color: #ef4444; font-size: .82rem; margin-top: .15rem; flex-shrink: 0; }
 
-.nv-steps { margin: .5rem 0 0 1.1rem; display: flex; flex-direction: column; gap: .28rem; font-size: .84rem; }
+.nv-steps { margin: .5rem 0 0 .25rem; padding-left: 1.3em; display: flex; flex-direction: column; gap: .28rem; font-size: .84rem; list-style-type: decimal; }
+.nv-steps > li { display: list-item; padding-left: .35em; }
 .nv-list-title { font-size: .76rem; font-weight: 700; color: var(--text-primary); margin: 0 0 .38rem; }
 .nv-list { margin: 0 0 0 1.1rem; list-style: disc; display: flex; flex-direction: column; gap: .22rem; font-size: .875rem; color: var(--text-secondary); }
 .nv-list li p, .nv-steps li p, .nv-table td p, .nv-table th p { margin: 0; display: inline; }

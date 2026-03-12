@@ -3,481 +3,374 @@
 
 {% block admin_content %}
 
+{# ── Page header ── #}
 <div class="adm-header">
-    <div class="adm-header-left">
-        <div class="adm-header-icon"><i class="fas fa-shield-alt"></i></div>
-        <div>
-            <p class="adm-header-title">Post Moderation</p>
-            <p class="adm-header-sub">Review and approve user-submitted posts before they go live</p>
-        </div>
+  <div class="adm-header-left">
+    <div class="adm-header-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+      <i class="fas fa-shield-alt"></i>
     </div>
+    <div>
+      <p class="adm-header-title">Post Moderation</p>
+      <p class="adm-header-sub">Review and approve user-submitted posts before they go live</p>
+    </div>
+  </div>
+  {% if counts.pending > 0 %}
+  <div class="adm-header-actions">
+    <span class="mod-pending-chip">
+      <span class="mod-pending-dot"></span>
+      {{ counts.pending }} awaiting review
+    </span>
+  </div>
+  {% endif %}
 </div>
 
-    <!-- Status Tabs -->
-    <div class="mod-tabs">
-        <a href="{{ url_for('admin.moderation', tab='pending') }}"
-           class="mod-tab {% if tab == 'pending' %}active{% endif %}">
-            <i class="fas fa-clock"></i>
-            Pending
-            {% if counts.pending > 0 %}
-            <span class="tab-badge pending-badge">{{ counts.pending }}</span>
-            {% endif %}
-        </a>
-        <a href="{{ url_for('admin.moderation', tab='approved') }}"
-           class="mod-tab {% if tab == 'approved' %}active{% endif %}">
-            <i class="fas fa-check-circle"></i>
-            Approved
-            <span class="tab-badge approved-badge">{{ counts.approved }}</span>
-        </a>
-        <a href="{{ url_for('admin.moderation', tab='rejected') }}"
-           class="mod-tab {% if tab == 'rejected' %}active{% endif %}">
-            <i class="fas fa-times-circle"></i>
-            Rejected
-            <span class="tab-badge rejected-badge">{{ counts.rejected }}</span>
-        </a>
-    </div>
-
-    <!-- Post Cards -->
-    {% if posts.items %}
-    <div class="mod-grid">
-        {% for post in posts.items %}
-        <div class="mod-card status-{{ post.status }}">
-
-            <!-- Card Header: author info + status pill -->
-            <div class="mod-card-header">
-                <a href="{{ url_for('users.profile', username=post.author.username) }}"
-                   class="mod-author" target="_blank">
-                    <img src="{{ post.author.profile_picture_url }}"
-                         alt="{{ post.author.username }}"
-                         class="mod-avatar">
-                    <div class="mod-author-info">
-                        <span class="mod-author-name">{{ post.author.full_name or post.author.username }}</span>
-                        <span class="mod-author-handle">@{{ post.author.username }}</span>
-                    </div>
-                </a>
-
-                <div class="mod-meta-right">
-                    <span class="status-pill status-{{ post.status }}">
-                        {% if post.status == 'pending' %}
-                            <i class="fas fa-clock"></i> Pending
-                        {% elif post.status == 'approved' %}
-                            <i class="fas fa-check"></i> Approved
-                        {% else %}
-                            <i class="fas fa-times"></i> Rejected
-                        {% endif %}
-                    </span>
-                    <span class="mod-date">
-                        <i class="fas fa-calendar-alt"></i>
-                        {{ post.created_at.strftime('%b %d, %Y · %I:%M %p') }}
-                    </span>
-                </div>
-            </div>
-
-            <!-- Post Content Preview -->
-            <div class="mod-card-body">
-                <h3 class="mod-post-title">
-                    <a href="{{ url_for('posts.view', post_id=post.id) }}" target="_blank">
-                        {{ post.title }}
-                        <i class="fas fa-external-link-alt link-icon"></i>
-                    </a>
-                </h3>
-
-                {% if post.description %}
-                <p class="mod-post-desc">{{ post.description | truncate(200) }}</p>
-                {% endif %}
-
-                <!-- Tags row -->
-                <div class="mod-tags">
-                    {% if post.subject %}
-                    <span class="mod-tag subject-tag" style="border-color: {{ post.subject.color }}; color: {{ post.subject.color }};">
-                        <i class="fas fa-{{ post.subject.icon }}"></i>
-                        {{ post.subject.name }}
-                    </span>
-                    {% endif %}
-
-                    {% if post.has_document and post.document %}
-                    <span class="mod-tag doc-tag">
-                        <i class="fas fa-paperclip"></i>
-                        {{ post.document.file_type.upper() }}
-                        {% if post.document.is_paid %}
-                            · ${{ post.document.price }}
-                        {% else %}
-                            · Free
-                        {% endif %}
-                    </span>
-                    {% endif %}
-                </div>
-
-                <!-- Rejection reason (shown only if rejected) -->
-                {% if post.status == 'rejected' and post.rejection_reason %}
-                <div class="rejection-note">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <div>
-                        <strong>Rejection reason:</strong>
-                        <p>{{ post.rejection_reason }}</p>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Action Footer -->
-            <div class="mod-card-footer">
-
-                {% if post.status == 'pending' %}
-                <!-- APPROVE -->
-                <form action="{{ url_for('admin.approve_post', post_id=post.id) }}" method="post" class="inline-form">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="next" value="{{ url_for('admin.moderation', tab='pending', page=posts.page) }}">
-                    <button type="submit" class="btn-action btn-approve">
-                        <i class="fas fa-check"></i> Approve
-                    </button>
-                </form>
-
-                <!-- REJECT — opens inline rejection panel -->
-                <button class="btn-action btn-reject" onclick="toggleReject({{ post.id }})">
-                    <i class="fas fa-times"></i> Reject
-                </button>
-
-                <!-- Inline rejection form (hidden by default) -->
-                <div id="reject-panel-{{ post.id }}" class="reject-panel" style="display:none;">
-                    <form action="{{ url_for('admin.reject_post', post_id=post.id) }}" method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="next" value="{{ url_for('admin.moderation', tab='pending', page=posts.page) }}">
-                        <label class="reject-label">
-                            <i class="fas fa-comment-alt"></i>
-                            Reason for rejection <span class="optional">(optional — shown to author)</span>
-                        </label>
-                        <textarea name="reason" class="reject-textarea"
-                                  placeholder="e.g. Off-topic content, duplicate post, inappropriate language…"
-                                  rows="3"></textarea>
-                        <div class="reject-panel-actions">
-                            <button type="submit" class="btn-action btn-reject-confirm">
-                                <i class="fas fa-times-circle"></i> Confirm Rejection
-                            </button>
-                            <button type="button" class="btn-action btn-cancel"
-                                    onclick="toggleReject({{ post.id }})">
-                                Cancel
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                {% elif post.status == 'approved' %}
-                <!-- Can re-reject an approved post -->
-                <button class="btn-action btn-reject" onclick="toggleReject({{ post.id }})">
-                    <i class="fas fa-times"></i> Revoke Approval
-                </button>
-                <div id="reject-panel-{{ post.id }}" class="reject-panel" style="display:none;">
-                    <form action="{{ url_for('admin.reject_post', post_id=post.id) }}" method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="next" value="{{ url_for('admin.moderation', tab='approved', page=posts.page) }}">
-                        <label class="reject-label">
-                            <i class="fas fa-comment-alt"></i>
-                            Reason <span class="optional">(optional)</span>
-                        </label>
-                        <textarea name="reason" class="reject-textarea" rows="2"
-                                  placeholder="Reason for revoking…"></textarea>
-                        <div class="reject-panel-actions">
-                            <button type="submit" class="btn-action btn-reject-confirm">
-                                <i class="fas fa-times-circle"></i> Revoke
-                            </button>
-                            <button type="button" class="btn-action btn-cancel"
-                                    onclick="toggleReject({{ post.id }})">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-
-                {% elif post.status == 'rejected' %}
-                <!-- Can re-approve a rejected post -->
-                <form action="{{ url_for('admin.approve_post', post_id=post.id) }}" method="post" class="inline-form">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="next" value="{{ url_for('admin.moderation', tab='rejected', page=posts.page) }}">
-                    <button type="submit" class="btn-action btn-approve">
-                        <i class="fas fa-check"></i> Re-approve
-                    </button>
-                </form>
-                {% endif %}
-
-                <!-- Always: delete -->
-                <form action="{{ url_for('admin.delete_post', post_id=post.id) }}" method="post"
-                      class="inline-form"
-                      onsubmit="return confirm('Permanently delete this post?');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn-action btn-delete">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </form>
-            </div>
-
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- Pagination -->
-    {% if posts.has_prev or posts.has_next %}
-    <div class="adm-pagination">
-        {% if posts.has_prev %}
-        <a href="{{ url_for('admin.moderation', tab=tab, page=posts.prev_num) }}" class="adm-page-btn">
-            <i class="fas fa-chevron-left"></i> Previous
-        </a>
-        {% endif %}
-        <span class="adm-page-info">Page {{ posts.page }} of {{ posts.pages }}</span>
-        {% if posts.has_next %}
-        <a href="{{ url_for('admin.moderation', tab=tab, page=posts.next_num) }}" class="adm-page-btn">
-            Next <i class="fas fa-chevron-right"></i>
-        </a>
-        {% endif %}
-    </div>
+{# ── Tabs ── #}
+<div class="mod-tabs">
+  <a href="{{ url_for('admin.moderation', tab='pending') }}"
+     class="mod-tab {% if tab == 'pending' %}mod-tab--active mod-tab--pending{% endif %}">
+    <i class="fas fa-clock"></i>
+    <span>Pending</span>
+    {% if counts.pending > 0 %}
+    <span class="mod-tab-badge mod-tab-badge--amber">{{ counts.pending }}</span>
     {% endif %}
+  </a>
+  <a href="{{ url_for('admin.moderation', tab='approved') }}"
+     class="mod-tab {% if tab == 'approved' %}mod-tab--active mod-tab--approved{% endif %}">
+    <i class="fas fa-check-circle"></i>
+    <span>Approved</span>
+    <span class="mod-tab-badge mod-tab-badge--green">{{ counts.approved }}</span>
+  </a>
+  <a href="{{ url_for('admin.moderation', tab='rejected') }}"
+     class="mod-tab {% if tab == 'rejected' %}mod-tab--active mod-tab--rejected{% endif %}">
+    <i class="fas fa-times-circle"></i>
+    <span>Rejected</span>
+    <span class="mod-tab-badge mod-tab-badge--red">{{ counts.rejected }}</span>
+  </a>
+</div>
 
-    {% else %}
-    <div class="adm-empty">
-        <i class="fas fa-{% if tab == 'pending' %}inbox{% elif tab == 'approved' %}check-double{% else %}ban{% endif %}"></i>
-        <p>
-            {% if tab == 'pending' %}No posts awaiting review — you're all caught up!{% endif %}
-            {% if tab == 'approved' %}No approved posts yet.{% endif %}
-            {% if tab == 'rejected' %}No rejected posts.{% endif %}
-        </p>
+{# ── Post list ── #}
+{% if posts.items %}
+<div class="mod-list">
+  {% for post in posts.items %}
+
+  <div class="mod-row">
+
+    {# Title + meta #}
+    <div class="mod-row-main">
+      <div class="mod-row-title-line">
+        <h3 class="mod-row-title">
+          <a href="{{ url_for('posts.view', post_id=post.id) }}" target="_blank" rel="noopener">
+            {{ post.title }}
+            <i class="fas fa-arrow-up-right-from-square mod-ext-icon"></i>
+          </a>
+        </h3>
+        {% if post.status == 'rejected' and post.rejection_reason %}
+        <span class="mod-row-rejected-tag"><i class="fas fa-times"></i> Rejected</span>
+        {% endif %}
+      </div>
+
+      <div class="mod-row-meta">
+        <span>@{{ post.author.username }}</span>
+        <span class="mod-meta-sep">·</span>
+        <span>{{ post.created_at.strftime('%b %d, %Y') }}</span>
+        {% if post.subject %}
+        <span class="mod-meta-sep">·</span>
+        <span class="mod-row-subject" style="color:{{ post.subject.color }}">
+          <i class="fas fa-{{ post.subject.icon }}"></i> {{ post.subject.name }}
+        </span>
+        {% endif %}
+        {% if post.has_document and post.document %}
+        <span class="mod-meta-sep">·</span>
+        <span class="mod-row-doc">
+          <i class="fas fa-paperclip"></i>
+          {{ post.document.file_type.upper() }}
+          · {% if post.document.is_paid %}GH₵{{ post.document.price }}{% else %}Free{% endif %}
+        </span>
+        {% endif %}
+      </div>
+
+      {# Rejection reason — inline, understated #}
+      {% if post.status == 'rejected' and post.rejection_reason %}
+      <p class="mod-row-reason"><i class="fas fa-exclamation-triangle"></i> {{ post.rejection_reason }}</p>
+      {% endif %}
     </div>
-    {% endif %}
+
+    {# Actions — right-aligned text links #}
+    <div class="mod-row-actions">
+      {% if post.status == 'pending' %}
+        <form action="{{ url_for('admin.approve_post', post_id=post.id) }}" method="post" class="mod-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ url_for('admin.moderation', tab='pending', page=posts.page) }}">
+          <button type="submit" class="mod-action mod-action--approve">Approve</button>
+        </form>
+        <button class="mod-action mod-action--reject" onclick="toggleReject({{ post.id }})">Reject</button>
+
+      {% elif post.status == 'approved' %}
+        <button class="mod-action mod-action--reject" onclick="toggleReject({{ post.id }})">Revoke</button>
+
+      {% elif post.status == 'rejected' %}
+        <form action="{{ url_for('admin.approve_post', post_id=post.id) }}" method="post" class="mod-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ url_for('admin.moderation', tab='rejected', page=posts.page) }}">
+          <button type="submit" class="mod-action mod-action--approve">Re-approve</button>
+        </form>
+      {% endif %}
+
+      <a href="{{ url_for('posts.view', post_id=post.id) }}" class="mod-action mod-action--preview" target="_blank">Preview</a>
+
+      <form action="{{ url_for('admin.delete_post', post_id=post.id) }}" method="post" class="mod-form"
+            onsubmit="return confirm('Permanently delete this post?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="mod-action mod-action--delete">Delete</button>
+      </form>
+    </div>
+
+  </div>{# /mod-row #}
+
+  {# Inline rejection panel — sits between rows #}
+  {% if post.status in ('pending', 'approved') %}
+  <div id="reject-panel-{{ post.id }}" class="mod-reject-panel" hidden>
+    <form action="{{ url_for('admin.reject_post', post_id=post.id) }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ url_for('admin.moderation', tab=tab, page=posts.page) }}">
+      <textarea name="reason" class="mod-reject-textarea"
+                placeholder="Reason for rejection — optional, shown to author…"
+                rows="2"></textarea>
+      <div class="mod-reject-btns">
+        <button type="submit" class="mod-action mod-action--reject-confirm">
+          {% if post.status == 'approved' %}Revoke Approval{% else %}Confirm Rejection{% endif %}
+        </button>
+        <button type="button" class="mod-action mod-action--cancel" onclick="toggleReject({{ post.id }})">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  {% endfor %}
+</div>
+
+{# Pagination #}
+{% if posts.has_prev or posts.has_next %}
+<div class="adm-pagination">
+  {% if posts.has_prev %}
+  <a href="{{ url_for('admin.moderation', tab=tab, page=posts.prev_num) }}" class="adm-page-btn">
+    <i class="fas fa-chevron-left"></i> Previous
+  </a>
+  {% endif %}
+  <span class="adm-page-info">Page {{ posts.page }} of {{ posts.pages }}</span>
+  {% if posts.has_next %}
+  <a href="{{ url_for('admin.moderation', tab=tab, page=posts.next_num) }}" class="adm-page-btn">
+    Next <i class="fas fa-chevron-right"></i>
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="adm-empty">
+  <i class="fas fa-{% if tab == 'pending' %}inbox{% elif tab == 'approved' %}check-double{% else %}ban{% endif %}"></i>
+  <p>
+    {% if tab == 'pending' %}No posts awaiting review — you're all caught up!
+    {% elif tab == 'approved' %}No approved posts yet.
+    {% else %}No rejected posts.{% endif %}
+  </p>
+  {% if tab != 'pending' %}
+  <a href="{{ url_for('admin.moderation', tab='pending') }}" class="adm-btn adm-btn--secondary">
+    <i class="fas fa-clock"></i> View Pending
+  </a>
+  {% endif %}
+</div>
+{% endif %}
 
 <style>
-/* mod-page local styles only — layout provided by adm-shell */
+/* ── Pending chip ────────────────────────────────────────────────────────── */
+.mod-pending-chip {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .35rem .85rem; border-radius: 99px;
+  background: rgba(245,158,11,.08); color: #d97706;
+  border: 1px solid rgba(245,158,11,.2);
+  font-size: .78rem; font-weight: 700;
+}
+.mod-pending-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #f59e0b; flex-shrink: 0;
+  animation: mod-pulse 1.8s ease-in-out infinite;
+}
+@keyframes mod-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .35; }
+}
 
-/* ── Header ── */
-.mod-header {
-    display: flex; align-items: center; justify-content: space-between;
-    flex-wrap: wrap; gap: 1rem;
-    margin-bottom: 2rem;
-}
-.mod-header-left {
-    display: flex; align-items: center; gap: 1.25rem;
-}
-.mod-header-icon {
-    width: 56px; height: 56px; flex-shrink: 0;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; color: white;
-    box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
-}
-.mod-header h1 { margin: 0 0 .2rem; font-size: 1.75rem; font-weight: 800; color: var(--text-primary); }
-.mod-subtitle   { margin: 0; color: var(--text-muted); font-size: .9rem; }
-
-/* ── Tabs ── */
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
 .mod-tabs {
-    display: flex; gap: .5rem; flex-wrap: wrap;
-    background: var(--bg-card); border-radius: 14px;
-    padding: .5rem; border: 1px solid var(--border);
-    margin-bottom: 1.75rem;
+  display: flex; gap: .4rem; flex-wrap: wrap;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: .45rem;
 }
 .mod-tab {
-    display: inline-flex; align-items: center; gap: .5rem;
-    padding: .6rem 1.2rem; border-radius: 10px;
-    font-weight: 600; font-size: .9rem;
-    color: var(--text-secondary); text-decoration: none;
-    transition: all .2s ease;
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .5rem .95rem; border-radius: 10px;
+  font-size: .82rem; font-weight: 600;
+  color: var(--text-muted); text-decoration: none;
+  transition: all .15s; white-space: nowrap;
 }
+.mod-tab i { font-size: .76rem; }
 .mod-tab:hover { background: var(--bg-hover); color: var(--text-primary); }
-.mod-tab.active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; box-shadow: 0 3px 10px rgba(102,126,234,.3); }
+.mod-tab--active { font-weight: 700; }
+.mod-tab--pending.mod-tab--active  { background: rgba(245,158,11,.1);  color: #d97706; }
+.mod-tab--approved.mod-tab--active { background: rgba(16,185,129,.1);  color: #059669; }
+.mod-tab--rejected.mod-tab--active { background: rgba(239,68,68,.1);   color: #ef4444; }
 
-.tab-badge {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 22px; height: 22px; padding: 0 6px;
-    border-radius: 99px; font-size: .75rem; font-weight: 700;
+.mod-tab-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 99px; font-size: .66rem; font-weight: 800;
 }
-.pending-badge  { background: #f59e0b; color: white; }
-.approved-badge { background: #10b981; color: white; }
-.rejected-badge { background: #ef4444; color: white; }
-.mod-tab.active .tab-badge { background: rgba(255,255,255,.25); color: white; }
+.mod-tab-badge--amber { background: rgba(245,158,11,.15); color: #d97706; }
+.mod-tab-badge--green { background: rgba(16,185,129,.15); color: #059669; }
+.mod-tab-badge--red   { background: rgba(239,68,68,.15);  color: #ef4444; }
+.mod-tab--active .mod-tab-badge { background: rgba(0,0,0,.07); }
 
-/* ── Cards grid ── */
-.mod-grid {
-    display: flex; flex-direction: column; gap: 1.25rem;
-}
-
-.mod-card {
-    background: var(--bg-card); border-radius: 16px;
-    border: 1px solid var(--border);
-    box-shadow: 0 2px 6px rgba(0,0,0,.06);
-    overflow: hidden;
-    transition: box-shadow .2s ease, transform .2s ease;
-}
-.mod-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.1); transform: translateY(-1px); }
-
-/* Left accent stripe by status */
-.mod-card.status-pending  { border-left: 4px solid #f59e0b; }
-.mod-card.status-approved { border-left: 4px solid #10b981; }
-.mod-card.status-rejected { border-left: 4px solid #ef4444; }
-
-/* ── Card header ── */
-.mod-card-header {
-    display: flex; align-items: flex-start; justify-content: space-between;
-    padding: 1.25rem 1.25rem .75rem; gap: 1rem; flex-wrap: wrap;
-}
-.mod-author {
-    display: flex; align-items: center; gap: .75rem; text-decoration: none;
-}
-.mod-avatar {
-    width: 44px; height: 44px; border-radius: 50%;
-    object-fit: cover; border: 2px solid var(--border); flex-shrink: 0;
-}
-.mod-author-info { display: flex; flex-direction: column; }
-.mod-author-name { font-weight: 700; color: var(--text-primary); font-size: .95rem; }
-.mod-author-handle { color: var(--text-muted); font-size: .8rem; }
-.mod-author:hover .mod-author-name { color: #667eea; }
-
-.mod-meta-right { display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; }
-
-.status-pill {
-    display: inline-flex; align-items: center; gap: .35rem;
-    padding: .3rem .8rem; border-radius: 99px;
-    font-size: .78rem; font-weight: 700; letter-spacing: .02em;
-}
-.status-pill.status-pending  { background: rgba(245,158,11,.12); color: #d97706; border: 1px solid rgba(245,158,11,.3); }
-.status-pill.status-approved { background: rgba(16,185,129,.12); color: #059669; border: 1px solid rgba(16,185,129,.3); }
-.status-pill.status-rejected { background: rgba(239,68,68,.12);  color: #dc2626; border: 1px solid rgba(239,68,68,.3);  }
-
-.mod-date { font-size: .78rem; color: var(--text-muted); }
-.mod-date i { margin-right: .25rem; }
-
-/* ── Card body ── */
-.mod-card-body { padding: 0 1.25rem 1rem; }
-
-.mod-post-title {
-    font-size: 1.1rem; font-weight: 700; margin: 0 0 .6rem;
-    line-height: 1.35;
-}
-.mod-post-title a { color: var(--text-primary); text-decoration: none; }
-.mod-post-title a:hover { color: #667eea; }
-.link-icon { font-size: .7rem; margin-left: .35rem; opacity: .5; }
-
-.mod-post-desc {
-    color: var(--text-secondary); font-size: .9rem; line-height: 1.6;
-    margin: 0 0 .85rem;
+/* ── List container ──────────────────────────────────────────────────────── */
+.mod-list {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
 }
 
-/* Tags */
-.mod-tags { display: flex; flex-wrap: wrap; gap: .5rem; }
-.mod-tag {
-    display: inline-flex; align-items: center; gap: .35rem;
-    padding: .25rem .7rem; border-radius: 99px;
-    font-size: .78rem; font-weight: 600;
+/* ── Row ─────────────────────────────────────────────────────────────────── */
+.mod-row {
+  display: flex; align-items: flex-start;
+  gap: 1rem; padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
 }
-.subject-tag { background: rgba(102,126,234,.08); border: 1px solid; }
-.doc-tag     { background: rgba(102,126,234,.06); border: 1px solid rgba(102,126,234,.2); color: #667eea; }
+.mod-row:last-of-type { border-bottom: none; }
+.mod-list:has(.mod-reject-panel:not([hidden])) .mod-row { border-bottom: 1px solid var(--border); }
+.mod-row:hover { background: var(--bg-hover); }
 
-/* Rejection note */
-.rejection-note {
-    display: flex; gap: .75rem; align-items: flex-start;
-    margin-top: 1rem; padding: .85rem 1rem;
-    background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.2);
-    border-radius: 10px; font-size: .875rem;
+/* Title + meta column */
+.mod-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .3rem; }
+
+.mod-row-title-line {
+  display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
 }
-.rejection-note > i { color: #ef4444; font-size: 1rem; flex-shrink: 0; margin-top: .1rem; }
-.rejection-note strong { display: block; margin-bottom: .2rem; color: var(--text-primary); }
-.rejection-note p { margin: 0; color: var(--text-secondary); }
-
-/* ── Card footer ── */
-.mod-card-footer {
-    display: flex; align-items: center; flex-wrap: wrap; gap: .6rem;
-    padding: .9rem 1.25rem;
-    border-top: 1px solid var(--border-light);
-    background: var(--bg-secondary);
+.mod-row-title {
+  font-size: .92rem; font-weight: 700;
+  color: var(--text-primary); margin: 0; line-height: 1.4;
 }
-.inline-form { display: inline; }
-
-/* Action buttons */
-.btn-action {
-    display: inline-flex; align-items: center; gap: .4rem;
-    padding: .5rem 1rem; border-radius: 8px;
-    font-size: .85rem; font-weight: 600;
-    border: none; cursor: pointer; transition: all .2s ease;
-    text-decoration: none;
+.mod-row-title a {
+  color: inherit; text-decoration: none;
+  display: inline-flex; align-items: baseline; gap: .3rem;
 }
-.btn-approve { background: linear-gradient(135deg, #10b981, #059669); color: white; box-shadow: 0 2px 8px rgba(16,185,129,.3); }
-.btn-approve:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,.4); }
+.mod-row-title a:hover { color: var(--primary); }
+.mod-ext-icon { font-size: .58rem; opacity: .35; flex-shrink: 0; }
 
-.btn-reject { background: rgba(239,68,68,.1); color: #dc2626; border: 1px solid rgba(239,68,68,.25); }
-.btn-reject:hover { background: rgba(239,68,68,.18); }
-
-.btn-delete { background: transparent; color: var(--text-muted); border: 1px solid var(--border); margin-left: auto; }
-.btn-delete:hover { background: rgba(239,68,68,.08); color: #ef4444; border-color: rgba(239,68,68,.3); }
-
-/* ── Inline rejection panel ── */
-.reject-panel {
-    width: 100%; padding: 1rem;
-    background: var(--bg-card); border-radius: 10px;
-    border: 1px solid rgba(239,68,68,.25);
-    margin-top: .25rem;
-    animation: slideDown .2s ease;
+.mod-row-rejected-tag {
+  font-size: .66rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .06em; color: #ef4444;
+  background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2);
+  padding: .12rem .45rem; border-radius: 4px; flex-shrink: 0;
 }
-@keyframes slideDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
 
-.reject-label {
-    display: block; font-size: .85rem; font-weight: 600;
-    color: var(--text-primary); margin-bottom: .5rem;
+.mod-row-meta {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: .25rem; font-size: .75rem; color: var(--text-muted);
 }
-.optional { font-weight: 400; color: var(--text-muted); }
+.mod-meta-sep { opacity: .35; }
+.mod-row-subject { font-weight: 600; }
+.mod-row-subject i { font-size: .68rem; }
+.mod-row-doc { font-weight: 500; }
+.mod-row-doc i { font-size: .68rem; }
 
-.reject-textarea {
-    width: 100%; padding: .65rem .9rem;
-    border: 1.5px solid var(--border); border-radius: 8px;
-    font-size: .9rem; font-family: inherit;
-    background: var(--bg-main); color: var(--text-primary);
-    resize: vertical; transition: border-color .2s;
+.mod-row-reason {
+  font-size: .75rem; color: var(--text-muted);
+  font-style: italic; margin: 0;
+  display: flex; align-items: baseline; gap: .35rem;
 }
-.reject-textarea:focus { outline: none; border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.1); }
+.mod-row-reason i { color: #ef4444; font-size: .68rem; flex-shrink: 0; }
 
-.reject-panel-actions { display: flex; gap: .5rem; margin-top: .6rem; flex-wrap: wrap; }
-.btn-reject-confirm { background: #ef4444; color: white; }
-.btn-reject-confirm:hover { background: #dc2626; }
-.btn-cancel { background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border); }
-.btn-cancel:hover { background: var(--bg-hover); }
-
-/* ── Empty state ── */
-.mod-empty {
-    text-align: center; padding: 4rem 2rem;
-    background: var(--bg-card); border-radius: 20px;
-    border: 1px solid var(--border);
+/* Actions column */
+.mod-row-actions {
+  display: flex; align-items: center; gap: .1rem;
+  flex-shrink: 0; padding-top: .1rem;
 }
-.mod-empty-icon { font-size: 4rem; color: var(--text-muted); margin-bottom: 1.25rem; opacity: .5; }
-.mod-empty h2  { font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-bottom: .5rem; }
-.mod-empty p   { color: var(--text-muted); font-size: .95rem; }
 
-/* ── Pagination ── */
-.mod-pagination { margin-top: 2rem; }
-.pagination { display: flex; justify-content: center; align-items: center; gap: 1rem; }
-.page-btn {
-    display: inline-flex; align-items: center; gap: .4rem;
-    padding: .6rem 1.25rem; background: var(--bg-card);
-    border: 2px solid var(--border); border-radius: 10px;
-    color: var(--text-primary); text-decoration: none; font-weight: 600; transition: all .25s;
+/* Text-link action buttons */
+.mod-action {
+  background: none; border: none; cursor: pointer;
+  font-family: inherit; font-size: .78rem; font-weight: 700;
+  padding: .3rem .5rem; border-radius: 6px;
+  text-decoration: none; transition: background .12s, color .12s;
+  white-space: nowrap;
 }
-.page-btn:hover { background: #667eea; border-color: #667eea; color: white; transform: translateY(-1px); }
-.page-info { color: var(--text-muted); font-weight: 600; font-size: .9rem; }
+.mod-action--approve  { color: #059669; }
+.mod-action--approve:hover  { background: rgba(16,185,129,.08); }
+.mod-action--reject   { color: #ef4444; }
+.mod-action--reject:hover   { background: rgba(239,68,68,.08); }
+.mod-action--preview  { color: var(--text-muted); }
+.mod-action--preview:hover  { color: var(--text-primary); background: var(--bg-hover); }
+.mod-action--delete   { color: var(--text-muted); }
+.mod-action--delete:hover   { color: #ef4444; background: rgba(239,68,68,.06); }
+.mod-action--reject-confirm { color: #ef4444; }
+.mod-action--reject-confirm:hover { background: rgba(239,68,68,.08); }
+.mod-action--cancel   { color: var(--text-muted); }
+.mod-action--cancel:hover   { background: var(--bg-hover); }
 
-/* ── Mobile ── */
+.mod-form { display: contents; }
+
+/* ── Reject panel ────────────────────────────────────────────────────────── */
+.mod-reject-panel {
+  padding: .75rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid rgba(239,68,68,.15);
+  background: rgba(239,68,68,.02);
+  animation: mod-slide .16s ease;
+}
+@keyframes mod-slide {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.mod-reject-textarea {
+  width: 100%; padding: .55rem .8rem;
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: .83rem; font-family: inherit; line-height: 1.5;
+  background: var(--bg-card); color: var(--text-primary);
+  resize: vertical; transition: border-color .15s; box-sizing: border-box;
+}
+.mod-reject-textarea:focus {
+  outline: none; border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239,68,68,.07);
+}
+.mod-reject-btns {
+  display: flex; gap: .25rem; margin-top: .5rem;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-    .mod-header { flex-direction: column; align-items: flex-start; }
-    .mod-card-header { flex-direction: column; gap: .75rem; }
-    .mod-meta-right { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
-    .mod-card-footer { flex-direction: column; align-items: stretch; }
-    .btn-action { justify-content: center; }
-    .btn-delete { margin-left: 0; }
-    .mod-tabs { gap: .35rem; }
-    .mod-tab { padding: .5rem .85rem; font-size: .82rem; }
+  .mod-row { flex-direction: column; gap: .65rem; padding: .875rem 1rem; }
+  .mod-row-actions { width: 100%; justify-content: flex-start; border-top: 1px solid var(--border); padding-top: .6rem; }
+  .mod-tab span:not(.mod-tab-badge) { display: none; }
+  .mod-tab { padding: .5rem .7rem; }
+  .mod-tab i { font-size: .88rem; }
+  .mod-reject-panel { padding: .65rem 1rem .875rem; }
 }
+
+[data-theme="dark"] .mod-reject-textarea { background: #0f172a; border-color: #334155; }
 </style>
 
 <script>
 function toggleReject(postId) {
-    const panel = document.getElementById('reject-panel-' + postId);
-    const isHidden = panel.style.display === 'none';
-    panel.style.display = isHidden ? 'block' : 'none';
-    if (isHidden) {
-        panel.querySelector('textarea')?.focus();
-    }
+  const panel = document.getElementById('reject-panel-' + postId);
+  panel.hidden = !panel.hidden;
+  if (!panel.hidden) {
+    panel.querySelector('textarea')?.focus();
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 }
 </script>
-{% endblock %}{# admin_content #}
+{% endblock %}

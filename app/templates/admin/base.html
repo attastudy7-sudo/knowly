@@ -359,8 +359,8 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 1.25rem;
-    max-width: 97%;
-    }
+    min-width: 0;
+}
     /* AFTER */
     .adm-card-title {
     font-family: var(--font-display);
@@ -646,7 +646,8 @@
     [data-theme="dark"] .adm-sidebar-drawer { background: #111827; border-color: #1f2937; }
     [data-theme="dark"] .adm-drawer-user { background: rgba(99,102,241,.08); border-bottom-color: #1f2937; }
 
-    .adm-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .adm-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; min-width: 0; }
+.adm-two-col > * { min-width: 0; }
     @media (max-width: 700px) { .adm-two-col { grid-template-columns: 1fr; } }
 
     /* ── Responsive ──────────────────────────────────────────────────────────── */

@@ -85,11 +85,58 @@
     }
 
     /* === RESET & BASE STYLES === */
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
+    /* === RESET & BASE STYLES === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Restore browser-default list indentation stripped by the * reset above.
+   Scoped to content areas only — nav/toolbar lists keep padding: 0. */
+.nv-math-wrap ol,
+.nv-math-wrap ul,
+.nv-paragraph ol,
+.nv-paragraph ul,
+.nv-block ol,
+.nv-block ul,
+.nv-doc-desc ol,
+.nv-doc-desc ul,
+.cs-step-content ol,
+.cs-step-content ul,
+.cs-entry-content ol,
+.cs-entry-content ul {
+    padding-left: 1.4em;
+    margin: 0.35em 0 0.35em 0;
+}
+
+.nv-math-wrap ol,
+.nv-paragraph ol,
+.nv-block ol,
+.nv-doc-desc ol,
+.cs-step-content ol,
+.cs-entry-content ol {
+    list-style-type: decimal;
+}
+
+.nv-math-wrap ul,
+.nv-paragraph ul,
+.nv-block ul,
+.nv-doc-desc ul,
+.cs-step-content ul,
+.cs-entry-content ul {
+    list-style-type: disc;
+}
+
+.nv-math-wrap li,
+.nv-paragraph li,
+.nv-block li,
+.nv-doc-desc li,
+.cs-step-content li,
+.cs-entry-content li {
+    margin-bottom: 0.18em;
+    line-height: 1.6;
+}
 
     html {
         font-size: 16px;
