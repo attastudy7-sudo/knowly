@@ -115,11 +115,12 @@ window.MathJax = {
         </nav>
 
         {% if post.has_document and post.document_id %}
-<a href="{{ url_for('posts.download_document', document_id=post.document_id) }}" class="nv-dl-btn">
-  <i class="fas fa-download"></i> Download PDF
-</a>
-        </div>
-        {% endif %}
+<div class="nv-sidebar-dl">
+  <a href="{{ url_for('posts.download_document', document_id=post.document_id) }}" class="nv-dl-btn">
+    <i class="fas fa-download"></i> Download PDF
+  </a>
+</div>
+{% endif %}
 
       </div>
     </aside>

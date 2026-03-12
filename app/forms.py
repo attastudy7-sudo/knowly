@@ -68,14 +68,28 @@ class CreatePostForm(FlaskForm):
         Length(min=3, max=200, message='Title must be between 3 and 200 characters')
     ])
     description = TextAreaField('Description', validators=[
-        Length(max=2000, message='Description too long')
+        Optional(),
+        Length(max=5000, message='Description too long')
     ])
     subject = SelectField('Subject/Category', coerce=int, validators=[Optional()])
 
-    # ── NEW: explicit content type selector ──────────────────────────────────
-    # This replaces the implicit (and buggy) inference that happened at query time.
-    # The route will also auto-upgrade to 'quiz' if a valid JSON sidecar is uploaded,
-    # so users who forget to select 'Quiz' are still handled gracefully.
+    # Flair — Reddit-style post type tag
+    flair = SelectField(
+        'Flair',
+        choices=[
+            ('',             'No flair'),
+            ('discussion',   'Discussion'),
+            ('question',     'Question'),
+            ('resource',     'Resource'),
+            ('tip',          'Tip'),
+            ('rant',         'Rant'),
+            ('announcement', 'Announcement'),
+        ],
+        default='',
+        validators=[Optional()],
+    )
+
+    # Content type kept for backwards compat with quiz/notes pipeline
     content_type = SelectField(
         'Content Type',
         choices=[
@@ -86,7 +100,6 @@ class CreatePostForm(FlaskForm):
         default='notes',
         validators=[DataRequired()],
     )
-    # ─────────────────────────────────────────────────────────────────────────
 
     document = FileField('Upload Document (Optional)', validators=[
         FileAllowed(['pdf', 'docx', 'pptx', 'txt', 'doc', 'ppt'],

@@ -9,17 +9,27 @@
  *  - Everything else                     → Network-First
  */
 
-const CACHE_VERSION   = 'v6';
+const CACHE_VERSION   = 'v7';
 const SHELL_CACHE     = `knowly-shell-${CACHE_VERSION}`;
 const IMAGE_CACHE     = `knowly-images-${CACHE_VERSION}`;
 const PAGE_CACHE      = `knowly-pages-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
   '/static/css/style.css',
-  '/static/js/main.js',
+  '/static/js/app.js',
   '/static/manifest.json',
   '/static/images/icon-192x192.png',
   '/static/images/icon-512x512.png',
+  '/static/fonts/nunito-v32-latin-700.woff2',
+  '/static/fonts/nunito-v32-latin-800.woff2',
+  '/static/fonts/nunito-v32-latin-900.woff2',
+  '/static/fonts/dm-sans-v17-latin-300.woff2',
+  '/static/fonts/dm-sans-v17-latin-regular.woff2',
+  '/static/fonts/dm-sans-v17-latin-italic.woff2',
+  '/static/fonts/dm-sans-v17-latin-500.woff2',
+  '/static/fonts/dm-sans-v17-latin-600.woff2',
+  '/static/fonts/dm-sans-v17-latin-700.woff2',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
 ];
 
 const OFFLINE_PAGE = '/offline';
@@ -93,7 +103,7 @@ self.addEventListener('fetch', event => {
 
   // Shell assets (CSS/JS/fonts) — Cache-First
   if (isShellAsset(url)) {
-    event.respondWith(cacheFirst(request, SHELL_CACHE));
+    event.respondWith(networkFirst(request, SHELL_CACHE));
     return;
   }
 

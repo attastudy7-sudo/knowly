@@ -315,9 +315,10 @@
   <div class="qv-share-sheet">
     <div class="qv-share-handle"></div>
     <div class="qv-share-header">
-      <span class="qv-share-title">Share this quiz</span>
+      <span class="qv-share-title" id="shareTitle">Challenge your friends</span>
       <button class="qv-share-close" onclick="closeShare()"><i class="fas fa-times"></i></button>
     </div>
+    <p id="shareMsg" class="qv-share-msg"></p>
     <div class="qv-share-url-row">
       <input id="shareUrlInput" class="qv-share-url-input" type="text" readonly value="{{ request.url }}">
       <button class="qv-share-copy" onclick="copyLink()"><i class="fas fa-copy" id="copyIcon"></i></button>
@@ -332,7 +333,9 @@
         <span>Telegram</span>
       </a>
       <a class="qv-share-opt" id="twShare" href="#" target="_blank" rel="noopener">
-        <div class="qv-share-opt-icon" style="background:#000"><i class="fab fa-x-twitter"></i></div>
+        <div class="qv-share-opt-icon" style="background:#000">
+          <svg viewBox="0 0 24 24" fill="white" width="18" height="18"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.742l7.727-8.814-8.159-10.686h7.077l4.261 5.638 5.596-5.638zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </div>
         <span>X / Twitter</span>
       </a>
       <button class="qv-share-opt" onclick="nativeShare()">
@@ -342,8 +345,10 @@
     </div>
   </div>
 </div>
-
 <style>
+
+.qv-share-msg { font-size: .82rem; color: var(--text-secondary); margin: 0 0 1rem; line-height: 1.5; text-align: center; padding: 0 .25rem; }
+.qv-share-msg strong { color: var(--text-primary); }  
 /* ═══ ROOT ═══════════════════════════════════════════════════════════════════ */
 .qv-root { min-height: 100vh; background: var(--bg-main); overflow-x: hidden; }
 
@@ -726,16 +731,42 @@ async function toggleLike(btn) {
   } finally { btn.disabled = false; }
 }
 
-function shareQuiz() {
-  const url = window.location.href;
-  const text = encodeURIComponent('{{ post.title | replace("'", "\\'") }} — check out this quiz on knowly!');
-  const enc = encodeURIComponent(url);
-  document.getElementById('waShare').href = `https://wa.me/?text=${text}%20${enc}`;
-  document.getElementById('tgShare').href = `https://t.me/share/url?url=${enc}&text=${text}`;
-  document.getElementById('twShare').href = `https://twitter.com/intent/tweet?text=${text}&url=${enc}`;
+// Auto-open share modal if user just completed the quiz
+if (new URLSearchParams(window.location.search).get('shared') === '1') {
+  window.addEventListener('DOMContentLoaded', () => shareQuiz());
+}
+
+function shareQuiz(scorePct) {
+  const url  = window.location.href.split('?')[0];
+  const title = '{{ post.title | replace("\'", "\\'") }}';
+
+  let msg, shareText;
+  if (scorePct === undefined) {
+    // Manual share — generic message
+    msg = 'Think your classmates can handle this? Send it and find out 👀';
+    shareText = `Can you beat me on this quiz? "${title}" — try it on knowly!`;
+  } else if (scorePct >= 80) {
+    msg = `You scored <strong>${scorePct}%</strong> 🏆 Bet your friends can't beat that. Send it and defend your spot.`;
+    shareText = `I just scored ${scorePct}% on "${title}" — think you can beat me? Try it on knowly!`;
+  } else if (scorePct >= 60) {
+    msg = `You got <strong>${scorePct}%</strong> — not bad! But can your friends do better? Only one way to find out.`;
+    shareText = `I scored ${scorePct}% on "${title}" on knowly. Can you top it?`;
+  } else {
+    msg = `This one's tough — you got <strong>${scorePct}%</strong>. Share it and see if anyone else survives 😅`;
+    shareText = `This quiz nearly got me — "${title}" on knowly. Think you can do better?`;
+  }
+
+  document.getElementById('shareMsg').innerHTML = msg;
+
+  const enc  = encodeURIComponent(url);
+  const etxt = encodeURIComponent(shareText);
+  document.getElementById('waShare').href = `https://wa.me/?text=${etxt}%20${enc}`;
+  document.getElementById('tgShare').href = `https://t.me/share/url?url=${enc}&text=${etxt}`;
+  document.getElementById('twShare').href = `https://twitter.com/intent/tweet?text=${etxt}&url=${enc}`;
   document.getElementById('shareSheet').classList.add('is-open');
   document.body.style.overflow = 'hidden';
 }
+
 function closeShare() { document.getElementById('shareSheet').classList.remove('is-open'); document.body.style.overflow = ''; }
 async function copyLink() {
   const input = document.getElementById('shareUrlInput'), icon = document.getElementById('copyIcon');
@@ -766,6 +797,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeShare(); });
+
+// Auto-open share modal with score if returning from quiz
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('shared') === '1') {
+    const score = parseFloat(params.get('score'));
+    window.addEventListener('load', () => {
+      setTimeout(() => shareQuiz(isNaN(score) ? undefined : score), 400);
+    });
+    // Clean URL without reloading
+    history.replaceState({}, '', window.location.pathname);
+  }
+})();
 </script>
 
 {% endblock %}

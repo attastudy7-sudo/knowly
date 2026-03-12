@@ -376,6 +376,7 @@ def create():
             author=current_user,
             status='pending',
             content_type=content_type,   # ← explicitly set
+            flair=form.flair.data or None,
         )
 
         if form.subject.data and form.subject.data != 0:
@@ -485,6 +486,7 @@ def edit(post_id):
     if form.validate_on_submit():
         post.title       = form.title.data
         post.description = form.description.data
+        post.flair       = form.flair.data or None
 
         # ── Detect substantive changes that warrant re-moderation ─────────────
         from app.routes import VALID_CONTENT_TYPES
@@ -834,6 +836,50 @@ def like(post_id):
 
     flash('Post liked!' if liked else 'Post unliked.', 'success' if liked else 'info')
     return redirect(request.referrer or url_for('main.index'))
+
+
+@bp.route('/<int:post_id>/vote', methods=['POST'])
+@login_required
+def vote(post_id):
+    """Up/downvote a post. Body: JSON {value: 1 or -1}."""
+    from app.models import Vote
+    post = Post.query.get_or_404(post_id)
+
+    data  = request.get_json(silent=True) or {}
+    value = data.get('value')
+    if value not in (1, -1):
+        return jsonify({'error': 'value must be 1 or -1'}), 400
+
+    existing = Vote.query.filter_by(user_id=current_user.id, post_id=post.id).first()
+
+    if existing:
+        if existing.value == value:
+            # Same vote → undo (toggle off)
+            post.score -= existing.value
+            db.session.delete(existing)
+            user_vote = 0
+        else:
+            # Switching direction
+            post.score += (value - existing.value)
+            existing.value = value
+            user_vote = value
+    else:
+        db.session.add(Vote(
+            user_id=current_user.id,
+            post_id=post.id,
+            value=value,
+            created_at=__import__('datetime').datetime.now(__import__('datetime').timezone.utc)
+        ))
+        post.score += value
+        user_vote = value
+
+    db.session.commit()
+
+    return jsonify({
+        'score':     post.score,
+        'user_vote': user_vote,
+    })
+
 
 @bp.route('/<int:post_id>/bookmark', methods=['POST'])
 @login_required

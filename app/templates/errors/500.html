@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>500 — Server Error | knowly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #ef4444; --orange: #f97316;
+      --indigo: #6366f1; --violet: #8b5cf6;
+      --bg: #0d0d14; --border: rgba(99,102,241,0.18);
+      --text: #e8e8f0; --muted: #7b7b9a;
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
+    #stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .star { position: absolute; border-radius: 50%; background: #fff; animation: twinkle var(--d) ease-in-out infinite alternate; }
+    @keyframes twinkle { from { opacity: var(--min-op); transform: scale(1); } to { opacity: var(--max-op); transform: scale(1.6); } }
+    .glow { position: fixed; border-radius: 50%; filter: blur(90px); pointer-events: none; z-index: 0; }
+    .glow-left { width: 480px; height: 480px; background: radial-gradient(circle, rgba(239,68,68,0.18) 0%, transparent 70%); top: -80px; left: -120px; animation: drift 9s ease-in-out infinite alternate; }
+    .glow-right { width: 420px; height: 420px; background: radial-gradient(circle, rgba(249,115,22,0.14) 0%, transparent 70%); bottom: -60px; right: -80px; animation: drift 11s ease-in-out infinite alternate-reverse; }
+    @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(30px,30px) scale(1.08); } }
+    .grid-overlay { position: fixed; inset: 0; background-image: linear-gradient(rgba(99,102,241,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.055) 1px, transparent 1px); background-size: 48px 48px; pointer-events: none; z-index: 0; }
+    .scene { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; text-align: center; }
+    .gear-wrap { margin-bottom: 2.4rem; animation: float 4s ease-in-out infinite; }
+    @keyframes float { 0%,100% { transform: translateY(0px) rotate(-1deg); } 50% { transform: translateY(-14px) rotate(1deg); } }
+    .gear-icon { font-size: 5rem; display: block; animation: spin 8s linear infinite; filter: drop-shadow(0 0 24px rgba(239,68,68,0.5)); }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .error-num { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: clamp(5rem, 18vw, 11rem); line-height: 1; letter-spacing: -0.04em; background: linear-gradient(135deg, #fff 20%, var(--red) 60%, var(--orange) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: fadeSlideUp 0.7s cubic-bezier(0.22,1,0.36,1) both; }
+    .divider { width: 60px; height: 2px; background: linear-gradient(90deg, transparent, var(--red), transparent); margin: 1.2rem auto 1.4rem; animation: fadeSlideUp 0.7s 0.15s cubic-bezier(0.22,1,0.36,1) both; }
+    .headline { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: clamp(1.3rem, 3.5vw, 1.85rem); letter-spacing: -0.02em; color: var(--text); animation: fadeSlideUp 0.7s 0.2s cubic-bezier(0.22,1,0.36,1) both; }
+    .subline { margin-top: 0.75rem; font-size: 1rem; font-weight: 300; color: var(--muted); max-width: 380px; line-height: 1.65; animation: fadeSlideUp 0.7s 0.3s cubic-bezier(0.22,1,0.36,1) both; }
+    .actions { display: flex; gap: 1rem; margin-top: 2.4rem; flex-wrap: wrap; justify-content: center; animation: fadeSlideUp 0.7s 0.42s cubic-bezier(0.22,1,0.36,1) both; }
+    .btn { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.75rem 1.6rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 400; text-decoration: none; cursor: pointer; border: none; transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; overflow: hidden; }
+    .btn:hover { transform: translateY(-2px); } .btn:active { transform: translateY(0); }
+    .btn-primary { background: linear-gradient(135deg, var(--red) 0%, var(--orange) 100%); color: #fff; box-shadow: 0 4px 24px rgba(239,68,68,0.4); }
+    .btn-primary:hover { box-shadow: 0 8px 32px rgba(239,68,68,0.55); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: rgba(239,68,68,0.4); }
+    .breadcrumb { margin-top: 3rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--muted); opacity: 0.6; animation: fadeSlideUp 0.7s 0.55s cubic-bezier(0.22,1,0.36,1) both; }
+    .breadcrumb span { color: rgba(239,68,68,0.7); }
+    .wordmark { position: fixed; bottom: 1.6rem; left: 50%; transform: translateX(-50%); font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.12em; color: rgba(255,255,255,0.12); text-transform: uppercase; z-index: 1; white-space: nowrap; }
+    @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 480px) { .actions { flex-direction: column; align-items: center; } .btn { width: 100%; max-width: 280px; justify-content: center; } }
+  </style>
+</head>
+<body>
+  <div id="stars"></div>
+  <div class="glow glow-left"></div>
+  <div class="glow glow-right"></div>
+  <div class="grid-overlay"></div>
+  <main class="scene">
+    <div class="gear-wrap"><span class="gear-icon">⚙️</span></div>
+    <div class="error-num">500</div>
+    <div class="divider"></div>
+    <h1 class="headline">Something broke on our end.</h1>
+    <p class="subline">Our servers hit an unexpected snag. It's not you — it's us. Try refreshing, or head back home while we sort it out.</p>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="window.location.reload()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Refresh page
+      </button>
+      <a href="/" class="btn btn-ghost">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Back to Home
+      </a>
+    </div>
+    <div class="breadcrumb">knowly <span>/</span> Error <span>/</span> 500</div>
+  </main>
+  <div class="wordmark">knowly · Educational Resource Platform</div>
+  <script>
+    const c = document.getElementById('stars');
+    for (let i = 0; i < 120; i++) {
+      const s = document.createElement('div'); s.className = 'star';
+      const size = Math.random() * 2.2 + 0.4;
+      const minOp = (Math.random() * 0.15 + 0.03).toFixed(2);
+      const maxOp = (parseFloat(minOp) + Math.random() * 0.45 + 0.1).toFixed(2);
+      s.style.cssText = `width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*3+1.5).toFixed(1)}s;--min-op:${minOp};--max-op:${maxOp};animation-delay:${(Math.random()*4).toFixed(2)}s;`;
+      c.appendChild(s);
+    }
+  </script>
+</body>
+</html>

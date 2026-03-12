@@ -90,16 +90,23 @@ class Config:
 
     # SQLAlchemy settings
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
+
+    # Base engine options — safe for all DB backends
+    _engine_opts = {
+        'pool_pre_ping': True,   # test connection before use (handles Neon wake-up)
+        'pool_recycle': 300,     # recycle connections every 5 min
         'pool_size': 5,
         'max_overflow': 2,
         'pool_timeout': 10,
-        'connect_args': {
-            'connect_timeout': 5,
-        }
     }
+
+    # PostgreSQL-specific: pass connect_timeout so a dead Neon connection
+    # fails fast instead of hanging for 30+ seconds.
+    # SQLite uses NullPool and doesn't accept connect_args.
+    if DATABASE_URL and DATABASE_URL.startswith('postgresql'):
+        _engine_opts['connect_args'] = {'connect_timeout': 10}
+
+    SQLALCHEMY_ENGINE_OPTIONS = _engine_opts
 
     # ============================================================================
     # Cloudinary Configuration

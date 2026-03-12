@@ -257,28 +257,52 @@ class User(UserMixin, db.Model):
 
 class Post(db.Model):
     __tablename__ = 'post'
+    __table_args__ = (
+        db.Index('idx_post_status_created', 'status', 'created_at'),
+        db.Index('idx_post_subject_status', 'subject_id', 'status'),
+        db.Index('idx_post_user_status',    'user_id', 'status'),
+        db.Index('idx_post_content_status', 'content_type', 'status'),
+    )
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text, nullable=True)   # nullable — threads can be title-only
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
     subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=True)
     document_id = db.Column(db.Integer, db.ForeignKey('document.id'), nullable=True)
     has_document = db.Column(db.Boolean, default=False)
-    
+
+    # Reddit-style fields
+    flair  = db.Column(db.String(30), nullable=True)   # 'discussion','question','resource','tip','rant','announcement'
+    score  = db.Column(db.Integer, default=0, nullable=False)  # denormalised upvotes - downvotes
+
     # Content type for categorizing posts: notes, cheatsheet, quiz, mixed
     content_type = db.Column(db.String(20), default='notes', nullable=False)
-    # document = db.relationship('Document', foreign_keys=[document_id], backref='post_ref', uselist=False)
     likes = db.relationship('Like', backref='post', lazy='dynamic', cascade='all, delete-orphan')
     comments = db.relationship('Comment', backref='post', lazy='dynamic', cascade='all, delete-orphan')
     status = db.Column(db.String(20), nullable=False, default='pending')
     rejection_reason = db.Column(db.Text, nullable=True)
 
     def like_count(self):
+        # Use pre-loaded collection (selectinload) when available — zero extra queries
+        if 'likes' in self.__dict__:
+            return len(self.__dict__['likes'])
         return self.likes.count()
 
+    def upvote_count(self):
+        return self.votes.filter_by(value=1).count()
+
+    def downvote_count(self):
+        return self.votes.filter_by(value=-1).count()
+
+    def vote_by(self, user):
+        """Return the user's Vote on this post, or None."""
+        return self.votes.filter_by(user_id=user.id).first()
+
     def comment_count(self):
+        if 'comments' in self.__dict__:
+            return len(self.__dict__['comments'])
         return self.comments.count()
 
     def is_liked_by(self, user):
@@ -327,13 +351,35 @@ class Post(db.Model):
         }
         return labels.get(self.content_type, 'Notes')
 
+    def _quiz_meta_parsed(self):
+        """Memoized json.loads for quiz.meta — avoids repeated parsing per request."""
+        if self.quiz is None:
+            return {}
+        if not hasattr(self.quiz, '_meta_parsed'):
+            try:
+                self.quiz._meta_parsed = json.loads(self.quiz.meta) if self.quiz.meta else {}
+            except (ValueError, TypeError):
+                self.quiz._meta_parsed = {}
+        return self.quiz._meta_parsed
+
+    def _quiz_questions_parsed(self):
+        """Memoized json.loads for quiz.questions."""
+        if self.quiz is None:
+            return []
+        if not hasattr(self.quiz, '_questions_parsed'):
+            try:
+                self.quiz._questions_parsed = json.loads(self.quiz.questions) if self.quiz.questions else []
+            except (ValueError, TypeError):
+                self.quiz._questions_parsed = []
+        return self.quiz._questions_parsed
+
     @property
     def quiz_card_meta(self):
         """Returns {questions, marks, duration} for quiz post cards."""
         if not self.has_quiz() or not self.quiz.meta:
             return None
         try:
-            m = json.loads(self.quiz.meta)
+            m = self._quiz_meta_parsed()
             return {
                 "questions": m.get("total_questions"),
                 "marks":     m.get("total_marks"),
@@ -348,7 +394,7 @@ class Post(db.Model):
         if not self.has_quiz() or not self.quiz.meta:
             return None
         try:
-            m = json.loads(self.quiz.meta)
+            m = self._quiz_meta_parsed()
             if m.get("document_type") != "notes":
                 return None
             return {
@@ -363,10 +409,10 @@ class Post(db.Model):
         if not self.has_quiz() or not self.quiz.questions:
             return None
         try:
-            m = json.loads(self.quiz.meta) if self.quiz.meta else {}
+            m = self._quiz_meta_parsed()
             if m.get("document_type") != "cheatsheet":
                 return None
-            sections = json.loads(self.quiz.questions)
+            sections = self._quiz_questions_parsed()
             formula_count    = sum(
                 len(s.get("entries", []))
                 for s in sections if s.get("section_type") == "formulas"
@@ -382,6 +428,20 @@ class Post(db.Model):
         except (ValueError, KeyError):
             return None
 
+    # ── Flair helpers ──────────────────────────────────────────────────────────
+    FLAIRS = {
+        'discussion':   {'label': 'Discussion',   'icon': 'comments',         'color': '#6366f1'},
+        'question':     {'label': 'Question',     'icon': 'circle-question',  'color': '#3b82f6'},
+        'resource':     {'label': 'Resource',     'icon': 'paperclip',        'color': '#10b981'},
+        'tip':          {'label': 'Tip',          'icon': 'lightbulb',        'color': '#f59e0b'},
+        'rant':         {'label': 'Rant',         'icon': 'fire',             'color': '#ef4444'},
+        'announcement': {'label': 'Announcement', 'icon': 'bullhorn',         'color': '#8b5cf6'},
+    }
+
+    @property
+    def flair_meta(self):
+        return self.FLAIRS.get(self.flair) if self.flair else None
+
     def __repr__(self):
         return f'<Post {self.title}>'
 
@@ -395,6 +455,14 @@ class Comment(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('comment.id'), nullable=True)  # None = top-level
+
+    replies = db.relationship(
+        'Comment',
+        backref=db.backref('parent', remote_side='Comment.id'),
+        lazy='dynamic',
+        cascade='all, delete-orphan',
+    )
 
 
 class Like(db.Model):
@@ -404,6 +472,27 @@ class Like(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
     __table_args__ = (db.UniqueConstraint('user_id', 'post_id', name='unique_like'),)
+
+
+class Vote(db.Model):
+    """
+    Up/downvote on a post.  value = +1 (upvote) or -1 (downvote).
+    Post.score is kept as a denormalised tally updated by the vote route.
+    """
+    __tablename__ = 'vote'
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('profiles.id'), nullable=False)
+    post_id    = db.Column(db.Integer, db.ForeignKey('post.id'),     nullable=False)
+    value      = db.Column(db.SmallInteger, nullable=False)   # +1 or -1
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    user = db.relationship('User', backref='votes')
+    post = db.relationship('Post', backref=db.backref('votes', lazy='dynamic', cascade='all, delete-orphan'))
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'post_id', name='unique_vote'),
+        db.Index('idx_vote_post', 'post_id'),
+    )
 
 
 class Purchase(db.Model):
@@ -506,6 +595,12 @@ class Programme(db.Model):
     
     # Relationship to subjects via association table
     subjects = db.relationship('Subject', secondary='subject_programme', back_populates='programmes', lazy='dynamic')
+
+    def active_subject_count(self):
+        from app.models import Subject
+        return Subject.query.filter_by(is_active=True).filter(
+            Subject.programmes.any(id=self.id)
+        ).count()
 
     def __repr__(self):
         return f'<Programme {self.name}>'

@@ -1,574 +1,810 @@
 {% extends "base.html" %}
-{% block title %}Explore — knowly{% endblock %}
+{% block title %}Community — knowly{% endblock %}
 
 {% block content %}
-<div class="ex-root">
 
-  {# ── PAGE HEADER ── #}
-  <div class="ex-header">
-    <div class="ex-header-glow"></div>
-    <div class="ex-header-content">
+{# ════════════════════════════════════════
+   STICKY TAB BAR — TikTok style, 3 tabs
+   ════════════════════════════════════════ #}
+<div class="exp-tabbar">
+  <div class="exp-tabbar-inner">
 
-      <div class="ex-header-top">
-        <div class="ex-header-left">
-          <div class="ex-header-icon">
-            <i class="fas fa-compass"></i>
-          </div>
-          <div class="ex-header-text">
-            <h1 class="ex-title">Explore</h1>
-            <p class="ex-sub">Browse all community uploads</p>
-          </div>
-        </div>
-        <div class="ex-header-stats">
-          <div class="ex-stat-pill">
-            <i class="fas fa-file-alt"></i>
-            <strong>{{ total_posts }}</strong>
-            <span>uploads</span>
-          </div>
-          <div class="ex-stat-pill">
-            <i class="fas fa-book"></i>
-            <strong>{{ total_subjects }}</strong>
-            <span>subjects</span>
-          </div>
-        </div>
-      </div>
+    <a href="{{ url_for('main.explore') }}?tab=foryou"
+       class="exp-tab {% if active_tab == 'foryou' or not active_tab %}is-active{% endif %}">
+      For You
+    </a>
 
-      {# ── SEARCH + TYPE TABS ── #}
-      <div class="ex-controls">
-        <form class="ex-search-form" method="get" action="{{ url_for('main.explore') }}">
-          {% if selected_subjects %}
-            <input type="hidden" name="subjects" value="{{ selected_subjects | join(',') }}">
-          {% endif %}
-          {% if selected_type %}
-            <input type="hidden" name="type" value="{{ selected_type }}">
-          {% endif %}
-          <div class="ex-search-wrap">
-            <i class="fas fa-search ex-search-icon"></i>
-            <input type="text" name="q" value="{{ search_query or '' }}"
-                   class="ex-search-input" placeholder="Search uploads…" autocomplete="off">
-            {% if search_query %}
-            <a href="{{ url_for('main.explore', subjects=selected_subjects|join(',') if selected_subjects else '', type=selected_type or '') }}"
-               class="ex-search-clear" title="Clear search">
-              <i class="fas fa-times"></i>
-            </a>
-            {% endif %}
-          </div>
-        </form>
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('main.explore') }}?tab=following"
+       class="exp-tab {% if active_tab == 'following' %}is-active{% endif %}">
+      Following
+    </a>
+    {% endif %}
 
-        <div class="ex-type-tabs">
-          <a href="{{ url_for('main.explore', subjects=selected_subjects|join(',') if selected_subjects else '', q=search_query or '') }}"
-             class="ex-tab {% if not selected_type %}is-active{% endif %}">
-            <i class="fas fa-th-large"></i><span>All</span>
-          </a>
-          <a href="{{ url_for('main.explore', type='notes', subjects=selected_subjects|join(',') if selected_subjects else '', q=search_query or '') }}"
-             class="ex-tab ex-tab--notes {% if selected_type == 'notes' %}is-active{% endif %}">
-            <i class="fas fa-sticky-note"></i><span>Notes</span>
-          </a>
-          <a href="{{ url_for('main.explore', type='quiz', subjects=selected_subjects|join(',') if selected_subjects else '', q=search_query or '') }}"
-             class="ex-tab ex-tab--quiz {% if selected_type == 'quiz' %}is-active{% endif %}">
-            <i class="fas fa-brain"></i><span>Quizzes</span>
-          </a>
-          <a href="{{ url_for('main.explore', type='cheatsheet', subjects=selected_subjects|join(',') if selected_subjects else '', q=search_query or '') }}"
-             class="ex-tab ex-tab--sheet {% if selected_type == 'cheatsheet' %}is-active{% endif %}">
-            <i class="fas fa-clone"></i><span>Cheatsheets</span>
-          </a>
-        </div>
-      </div>
+    <a href="{{ url_for('main.explore') }}?tab=trending"
+       class="exp-tab {% if active_tab == 'trending' %}is-active{% endif %}">
+      Trending
+    </a>
 
-    </div>
+    <button class="exp-search-toggle" onclick="toggleExpSearch()"
+            aria-label="Search" id="expSearchBtn">
+      <i class="fas fa-search"></i>
+    </button>
+
   </div>
 
-  {# ── SUBJECT CHIPS ── #}
-  {% if subjects %}
-  <div class="ex-chips-row">
-    <a href="{{ url_for('main.explore', type=selected_type or '', q=search_query or '') }}"
-       class="ex-chip {% if not selected_subjects %}is-active{% endif %}">
-      <i class="fas fa-layer-group"></i> All subjects
-    </a>
-    {% for subject in subjects %}
-    <a href="{{ url_for('main.explore', subjects=subject.id, type=selected_type or '', q=search_query or '') }}"
-       class="ex-chip {% if subject.id in selected_subjects %}is-active{% endif %}"
-       style="--sc: {{ subject.color }}">
-      <i class="fas fa-{{ subject.icon }}"></i> {{ subject.name }}
-    </a>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  {# ── RESULTS INFO BAR ── #}
-  {% if search_query or selected_subjects or selected_type %}
-  <div class="ex-results-bar">
-    <span class="ex-results-label">
-      <i class="fas fa-filter"></i>
-      <strong>{{ posts.total }}</strong> result{{ 's' if posts.total != 1 }}
-      {% if search_query %} for "<em>{{ search_query }}</em>"{% endif %}
-    </span>
-    <a href="{{ url_for('main.explore') }}" class="ex-clear-btn">
-      <i class="fas fa-times"></i> Clear filters
-    </a>
-  </div>
-  {% endif %}
-
-  {# ── POSTS PANEL ── #}
-  <div class="ex-panel">
-
-    <div class="ex-panel-head">
-      <div class="ex-panel-icon ex-panel-icon--{% if search_query %}search{% elif selected_type == 'notes' %}notes{% elif selected_type == 'quiz' %}quiz{% elif selected_type == 'cheatsheet' %}sheet{% else %}all{% endif %}">
-        <i class="fas fa-{% if search_query %}search{% elif selected_type == 'notes' %}sticky-note{% elif selected_type == 'quiz' %}brain{% elif selected_type == 'cheatsheet' %}clone{% else %}fire{% endif %}"></i>
-      </div>
-      <h2 class="ex-panel-title">
-        {% if search_query %}Search results
-        {% elif selected_type == 'notes' %}Notes
-        {% elif selected_type == 'quiz' %}Quizzes
-        {% elif selected_type == 'cheatsheet' %}Cheatsheets
-        {% else %}Latest uploads{% endif %}
-      </h2>
-      {% if not search_query and not selected_subjects and not selected_type %}
-      <span class="ex-new-badge">New</span>
+  <div class="exp-search-wrap" id="expSearchWrap">
+    <form method="get" action="{{ url_for('main.explore') }}" class="exp-search-form">
+      <input type="hidden" name="tab" value="{{ active_tab or 'foryou' }}">
+      <i class="fas fa-search exp-search-ico"></i>
+      <input type="text" name="q" value="{{ search_query or '' }}"
+             class="exp-search-input" placeholder="Search uploads…"
+             autocomplete="off" id="expSearchInput">
+      {% if search_query %}
+      <a href="{{ url_for('main.explore', tab=active_tab or 'foryou') }}" class="exp-search-clear">
+        <i class="fas fa-times"></i>
+      </a>
       {% endif %}
-      {% if posts.total %}
-      <span class="ex-panel-count">{{ posts.total }} total</span>
-      {% endif %}
+    </form>
+  </div>
+</div>
+
+{# ════════════════════════════════════════
+   PAGE BODY
+   ════════════════════════════════════════ #}
+<div class="exp-root">
+
+  {# LEFT SIDEBAR — desktop only, hidden on mobile #}
+  <aside class="exp-sidebar">
+
+    <div class="exp-sidebar-panel">
+      <p class="exp-sidebar-label">Content Type</p>
+      <div class="exp-sidebar-links">
+        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou', q=search_query or '') }}"
+           class="exp-sidebar-link {% if not selected_type %}is-active{% endif %}">
+          <i class="fas fa-th-large"></i> All
+        </a>
+        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou', type='notes', q=search_query or '') }}"
+           class="exp-sidebar-link {% if selected_type == 'notes' %}is-active{% endif %}">
+          <i class="fas fa-sticky-note"></i> Notes
+        </a>
+        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou', type='quiz', q=search_query or '') }}"
+           class="exp-sidebar-link {% if selected_type == 'quiz' %}is-active{% endif %}">
+          <i class="fas fa-brain"></i> Quizzes
+        </a>
+        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou', type='cheatsheet', q=search_query or '') }}"
+           class="exp-sidebar-link {% if selected_type == 'cheatsheet' %}is-active{% endif %}">
+          <i class="fas fa-clone"></i> Cheatsheets
+        </a>
+      </div>
     </div>
+
+    {% if subjects %}
+    <div class="exp-sidebar-panel">
+      <p class="exp-sidebar-label">Subjects</p>
+      <div class="exp-sidebar-links">
+        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou', type=selected_type or '', q=search_query or '') }}"
+           class="exp-sidebar-link {% if not selected_subjects %}is-active{% endif %}">
+          <i class="fas fa-layer-group"></i> All subjects
+        </a>
+        {% for subject in subjects[:14] %}
+        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou', subjects=subject.id, type=selected_type or '', q=search_query or '') }}"
+           class="exp-sidebar-link {% if subject.id in selected_subjects %}is-active{% endif %}"
+           {% if subject.color %}style="--sc: {{ subject.color }}"{% endif %}>
+          <i class="fas fa-{{ subject.icon or 'book' }}"></i>
+          <span>{{ subject.name }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="exp-sidebar-panel exp-sidebar-stats">
+      <div class="exp-stat-row">
+        <span><i class="fas fa-file-alt"></i> Uploads</span>
+        <strong>{{ total_posts }}</strong>
+      </div>
+      <div class="exp-stat-row">
+        <span><i class="fas fa-book"></i> Subjects</span>
+        <strong>{{ total_subjects }}</strong>
+      </div>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('posts.create') }}" class="exp-create-btn">
+      <i class="fas fa-plus"></i> New Post
+    </a>
+    {% endif %}
+
+  </aside>
+
+  {# MAIN FEED #}
+  <main class="exp-feed">
+
+    {% if search_query or selected_subjects or selected_type %}
+    <div class="exp-feed-header">
+      <div class="exp-feed-title-wrap">
+        {% if search_query %}
+        <span class="exp-feed-title">Results for "{{ search_query }}"</span>
+        {% endif %}
+        {% if posts.total %}
+        <span class="exp-feed-count">{{ posts.total }} post{{ 's' if posts.total != 1 }}</span>
+        {% endif %}
+      </div>
+      <a href="{{ url_for('main.explore', tab=active_tab or 'foryou') }}" class="exp-clear-filters">
+        <i class="fas fa-times"></i> Clear
+      </a>
+    </div>
+    {% endif %}
 
     {% if posts.items %}
-    <div class="ex-list">
+    <div class="exp-posts">
       {% for post in posts.items %}
-      <a href="{{ url_for('posts.view', post_id=post.id) }}" class="ex-row">
+      <article class="exp-post" style="--delay: {{ loop.index0 * 0.04 }}s">
 
-        <div class="ex-row-icon" style="background:{{ post.content_type_color }}18; color:{{ post.content_type_color }}">
-          <i class="fas fa-{{ post.content_type_icon }}"></i>
-        </div>
+        <a href="{{ url_for('users.profile', username=post.author.username) }}" class="exp-avatar-link">
+          <img src="{{ post.author.profile_picture_url }}"
+               alt="{{ post.author.username }}" class="exp-avatar">
+        </a>
 
-        <div class="ex-row-body">
-          <p class="ex-row-title">{{ post.title }}</p>
-          <div class="ex-row-meta">
-            <span class="ex-type-pill" style="background:{{ post.content_type_color }}15; color:{{ post.content_type_color }}">
-              {{ post.content_type_label }}
+        <div class="exp-post-body">
+
+          <div class="exp-post-meta">
+            <a href="{{ url_for('users.profile', username=post.author.username) }}" class="exp-post-author">
+              {{ post.author.full_name or post.author.username }}
+            </a>
+            <span class="exp-post-username">@{{ post.author.username }}</span>
+            <span class="exp-post-dot">·</span>
+            <span class="exp-post-time" title="{{ post.created_at.strftime('%b %d, %Y at %H:%M') }}">
+              {{ post.created_at.strftime('%b %d') }}
             </span>
+            <div class="exp-type-pill exp-type-pill--{{ post.content_type }}">
+              <i class="fas fa-{{ post.content_type_icon }}"></i>
+              <span>{{ post.content_type_label }}</span>
+            </div>
+          </div>
+
+          <a href="{{ url_for('posts.view', post_id=post.id) }}" class="exp-post-link">
+            <h3 class="exp-post-title">{{ post.title }}</h3>
+            {% if post.description %}
+            <p class="exp-post-desc">{{ post.description | truncate(140) | markdown | striptags }}</p>
+            {% endif %}
+          </a>
+
+          <div class="exp-post-chips">
             {% if post.subject %}
-            <span class="ex-subject-tag" style="color:{{ post.subject.color }}">
-              <i class="fas fa-{{ post.subject.icon }}"></i> {{ post.subject.name }}
+            <span class="exp-chip exp-chip--subject"
+                  {% if post.subject.color %}style="color:{{ post.subject.color }}; background:{{ post.subject.color }}14;"{% endif %}>
+              <i class="fas fa-{{ post.subject.icon or 'book' }}"></i> {{ post.subject.name }}
             </span>
             {% endif %}
+
             {% if post.content_type == 'quiz' %}
               {% set qm = post.quiz_card_meta %}
               {% if qm %}
-                {% if qm.questions %}<span class="ex-chip-meta ex-chip-meta--quiz"><i class="fas fa-list-ol"></i> {{ qm.questions }}q</span>{% endif %}
-                {% if qm.marks %}<span class="ex-chip-meta ex-chip-meta--quiz"><i class="fas fa-star"></i> {{ qm.marks }}pts</span>{% endif %}
-                {% if qm.duration %}<span class="ex-chip-meta ex-chip-meta--quiz"><i class="fas fa-clock"></i> {{ qm.duration }}</span>{% endif %}
+                {% if qm.questions %}<span class="exp-chip exp-chip--quiz"><i class="fas fa-list-ol"></i> {{ qm.questions }}q</span>{% endif %}
+                {% if qm.marks %}<span class="exp-chip exp-chip--quiz"><i class="fas fa-star"></i> {{ qm.marks }}pts</span>{% endif %}
+                {% if qm.duration %}<span class="exp-chip exp-chip--quiz"><i class="fas fa-clock"></i> {{ qm.duration }}</span>{% endif %}
               {% endif %}
-            {% elif post.content_type == 'notes' %}
-              {% set nm = post.notes_card_meta %}
-              {% if nm and nm.read_time %}<span class="ex-chip-meta ex-chip-meta--notes"><i class="fas fa-book-open"></i> {{ nm.read_time }}</span>{% endif %}
             {% elif post.content_type == 'cheatsheet' %}
               {% set cm = post.cheatsheet_card_meta %}
               {% if cm %}
-                {% if cm.formula_count %}<span class="ex-chip-meta ex-chip-meta--sheet"><i class="fas fa-square-root-alt"></i> {{ cm.formula_count }} formula{{ 's' if cm.formula_count != 1 }}</span>{% endif %}
-                {% if cm.definition_count %}<span class="ex-chip-meta ex-chip-meta--sheet"><i class="fas fa-book"></i> {{ cm.definition_count }} def{{ 's' if cm.definition_count != 1 }}</span>{% endif %}
+                {% if cm.formula_count %}<span class="exp-chip exp-chip--sheet"><i class="fas fa-square-root-alt"></i> {{ cm.formula_count }} formula{{ 's' if cm.formula_count != 1 }}</span>{% endif %}
+                {% if cm.definition_count %}<span class="exp-chip exp-chip--sheet"><i class="fas fa-book"></i> {{ cm.definition_count }} def{{ 's' if cm.definition_count != 1 }}</span>{% endif %}
               {% endif %}
             {% endif %}
-            <span class="ex-dot">·</span>
-            <span class="ex-stat"><i class="fas fa-heart"></i> {{ post.like_count() }}</span>
-            <span class="ex-dot">·</span>
-            <span class="ex-stat">{{ post.created_at.strftime('%b %d') }}</span>
-          </div>
-        </div>
 
-        <div class="ex-row-right">
-          <img src="{{ post.author.profile_picture_url }}"
-               alt="{{ post.author.username }}" class="ex-avatar"
-               title="{{ post.author.full_name or post.author.username }}">
-          {% if post.has_document and post.document %}
-            {% if post.document.is_paid %}
-            <span class="ex-price-badge">GHS {{ "%.0f"|format(post.document.price) }}</span>
-            {% else %}
-            <span class="ex-free-badge">Free</span>
+            {% if post.has_document and post.document %}
+              {% if post.document.is_paid %}
+              <span class="exp-chip exp-chip--paid">GHS {{ "%.0f"|format(post.document.price) }}</span>
+              {% else %}
+              <span class="exp-chip exp-chip--free">Free</span>
+              {% endif %}
             {% endif %}
-          {% endif %}
-          <i class="fas fa-chevron-right ex-chevron"></i>
-        </div>
+          </div>
 
-      </a>
+          <div class="exp-post-actions">
+
+            {% if current_user.is_authenticated %}
+            <button class="exp-action exp-action--like {% if post.is_liked_by(current_user) %}is-liked{% endif %}"
+                    onclick="communityLike(this, {{ post.id }})" title="Like">
+              <i class="fas fa-heart"></i>
+              <span class="exp-action-count">{{ post.like_count() }}</span>
+            </button>
+            {% else %}
+            <a href="{{ url_for('auth.login') }}" class="exp-action" title="Like">
+              <i class="fas fa-heart"></i>
+              <span class="exp-action-count">{{ post.like_count() }}</span>
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('posts.view', post_id=post.id) }}#comments" class="exp-action" title="Comment">
+              <i class="fas fa-comment"></i>
+              <span class="exp-action-count">{{ post.comment_count() }}</span>
+            </a>
+
+            {% if current_user.is_authenticated %}
+            <button class="exp-action exp-action--bookmark {% if post.is_bookmarked_by(current_user) %}is-bookmarked{% endif %}"
+                    onclick="communityBookmark(this, {{ post.id }})" title="Save">
+              <i class="fas fa-bookmark"></i>
+            </button>
+            {% endif %}
+
+            <button class="exp-action"
+                    onclick="communityShare('{{ post.title | e }}', '{{ url_for('posts.view', post_id=post.id, _external=True) }}')"
+                    title="Share">
+              <i class="fas fa-share-nodes"></i>
+            </button>
+
+            <a href="{{ url_for('posts.view', post_id=post.id) }}" class="exp-action exp-action--view" title="Open">
+              <i class="fas fa-arrow-up-right-from-square"></i>
+            </a>
+
+          </div>
+
+        </div>
+      </article>
       {% endfor %}
     </div>
 
     {% if posts.pages > 1 %}
-    <div class="ex-pagination">
+    <div class="exp-pagination">
       {% if posts.has_prev %}
-      <a href="{{ url_for('main.explore', page=posts.prev_num, subjects=selected_subjects|join(',') if selected_subjects else '', type=selected_type or '', q=search_query or '') }}"
-         class="ex-page-btn"><i class="fas fa-chevron-left"></i> Prev</a>
+      <a href="{{ url_for('main.explore', page=posts.prev_num, tab=active_tab or 'foryou', subjects=selected_subjects|join(',') if selected_subjects else '', type=selected_type or '', q=search_query or '') }}"
+         class="exp-page-btn"><i class="fas fa-chevron-left"></i> Prev</a>
       {% endif %}
-      <div class="ex-page-nums">
+      <div class="exp-page-nums">
         {% for p in posts.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
           {% if p %}
-          <a href="{{ url_for('main.explore', page=p, subjects=selected_subjects|join(',') if selected_subjects else '', type=selected_type or '', q=search_query or '') }}"
-             class="ex-page-num {% if p == posts.page %}is-active{% endif %}">{{ p }}</a>
+          <a href="{{ url_for('main.explore', page=p, tab=active_tab or 'foryou', subjects=selected_subjects|join(',') if selected_subjects else '', type=selected_type or '', q=search_query or '') }}"
+             class="exp-page-num {% if p == posts.page %}is-active{% endif %}">{{ p }}</a>
           {% else %}
-          <span class="ex-page-ellipsis">…</span>
+          <span class="exp-page-ellipsis">…</span>
           {% endif %}
         {% endfor %}
       </div>
       {% if posts.has_next %}
-      <a href="{{ url_for('main.explore', page=posts.next_num, subjects=selected_subjects|join(',') if selected_subjects else '', type=selected_type or '', q=search_query or '') }}"
-         class="ex-page-btn">Next <i class="fas fa-chevron-right"></i></a>
+      <a href="{{ url_for('main.explore', page=posts.next_num, tab=active_tab or 'foryou', subjects=selected_subjects|join(',') if selected_subjects else '', type=selected_type or '', q=search_query or '') }}"
+         class="exp-page-btn">Next <i class="fas fa-chevron-right"></i></a>
       {% endif %}
     </div>
     {% endif %}
 
     {% else %}
-    <div class="ex-empty">
-      <div class="ex-empty-icon">
-        <i class="fas fa-{% if search_query %}search{% else %}inbox{% endif %}"></i>
+    <div class="exp-empty">
+      <div class="exp-empty-icon">
+        <i class="fas fa-{% if search_query %}search{% elif active_tab == 'following' %}user-group{% else %}inbox{% endif %}"></i>
       </div>
-      <p class="ex-empty-title">
+      <h3 class="exp-empty-title">
         {% if search_query %}No results for "{{ search_query }}"
+        {% elif active_tab == 'following' %}Nothing from people you follow yet
         {% else %}Nothing here yet{% endif %}
-      </p>
-      <p class="ex-empty-sub">
-        {% if search_query or selected_subjects or selected_type %}
-        Try removing some filters or <a href="{{ url_for('main.explore') }}">browse everything</a>.
+      </h3>
+      <p class="exp-empty-sub">
+        {% if active_tab == 'following' %}
+          Follow some students to see their uploads here.
+        {% elif search_query or selected_subjects or selected_type %}
+          Try removing some filters.
         {% else %}
-        Be the first to <a href="{{ url_for('posts.create') }}">upload something</a>.
+          Be the first to <a href="{{ url_for('posts.create') }}">share something</a>.
         {% endif %}
       </p>
     </div>
     {% endif %}
 
-  </div>
+  </main>
+
+  {# RIGHT SIDEBAR — desktop only, never shown on mobile #}
+  <aside class="exp-right">
+
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('posts.create') }}" class="exp-create-btn-lg">
+      <i class="fas fa-plus"></i> Create Post
+    </a>
+    {% endif %}
+
+    {% if trending_subjects %}
+    <div class="exp-right-panel">
+      <h3 class="exp-right-title"><i class="fas fa-fire"></i> Trending Subjects</h3>
+      {% for subject in trending_subjects %}
+      <a href="{{ url_for('main.explore', subjects=subject.id) }}" class="exp-trend-row">
+        <div class="exp-trend-icon" style="{% if subject.color %}background:{{ subject.color }}18; color:{{ subject.color }}{% endif %}">
+          <i class="fas fa-{{ subject.icon or 'book' }}"></i>
+        </div>
+        <div class="exp-trend-info">
+          <span class="exp-trend-name">{{ subject.name }}</span>
+          {% if subject.post_count %}<span class="exp-trend-count">{{ subject.post_count }} posts</span>{% endif %}
+        </div>
+        <i class="fas fa-chevron-right exp-trend-arrow"></i>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Suggested users — DESKTOP ONLY #}
+    {% if suggested_users %}
+    <div class="exp-right-panel">
+      <h3 class="exp-right-title"><i class="fas fa-user-plus"></i> Who to Follow</h3>
+      {% for user in suggested_users %}
+      <div class="exp-suggest-row">
+        <a href="{{ url_for('users.profile', username=user.username) }}" class="exp-suggest-avatar-link">
+          <img src="{{ user.profile_picture_url }}" alt="{{ user.username }}" class="exp-suggest-avatar">
+        </a>
+        <div class="exp-suggest-info">
+          <a href="{{ url_for('users.profile', username=user.username) }}" class="exp-suggest-name">
+            {{ user.full_name or user.username }}
+          </a>
+          <span class="exp-suggest-meta">
+            {% if user.programme %}{{ user.programme[:25] }}{% else %}@{{ user.username }}{% endif %}
+          </span>
+        </div>
+        {% if current_user.is_authenticated and not current_user.is_following(user) %}
+        <a href="{{ url_for('users.follow', username=user.username) }}" class="exp-follow-btn">Follow</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </aside>
 
 </div>
 
+{% if current_user.is_authenticated %}
+<a href="{{ url_for('posts.create') }}" class="exp-fab" title="Create post">
+  <i class="fas fa-plus"></i>
+</a>
+{% endif %}
+
 <style>
-/* ── Root ── */
-.ex-root {
-  max-width: 820px;
-  margin: 0 auto;
-  padding: 1.5rem 1.25rem 5.5rem;
-  display: flex; flex-direction: column; gap: 1rem;
-}
-
-/* ── Header card ── */
-.ex-header {
-  position: relative;
+/* ════════════════════════════════════════
+   TAB BAR
+   ════════════════════════════════════════ */
+.exp-tabbar {
+  position: sticky;
+  top: var(--nav-h, 62px);
+  z-index: 100;
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  overflow: hidden;
+  border-bottom: 1px solid var(--border);
 }
-.ex-header-glow {
-  position: absolute; inset: 0;
-  background: var(--brand-gradient);
-  opacity: .055; pointer-events: none;
-}
-[data-theme="dark"] .ex-header-glow { opacity: .11; }
-.ex-header::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--brand-gradient);
-}
-.ex-header-content {
+.exp-tabbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 600px;
+  margin: 0 auto;
   position: relative;
-  padding: 1.25rem 1.25rem 1rem;
-  display: flex; flex-direction: column; gap: 1rem;
+  padding: 0 3rem 0 0;
 }
-.ex-header-top {
-  display: flex; align-items: center;
-  justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+@media (max-width: 768px) {
+  .exp-tabbar-inner { max-width: 100%; }
 }
-.ex-header-left { display: flex; align-items: center; gap: .875rem; }
-.ex-header-icon {
-  width: 46px; height: 46px; border-radius: 14px;
-  background: var(--brand-gradient); color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.15rem;
-  box-shadow: 0 4px 16px rgba(37,99,235,.25); flex-shrink: 0;
-}
-.ex-title {
-  font-family: var(--font-display);
-  font-size: 1.4rem; font-weight: 900;
-  color: var(--text-primary); letter-spacing: -.03em;
-  margin: 0 0 .1rem; line-height: 1;
-}
-.ex-sub { font-size: .75rem; color: var(--text-muted); margin: 0; }
-.ex-header-stats { display: flex; align-items: center; gap: .45rem; flex-shrink: 0; }
-.ex-stat-pill {
-  display: inline-flex; align-items: center; gap: .3rem;
-  padding: .32rem .65rem;
-  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 50px;
-  font-size: .71rem; color: var(--text-muted); font-family: var(--font-body);
-}
-.ex-stat-pill i { color: var(--primary); font-size: .58rem; }
-.ex-stat-pill strong { color: var(--text-primary); font-weight: 700; }
-
-/* ── Controls (search + tabs) ── */
-.ex-controls { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
-.ex-search-form { flex: 1; min-width: 180px; }
-.ex-search-wrap { position: relative; display: flex; align-items: center; }
-.ex-search-icon {
-  position: absolute; left: .75rem; font-size: .72rem;
-  color: var(--text-muted); pointer-events: none;
-}
-.ex-search-input {
-  width: 100%; padding: .58rem .75rem .58rem 2.1rem;
-  background: var(--bg-secondary); border: 1.5px solid var(--border); border-radius: 10px;
-  color: var(--text-primary); font-size: .84rem; font-family: var(--font-body);
-  transition: border-color .15s, box-shadow .15s, background .15s; box-sizing: border-box;
-}
-.ex-search-input:focus {
-  outline: none; background: var(--bg-card);
-  border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.1);
-}
-.ex-search-input::placeholder { color: var(--text-muted); }
-.ex-search-clear {
-  position: absolute; right: .6rem; width: 20px; height: 20px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 50%; background: var(--bg-hover);
-  color: var(--text-muted); font-size: .62rem; text-decoration: none; transition: all .15s;
-}
-.ex-search-clear:hover { background: rgba(239,68,68,.1); color: #ef4444; }
-.ex-type-tabs {
-  display: flex; gap: .25rem;
-  background: var(--bg-secondary); border: 1.5px solid var(--border);
-  border-radius: 11px; padding: .22rem; flex-shrink: 0;
-}
-.ex-tab {
-  display: inline-flex; align-items: center; gap: .28rem;
-  padding: .38rem .7rem; border-radius: 8px;
-  font-size: .73rem; font-weight: 700; color: var(--text-muted);
-  text-decoration: none; transition: all .15s;
-  white-space: nowrap; font-family: var(--font-body);
-}
-.ex-tab i { font-size: .62rem; }
-.ex-tab:hover { background: var(--bg-card); color: var(--text-secondary); }
-.ex-tab.is-active         { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.3); }
-.ex-tab--notes.is-active  { background: #10b981; box-shadow: 0 2px 8px rgba(16,185,129,.3); }
-.ex-tab--quiz.is-active   { background: #8b5cf6; box-shadow: 0 2px 8px rgba(139,92,246,.3); }
-.ex-tab--sheet.is-active  { background: #f59e0b; box-shadow: 0 2px 8px rgba(245,158,11,.3); }
-
-/* ── Subject chips ── */
-.ex-chips-row {
-  display: flex; gap: .35rem;
-  overflow-x: auto; padding: .05rem .05rem .2rem;
-  scrollbar-width: none; -webkit-overflow-scrolling: touch;
-}
-.ex-chips-row::-webkit-scrollbar { display: none; }
-.ex-chip {
-  display: inline-flex; align-items: center; gap: .22rem;
-  padding: .3rem .65rem; border-radius: 50px;
-  font-size: .71rem; font-weight: 600;
-  background: var(--bg-card); border: 1.5px solid var(--border);
-  color: var(--text-secondary); white-space: nowrap; text-decoration: none;
-  flex-shrink: 0; transition: all .15s; font-family: var(--font-body);
-}
-.ex-chip i { font-size: .58rem; }
-.ex-chip:hover { border-color: var(--sc, var(--primary)); color: var(--sc, var(--primary)); }
-.ex-chip.is-active { background: var(--sc, var(--primary)); border-color: var(--sc, var(--primary)); color: #fff; }
-
-/* ── Results bar ── */
-.ex-results-bar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: .55rem 1rem;
-  background: rgba(37,99,235,.04); border: 1.5px solid rgba(37,99,235,.14);
-  border-radius: 11px; font-size: .78rem; gap: .5rem; flex-wrap: wrap;
-  font-family: var(--font-body);
-}
-[data-theme="dark"] .ex-results-bar { background: rgba(37,99,235,.08); border-color: rgba(37,99,235,.2); }
-.ex-results-label { color: var(--text-secondary); display: flex; align-items: center; gap: .4rem; }
-.ex-results-label i { color: var(--primary); font-size: .62rem; }
-.ex-results-label strong { color: var(--text-primary); }
-.ex-results-label em { font-style: normal; font-weight: 700; color: var(--text-primary); }
-.ex-clear-btn {
-  display: inline-flex; align-items: center; gap: .28rem;
-  font-size: .72rem; font-weight: 700; color: var(--primary);
-  text-decoration: none; transition: opacity .15s;
-}
-.ex-clear-btn:hover { opacity: .7; }
-
-/* ── Posts panel ── */
-.ex-panel {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 20px; overflow: hidden;
-}
-.ex-panel-head {
-  display: flex; align-items: center; gap: .55rem;
-  padding: .875rem 1.125rem; border-bottom: 1px solid var(--border);
-  background: var(--bg-secondary);
-}
-[data-theme="dark"] .ex-panel-head { background: rgba(255,255,255,.02); }
-.ex-panel-icon {
-  width: 30px; height: 30px; border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .75rem; flex-shrink: 0;
-}
-.ex-panel-icon--all    { background: rgba(37,99,235,.1);  color: var(--primary); }
-.ex-panel-icon--notes  { background: rgba(16,185,129,.1); color: #10b981; }
-.ex-panel-icon--quiz   { background: rgba(139,92,246,.1); color: #8b5cf6; }
-.ex-panel-icon--sheet  { background: rgba(245,158,11,.1); color: #f59e0b; }
-.ex-panel-icon--search { background: rgba(37,99,235,.1);  color: var(--primary); }
-.ex-panel-title {
-  font-family: var(--font-display);
-  font-size: .9rem; font-weight: 800; color: var(--text-primary);
-  letter-spacing: -.02em; margin: 0; flex: 1;
-}
-.ex-new-badge {
-  font-size: .58rem; font-weight: 800; padding: .1rem .4rem; border-radius: 20px;
-  background: rgba(239,68,68,.1); color: #ef4444;
-  text-transform: uppercase; letter-spacing: .06em; font-family: var(--font-body);
-}
-.ex-panel-count { font-size: .68rem; color: var(--text-muted); font-weight: 600; margin-left: auto; font-family: var(--font-body); }
-
-/* ── Post rows ── */
-.ex-list { display: flex; flex-direction: column; }
-.ex-row {
-  display: flex; align-items: center; gap: .875rem;
-  padding: .875rem 1.125rem; text-decoration: none;
-  border-bottom: 1px solid var(--border-light, rgba(0,0,0,.05));
-  transition: background .14s; animation: exFadeIn .22s ease both;
+.exp-tab {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: .85rem 1.25rem;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-bottom: 2.5px solid transparent;
+  white-space: nowrap;
+  transition: color .15s;
+  letter-spacing: -.01em;
+  font-family: var(--font-display);
+  flex-shrink: 0;
 }
-.ex-row:last-child { border-bottom: none; }
-.ex-row:hover { background: var(--bg-secondary); }
-[data-theme="dark"] .ex-row:hover { background: rgba(255,255,255,.03); }
-.ex-row::before {
-  content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
-  width: 3px; border-radius: 0 3px 3px 0;
-  background: var(--primary); opacity: 0; transform: scaleY(.5);
-  transition: opacity .18s, transform .18s;
+@media (max-width: 400px) {
+  .exp-tab { padding: .85rem 1rem; font-size: .85rem; }
 }
-.ex-row:hover::before { opacity: 1; transform: scaleY(1); }
-@keyframes exFadeIn {
-  from { opacity: 0; transform: translateY(4px); }
+.exp-tab:hover { color: var(--text-primary); }
+.exp-tab.is-active {
+  color: var(--text-primary);
+  font-weight: 800;
+  border-bottom-color: var(--text-primary);
+}
+.exp-search-toggle {
+  position: absolute;
+  right: .6rem;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--text-muted); font-size: .82rem;
+  border-radius: 50%; width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .14s, color .14s;
+}
+.exp-search-toggle:hover { background: var(--bg-hover); color: var(--text-primary); }
+.exp-search-toggle.is-open { color: var(--primary); background: rgba(37,99,235,.08); }
+
+.exp-search-wrap {
+  max-height: 0; overflow: hidden;
+  transition: max-height .25s ease, padding .25s ease;
+  padding: 0 1rem;
+}
+.exp-search-wrap.is-open {
+  max-height: 72px;
+  padding: .6rem 1rem .7rem;
+  border-top: 1px solid var(--border);
+}
+.exp-search-form {
+  position: relative; display: flex; align-items: center;
+  max-width: 600px; margin: 0 auto;
+}
+.exp-search-ico {
+  position: absolute; left: .875rem;
+  font-size: .72rem; color: var(--text-muted); pointer-events: none;
+}
+.exp-search-input {
+  width: 100%; padding: .65rem .875rem .65rem 2.25rem;
+  background: var(--bg-secondary); border: 1.5px solid var(--border); border-radius: 50px;
+  color: var(--text-primary); font-family: var(--font-body);
+  font-size: max(.84rem, 16px); /* no iOS zoom */
+  outline: none; transition: border-color .15s, box-shadow .15s; box-sizing: border-box;
+}
+.exp-search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.1); background: var(--bg-card); }
+.exp-search-input::placeholder { color: var(--text-muted); }
+.exp-search-clear {
+  position: absolute; right: .7rem; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--bg-hover); color: var(--text-muted); font-size: .6rem;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none; transition: all .14s;
+}
+.exp-search-clear:hover { background: rgba(239,68,68,.1); color: #ef4444; }
+
+/* ════════════════════════════════════════
+   GRID
+   Mobile:  single column, feed only
+   ≥900px:  left sidebar + feed
+   ≥1120px: sidebar + feed + right panel
+   ════════════════════════════════════════ */
+.exp-root {
+  display: grid;
+  grid-template-columns: 1fr;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 0 5rem;
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .exp-root { grid-template-columns: 210px 1fr; gap: 1.5rem; padding: 1.5rem 1.25rem 5rem; }
+}
+@media (min-width: 1120px) {
+  .exp-root { grid-template-columns: 210px 1fr 240px; }
+}
+
+/* LEFT SIDEBAR — desktop only */
+.exp-sidebar {
+  display: none; flex-direction: column; gap: .75rem;
+  position: sticky; top: calc(var(--nav-h, 62px) + 52px);
+}
+@media (min-width: 900px) { .exp-sidebar { display: flex; } }
+
+.exp-sidebar-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: .875rem; }
+.exp-sidebar-label { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin: 0 0 .5rem; }
+.exp-sidebar-links { display: flex; flex-direction: column; gap: .1rem; }
+.exp-sidebar-link {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .42rem .55rem; border-radius: 8px;
+  font-size: .79rem; font-weight: 600; color: var(--text-secondary);
+  text-decoration: none; transition: all .13s; white-space: nowrap; overflow: hidden;
+}
+.exp-sidebar-link i { font-size: .6rem; flex-shrink: 0; width: 12px; text-align: center; }
+.exp-sidebar-link span { overflow: hidden; text-overflow: ellipsis; }
+.exp-sidebar-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+.exp-sidebar-link.is-active { background: rgba(37,99,235,.08); color: var(--primary); font-weight: 700; }
+
+.exp-sidebar-stats { display: flex; flex-direction: column; gap: .4rem; }
+.exp-stat-row { display: flex; align-items: center; justify-content: space-between; font-size: .75rem; color: var(--text-muted); }
+.exp-stat-row i { font-size: .58rem; color: var(--primary); margin-right: .3rem; }
+.exp-stat-row strong { font-size: .8rem; font-weight: 800; color: var(--text-primary); }
+
+.exp-create-btn {
+  display: flex; align-items: center; justify-content: center; gap: .45rem;
+  padding: .7rem; background: var(--primary); color: #fff;
+  border-radius: 50px; font-weight: 700; font-size: .84rem;
+  text-decoration: none; transition: all .18s; box-shadow: 0 3px 12px rgba(37,99,235,.3);
+}
+.exp-create-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(37,99,235,.4); color: #fff; }
+
+/* FEED */
+.exp-feed { min-width: 0; }
+
+.exp-feed-header {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--bg-card);
+}
+@media (max-width: 899px) { .exp-feed-header { padding: .6rem .875rem; } }
+.exp-feed-title-wrap { display: flex; align-items: baseline; gap: .5rem; flex: 1; min-width: 0; }
+.exp-feed-title { font-family: var(--font-display); font-size: .9rem; font-weight: 800; color: var(--text-primary); margin: 0; }
+.exp-feed-count { font-size: .72rem; color: var(--text-muted); font-weight: 600; }
+.exp-clear-filters {
+  display: inline-flex; align-items: center; gap: .25rem;
+  font-size: .72rem; font-weight: 700; color: var(--text-muted);
+  text-decoration: none; padding: .3rem .65rem;
+  background: var(--bg-hover); border-radius: 50px; transition: all .14s; flex-shrink: 0;
+}
+.exp-clear-filters:hover { color: #ef4444; background: rgba(239,68,68,.08); }
+
+/* POST CARDS */
+.exp-posts { background: var(--bg-card); border: 1px solid var(--border); border-top: none; }
+@media (max-width: 899px) { .exp-posts { border-left: none; border-right: none; } }
+
+.exp-post {
+  display: flex; gap: .875rem; padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border); transition: background .12s;
+  animation: expFadeIn .3s ease both; animation-delay: var(--delay, 0s);
+}
+.exp-post:last-child { border-bottom: none; }
+.exp-post:hover { background: var(--bg-secondary); }
+[data-theme="dark"] .exp-post:hover { background: rgba(255,255,255,.02); }
+@keyframes expFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-{% for i in range(1, 21) %}
-.ex-row:nth-child({{ i }}) { animation-delay: {{ (i - 1) * 0.025 }}s; }
-{% endfor %}
+@media (max-width: 480px) { .exp-post { padding: .875rem; gap: .65rem; } }
 
-.ex-row-icon {
-  width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .9rem; transition: transform .18s;
+.exp-avatar-link { flex-shrink: 0; }
+.exp-avatar {
+  width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--border); transition: border-color .15s; display: block;
 }
-.ex-row:hover .ex-row-icon { transform: scale(1.08); }
-.ex-row-body { flex: 1; min-width: 0; }
-.ex-row-title {
-  font-family: var(--font-display);
-  font-size: .875rem; font-weight: 700; color: var(--text-primary);
-  letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  margin: 0 0 .28rem; transition: color .14s;
-}
-.ex-row:hover .ex-row-title { color: var(--primary); }
-.ex-row-meta { display: flex; align-items: center; gap: .25rem; flex-wrap: wrap; overflow: hidden; }
-.ex-type-pill {
-  font-size: .6rem; font-weight: 700; padding: .1rem .38rem; border-radius: 4px;
-  white-space: nowrap; flex-shrink: 0; font-family: var(--font-body);
-}
-.ex-subject-tag {
-  font-size: .66rem; font-weight: 600;
-  display: inline-flex; align-items: center; gap: .15rem;
-  white-space: nowrap; font-family: var(--font-body);
-}
-.ex-subject-tag i { font-size: .52rem; }
-.ex-chip-meta {
-  font-size: .62rem; font-weight: 600; padding: .08rem .35rem; border-radius: 4px;
-  display: inline-flex; align-items: center; gap: .15rem;
-  white-space: nowrap; font-family: var(--font-body);
-}
-.ex-chip-meta i { font-size: .52rem; }
-.ex-chip-meta--quiz  { background: rgba(139,92,246,.1); color: #8b5cf6; }
-.ex-chip-meta--notes { background: rgba(16,185,129,.1); color: #10b981; }
-.ex-chip-meta--sheet { background: rgba(245,158,11,.1); color: #f59e0b; }
-.ex-dot  { font-size: .45rem; color: var(--border); flex-shrink: 0; }
-.ex-stat {
-  font-size: .65rem; color: var(--text-muted);
-  display: inline-flex; align-items: center; gap: .12rem;
-  white-space: nowrap; font-family: var(--font-body);
-}
-.ex-stat i { font-size: .52rem; }
-.ex-row-right { display: flex; align-items: center; gap: .38rem; flex-shrink: 0; }
-.ex-avatar {
-  width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
-  border: 1.5px solid var(--border); transition: border-color .15s;
-}
-.ex-row:hover .ex-avatar { border-color: var(--primary); }
-.ex-price-badge {
-  background: rgba(245,158,11,.12); color: #d97706; font-weight: 700; font-size: .61rem;
-  padding: .13rem .42rem; border-radius: 5px; border: 1px solid rgba(245,158,11,.2);
-  white-space: nowrap; font-family: var(--font-body);
-}
-.ex-free-badge {
-  background: rgba(16,185,129,.1); color: #059669; font-weight: 700; font-size: .61rem;
-  padding: .13rem .42rem; border-radius: 5px; border: 1px solid rgba(16,185,129,.2);
-  white-space: nowrap; font-family: var(--font-body);
-}
-.ex-chevron { font-size: .56rem; color: var(--text-muted); transition: transform .18s, color .18s; }
-.ex-row:hover .ex-chevron { transform: translateX(3px); color: var(--primary); }
+.exp-avatar-link:hover .exp-avatar { border-color: var(--primary); }
+@media (max-width: 480px) { .exp-avatar { width: 36px; height: 36px; } }
 
-/* ── Pagination ── */
-.ex-pagination {
-  display: flex; align-items: center; justify-content: center;
-  gap: .45rem; padding: .875rem 1.125rem; border-top: 1px solid var(--border); flex-wrap: wrap;
+.exp-post-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .38rem; }
+
+.exp-post-meta { display: flex; align-items: center; gap: .28rem; flex-wrap: nowrap; min-width: 0; overflow: hidden; }
+.exp-post-author {
+  font-size: .84rem; font-weight: 800; color: var(--text-primary);
+  font-family: var(--font-display); letter-spacing: -.01em;
+  text-decoration: none; transition: color .14s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 140px; flex-shrink: 0;
 }
-.ex-page-btn {
+.exp-post-author:hover { color: var(--primary); }
+.exp-post-username { font-size: .75rem; color: var(--text-muted); white-space: nowrap; flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 420px) { .exp-post-username { display: none; } }
+.exp-post-dot { font-size: .38rem; color: var(--border); flex-shrink: 0; }
+@media (max-width: 420px) { .exp-post-dot { display: none; } }
+.exp-post-time { font-size: .73rem; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+.exp-type-pill {
+  display: inline-flex; align-items: center; gap: .2rem;
+  padding: .16rem .5rem; border-radius: 50px;
+  font-size: .63rem; font-weight: 700; margin-left: auto; flex-shrink: 0;
+}
+.exp-type-pill i { font-size: .52rem; }
+.exp-type-pill--notes      { background: rgba(16,185,129,.1);  color: #10b981; }
+.exp-type-pill--quiz       { background: rgba(139,92,246,.1);  color: #8b5cf6; }
+.exp-type-pill--cheatsheet { background: rgba(245,158,11,.1);  color: #f59e0b; }
+.exp-type-pill--mixed      { background: rgba(37,99,235,.1);   color: #2563eb; }
+
+.exp-post-link { text-decoration: none; display: block; }
+.exp-post-title {
+  font-family: var(--font-display); font-size: .9rem; font-weight: 800; color: var(--text-primary);
+  letter-spacing: -.02em; margin: 0; line-height: 1.3; transition: color .14s;
+}
+@media (max-width: 480px) { .exp-post-title { font-size: .86rem; } }
+.exp-post-link:hover .exp-post-title { color: var(--primary); }
+.exp-post-desc {
+  font-size: .79rem; color: var(--text-secondary); margin: .15rem 0 0; line-height: 1.55;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+@media (max-width: 380px) { .exp-post-desc { display: none; } }
+
+.exp-post-chips {
+  display: flex; align-items: center; gap: .28rem;
+  overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; -webkit-overflow-scrolling: touch;
+}
+.exp-post-chips::-webkit-scrollbar { display: none; }
+@media (min-width: 500px) { .exp-post-chips { flex-wrap: wrap; overflow-x: visible; } }
+
+.exp-chip { display: inline-flex; align-items: center; gap: .18rem; padding: .16rem .45rem; border-radius: 5px; flex-shrink: 0; font-size: .65rem; font-weight: 600; }
+.exp-chip i { font-size: .52rem; }
+.exp-chip--subject { font-weight: 700; font-size: .67rem; }
+.exp-chip--quiz  { background: rgba(139,92,246,.1); color: #8b5cf6; }
+.exp-chip--sheet { background: rgba(245,158,11,.1);  color: #f59e0b; }
+.exp-chip--paid  { background: rgba(245,158,11,.12); color: #d97706; border: 1px solid rgba(245,158,11,.2); font-weight: 700; }
+.exp-chip--free  { background: rgba(16,185,129,.1);  color: #059669; border: 1px solid rgba(16,185,129,.2); font-weight: 700; }
+
+.exp-post-actions { display: flex; align-items: center; margin-top: .05rem; }
+.exp-action {
+  display: inline-flex; align-items: center; gap: .28rem;
+  padding: .4rem .5rem; border-radius: 50px; border: none; background: transparent;
+  color: var(--text-muted); font-size: .77rem; cursor: pointer;
+  text-decoration: none; font-family: var(--font-body); font-weight: 600;
+  transition: all .13s; min-height: 38px; min-width: 38px; justify-content: center;
+}
+.exp-action i { font-size: .7rem; }
+.exp-action:hover { background: var(--bg-hover); color: var(--text-secondary); }
+.exp-action--like:hover    { color: #ef4444; background: rgba(239,68,68,.08); }
+.exp-action--like.is-liked { color: #ef4444; }
+.exp-action--bookmark:hover         { color: var(--primary); background: rgba(37,99,235,.08); }
+.exp-action--bookmark.is-bookmarked { color: var(--primary); }
+.exp-action--view { margin-left: auto; }
+.exp-action--view:hover { color: var(--primary); background: rgba(37,99,235,.08); }
+.exp-action-count { font-size: .72rem; }
+@media (max-width: 480px) { .exp-action { padding: .4rem .42rem; } }
+
+/* PAGINATION */
+.exp-pagination {
+  display: flex; align-items: center; justify-content: center; gap: .4rem;
+  padding: 1rem 1.25rem; flex-wrap: wrap;
+  background: var(--bg-card); border: 1px solid var(--border); border-top: none;
+}
+@media (max-width: 899px) { .exp-pagination { border-left: none; border-right: none; padding: .875rem; } }
+.exp-page-btn {
   display: inline-flex; align-items: center; gap: .28rem; padding: .42rem .8rem;
   background: var(--bg-secondary); border: 1.5px solid var(--border); border-radius: 9px;
   font-size: .76rem; font-weight: 700; color: var(--text-secondary);
-  text-decoration: none; transition: all .15s; font-family: var(--font-body);
+  text-decoration: none; transition: all .15s; min-height: 38px;
 }
-.ex-page-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(37,99,235,.05); }
-.ex-page-nums { display: flex; align-items: center; gap: .28rem; }
-.ex-page-num {
+.exp-page-btn:hover { border-color: var(--primary); color: var(--primary); }
+.exp-page-nums { display: flex; align-items: center; gap: .25rem; }
+.exp-page-num {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 8px;
-  font-size: .76rem; font-weight: 700; color: var(--text-muted);
-  text-decoration: none; transition: all .15s; border: 1.5px solid transparent;
-  font-family: var(--font-body);
+  width: 38px; height: 38px; border-radius: 8px;
+  font-size: .76rem; font-weight: 700; color: var(--text-muted); text-decoration: none; transition: all .15s;
 }
-.ex-page-num:hover { background: var(--bg-hover); color: var(--text-secondary); }
-.ex-page-num.is-active { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 2px 8px rgba(37,99,235,.3); }
-.ex-page-ellipsis { font-size: .76rem; color: var(--text-muted); padding: 0 .15rem; }
+.exp-page-num:hover { background: var(--bg-hover); color: var(--text-secondary); }
+.exp-page-num.is-active { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.3); }
+.exp-page-ellipsis { font-size: .76rem; color: var(--text-muted); }
 
-/* ── Empty state ── */
-.ex-empty {
+/* EMPTY STATE */
+.exp-empty {
   display: flex; flex-direction: column; align-items: center;
-  padding: 3rem 1.5rem; text-align: center; gap: .45rem;
+  padding: 4rem 1.5rem; text-align: center; gap: .5rem;
+  background: var(--bg-card); border: 1px solid var(--border); border-top: none;
 }
-.ex-empty-icon {
-  width: 52px; height: 52px; border-radius: 15px;
-  background: rgba(37,99,235,.08); color: var(--primary);
+@media (max-width: 899px) { .exp-empty { border-left: none; border-right: none; } }
+.exp-empty-icon {
+  width: 56px; height: 56px; border-radius: 16px;
+  background: rgba(37,99,235,.07); color: var(--primary);
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.3rem; margin-bottom: .4rem;
+  font-size: 1.4rem; margin-bottom: .25rem;
 }
-.ex-empty-title {
-  font-family: var(--font-display); font-size: .95rem; font-weight: 800;
-  color: var(--text-primary); margin: 0;
-}
-.ex-empty-sub { font-size: .82rem; color: var(--text-muted); margin: 0; font-family: var(--font-body); }
-.ex-empty-sub a { color: var(--primary); text-decoration: none; font-weight: 700; }
+.exp-empty-title { font-family: var(--font-display); font-size: 1rem; font-weight: 800; color: var(--text-primary); margin: 0; }
+.exp-empty-sub { font-size: .83rem; color: var(--text-muted); margin: 0; }
+.exp-empty-sub a { color: var(--primary); text-decoration: none; font-weight: 700; }
 
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .ex-root { padding: 1rem .875rem 5.5rem; gap: .75rem; }
-  .ex-title { font-size: 1.2rem; }
-  .ex-header-stats { display: none; }
-  .ex-controls { gap: .45rem; }
-  .ex-type-tabs { overflow-x: auto; scrollbar-width: none; }
-  .ex-type-tabs::-webkit-scrollbar { display: none; }
-  .ex-tab { padding: .36rem .6rem; font-size: .68rem; }
-  .ex-row { gap: .6rem; padding: .75rem .875rem; }
-  .ex-row-icon { width: 36px; height: 36px; border-radius: 10px; font-size: .82rem; }
-  .ex-row-title { font-size: .82rem; }
-  .ex-avatar { display: none; }
-  .ex-pagination { gap: .3rem; padding: .75rem .875rem; }
-  .ex-page-nums { gap: .18rem; }
-  .ex-panel-count { display: none; }
+/* RIGHT SIDEBAR — desktop only, never on mobile */
+.exp-right {
+  display: none; flex-direction: column; gap: .875rem;
+  position: sticky; top: calc(var(--nav-h, 62px) + 52px);
 }
-@media (max-width: 400px) {
-  .ex-tab span { display: none; }
-  .ex-tab { padding: .38rem .55rem; }
+@media (min-width: 1120px) { .exp-right { display: flex; } }
+
+.exp-create-btn-lg {
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  padding: .85rem 1.5rem; background: var(--primary); color: #fff;
+  border-radius: 50px; font-weight: 800; font-size: .875rem;
+  text-decoration: none; transition: all .18s;
+  box-shadow: 0 3px 14px rgba(37,99,235,.35); font-family: var(--font-display);
+}
+.exp-create-btn-lg:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,.45); color: #fff; }
+
+.exp-right-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px; padding: .875rem; }
+.exp-right-title {
+  font-family: var(--font-display); font-size: .82rem; font-weight: 800; color: var(--text-primary);
+  letter-spacing: -.01em; margin: 0 0 .65rem; display: flex; align-items: center; gap: .4rem;
+}
+.exp-right-title i { font-size: .68rem; color: var(--primary); }
+
+.exp-trend-row { display: flex; align-items: center; gap: .6rem; padding: .45rem .3rem; border-radius: 9px; text-decoration: none; transition: background .14s; }
+.exp-trend-row:hover { background: var(--bg-hover); }
+.exp-trend-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .65rem; flex-shrink: 0; }
+.exp-trend-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .05rem; }
+.exp-trend-name { font-size: .78rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.exp-trend-count { font-size: .68rem; color: var(--text-muted); }
+.exp-trend-arrow { font-size: .55rem; color: var(--text-muted); transition: transform .14s; }
+.exp-trend-row:hover .exp-trend-arrow { transform: translateX(2px); color: var(--primary); }
+
+.exp-suggest-row { display: flex; align-items: center; gap: .6rem; padding: .4rem 0; }
+.exp-suggest-avatar-link { flex-shrink: 0; }
+.exp-suggest-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); display: block; }
+.exp-suggest-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .05rem; }
+.exp-suggest-name { font-size: .78rem; font-weight: 700; color: var(--text-primary); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.exp-suggest-name:hover { color: var(--primary); }
+.exp-suggest-meta { font-size: .68rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.exp-follow-btn {
+  padding: .28rem .75rem; background: var(--primary); color: #fff;
+  border-radius: 50px; font-size: .7rem; font-weight: 700;
+  text-decoration: none; flex-shrink: 0; transition: opacity .14s;
+}
+.exp-follow-btn:hover { opacity: .85; color: #fff; }
+
+/* FAB — mobile only */
+.exp-fab {
+  display: none;
+  position: fixed; right: 1.25rem;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  z-index: 200; width: 52px; height: 52px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  align-items: center; justify-content: center;
+  font-size: 1.1rem; text-decoration: none;
+  box-shadow: 0 4px 18px rgba(37,99,235,.45);
+  transition: transform .18s, box-shadow .18s;
+}
+.exp-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(37,99,235,.55); color: #fff; }
+@media (max-width: 899px) { .exp-fab { display: flex; } }
+
+@keyframes toastIn {
+  from { opacity:0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity:1; transform: translateX(-50%) translateY(0); }
 }
 </style>
+
+<script>
+function toggleExpSearch() {
+  const wrap = document.getElementById('expSearchWrap');
+  const btn  = document.getElementById('expSearchBtn');
+  const isOpen = wrap.classList.toggle('is-open');
+  btn.classList.toggle('is-open', isOpen);
+  if (isOpen) setTimeout(() => document.getElementById('expSearchInput')?.focus(), 260);
+}
+
+{% if search_query %}
+document.addEventListener('DOMContentLoaded', function() {
+  const wrap = document.getElementById('expSearchWrap');
+  const btn  = document.getElementById('expSearchBtn');
+  if (wrap) { wrap.classList.add('is-open'); btn?.classList.add('is-open'); }
+});
+{% endif %}
+
+function communityLike(btn, postId) {
+  const isLiked = btn.classList.contains('is-liked');
+  const countEl = btn.querySelector('.exp-action-count');
+  btn.classList.toggle('is-liked');
+  if (countEl) {
+    const cur = parseInt(countEl.textContent) || 0;
+    countEl.textContent = isLiked ? Math.max(0, cur - 1) : cur + 1;
+  }
+  fetch(`/posts/${postId}/like`, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || '' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    btn.classList.toggle('is-liked', data.liked);
+    if (countEl) countEl.textContent = data.like_count;
+  })
+  .catch(() => {
+    btn.classList.toggle('is-liked');
+    if (countEl) {
+      const cur = parseInt(countEl.textContent) || 0;
+      countEl.textContent = isLiked ? cur + 1 : Math.max(0, cur - 1);
+    }
+  });
+}
+
+function communityBookmark(btn, postId) {
+  btn.classList.toggle('is-bookmarked');
+  fetch(`/posts/${postId}/bookmark`, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || '' }
+  })
+  .then(r => r.json())
+  .then(data => { btn.classList.toggle('is-bookmarked', data.bookmarked); })
+  .catch(() => { btn.classList.toggle('is-bookmarked'); });
+}
+
+function communityShare(title, url) {
+  if (navigator.share) {
+    navigator.share({ title, url }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url).then(() => {
+      const toast = document.createElement('div');
+      toast.textContent = 'Link copied!';
+      toast.style.cssText = `
+        position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+        background:#1e293b; color:#fff; padding:.55rem 1.25rem; border-radius:50px;
+        font-size:.78rem; font-weight:700; z-index:9999; pointer-events:none;
+        box-shadow:0 4px 16px rgba(0,0,0,.3); animation:toastIn .2s ease both;
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2000);
+    });
+  }
+}
+</script>
 
 {% endblock %}

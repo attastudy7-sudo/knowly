@@ -1021,10 +1021,9 @@ body {
 
             </div>
 
-            <a href="{{ url_for('posts.view', post_id=post.id) }}">
-               style="display:block;text-align:center;font-size:.78rem;color:var(--qz-muted);margin-top:.75rem;text-decoration:none;">
-                <i class="fas fa-arrow-left" style="font-size:.65rem;"></i> Back to post
-            </a>
+            <a id="backToPostBtn" href="{{ url_for('posts.view', post_id=post.id) }}?shared=1" class="qz-btn qz-btn-s">
+    <i class="fas fa-arrow-left"></i> Back to Post
+</a>
 
         </div><!-- /qz-onboard-body -->
     </div><!-- /qz-onboard -->
@@ -1705,6 +1704,7 @@ function showError(msg) {
 
 function showResults(result, timedOut) {
     const scorePct    = result.score_pct    || result.percentage || 0;
+    document.getElementById('backToPostBtn').href = `{{ url_for('posts.view', post_id=post.id) }}?shared=1&score=${scorePct.toFixed(0)}`;
     const xpEarned    = result.xp_earned   || 0;
     const earnedMk    = result.earned_marks || 0;
     const totalMk     = QUIZ_DATA.total_marks;

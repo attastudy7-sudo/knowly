@@ -1,567 +1,680 @@
 {% extends "base.html" %}
-{% block title %}{{ title }}{% endblock %}
+{% block title %}New Post — knowly{% endblock %}
 
 {% block content %}
-<div class="cp-shell">
+<div class="np-shell">
 
-  <!-- ── PAGE HEADER ── -->
-  <a href="{{ url_for('main.index') }}" class="cp-back-link">
-    <i class="fas fa-arrow-left"></i>
-    <span>Back to Feed</span>
+  <a href="{{ url_for('main.explore') }}" class="np-back">
+    <i class="fas fa-arrow-left"></i> Back to Community
   </a>
-  <div class="cp-header-content">
-    <div class="cp-header-icon">
-      <i class="fas fa-plus"></i>
-    </div>
-    <div>
-      <h1 class="cp-page-title">Create Post</h1>
-      <p class="cp-page-sub">Share notes, guides, or resources with fellow students</p>
-    </div>
-  </div>
 
-  <!-- ── FORM ── -->
-  <form method="post" enctype="multipart/form-data" novalidate id="cpForm">
-    {{ form.hidden_tag() }}
+  <div class="np-layout">
 
-    <div class="cp-form-body">
+    <!-- ── MAIN COMPOSER ── -->
+    <div class="np-main">
 
-      <!-- ── TITLE ── -->
-      <div class="cp-section">
-        <div class="cp-section-head">
-          <div class="cp-section-icon cp-section-icon--blue">
-            <i class="fas fa-heading"></i>
-          </div>
-          <div class="cp-section-head-text">
-            <h3>Title <span class="cp-req">*</span></h3>
-            <p>Give your post a clear, searchable name</p>
-          </div>
+      <div class="np-composer-head">
+        <img src="{{ current_user.profile_picture_url }}" class="np-avatar" alt="">
+        <div>
+          <span class="np-posting-as">Posting as</span>
+          <strong class="np-username">{{ current_user.username }}</strong>
         </div>
-        <div class="cp-section-body">
+      </div>
+
+      <form method="post" enctype="multipart/form-data" novalidate id="npForm">
+        {{ form.hidden_tag() }}
+
+        <!-- ── FLAIR STRIP ── -->
+        <div class="np-flair-row" id="npFlairRow">
+          {{ form.flair(id="npFlairHidden", class="np-hidden-input") }}
+          {% set flairs = [
+            ('', 'No flair', 'tag', '#9ca3af'),
+            ('discussion', 'Discussion', 'comments', '#6366f1'),
+            ('question', 'Question', 'circle-question', '#3b82f6'),
+            ('resource', 'Resource', 'paperclip', '#10b981'),
+            ('tip', 'Tip', 'lightbulb', '#f59e0b'),
+            ('rant', 'Rant', 'fire', '#ef4444'),
+            ('announcement', 'Announcement', 'bullhorn', '#8b5cf6'),
+          ] %}
+          {% for val, label, icon, color in flairs %}
+          <button type="button"
+            class="np-flair{% if val == '' %} np-flair--active{% endif %}"
+            data-value="{{ val }}"
+            style="--fc: {{ color }}">
+            <i class="fas fa-{{ icon }}"></i>
+            <span>{{ label }}</span>
+          </button>
+          {% endfor %}
+        </div>
+
+        <!-- ── TITLE ── -->
+        <div class="np-field">
           {{ form.title(
-            id=form.title.id,
-            class="cp-input cp-title-input",
-            placeholder="e.g. Introduction to Organic Chemistry…",
-            autocomplete="off"
+            id="npTitle",
+            class="np-title-input",
+            placeholder="Title — what's this post about?",
+            autocomplete="off",
+            maxlength="200"
           ) }}
+          <span class="np-title-count" id="npTitleCount">0/200</span>
           {% if form.title.errors %}
-            <p class="cp-error"><i class="fas fa-circle-exclamation"></i> {{ form.title.errors[0] }}</p>
+            <p class="np-err"><i class="fas fa-circle-exclamation"></i> {{ form.title.errors[0] }}</p>
           {% endif %}
         </div>
-      </div>
 
-      <!-- ── DESCRIPTION ── -->
-      <div class="cp-section">
-        <div class="cp-section-head">
-          <div class="cp-section-icon cp-section-icon--purple">
-            <i class="fas fa-align-left"></i>
+        <!-- ── BODY TABS ── -->
+        <div class="np-body-card" id="npBodyCard">
+          <div class="np-body-tabs" role="tablist">
+            <button type="button" class="np-btab np-btab--active" id="npTabText"
+              onclick="npSetBodyTab('text')" role="tab">
+              <i class="fas fa-pen"></i> Text
+            </button>
+            <button type="button" class="np-btab" id="npTabFile"
+              onclick="npSetBodyTab('file')" role="tab">
+              <i class="fas fa-paperclip"></i> Attachment
+            </button>
           </div>
-          <div class="cp-section-head-text">
-            <h3>Description</h3>
-            <p>Markdown supported — headers, lists, code</p>
-          </div>
-          <div class="cp-section-head-right">
-            <div class="cp-editor-tabs" role="tablist">
-              <button type="button" class="cp-tab cp-tab--active" id="cpTabWrite" onclick="cpSetTab('write')" role="tab">
-                <i class="fas fa-pen"></i> Write
-              </button>
-              <button type="button" class="cp-tab" id="cpTabPreview" onclick="cpSetTab('preview')" role="tab">
+
+          <!-- Text pane -->
+          <div id="npPaneText">
+            <div class="np-toolbar" id="npToolbar">
+              <button type="button" class="np-tb" data-md="bold"   title="Bold"><i class="fas fa-bold"></i></button>
+              <button type="button" class="np-tb" data-md="italic" title="Italic"><i class="fas fa-italic"></i></button>
+              <button type="button" class="np-tb" data-md="h2"     title="Heading"><i class="fas fa-heading"></i></button>
+              <span class="np-tb-sep"></span>
+              <button type="button" class="np-tb" data-md="ul"     title="List"><i class="fas fa-list-ul"></i></button>
+              <button type="button" class="np-tb" data-md="quote"  title="Quote"><i class="fas fa-quote-left"></i></button>
+              <button type="button" class="np-tb" data-md="code"   title="Code"><i class="fas fa-code"></i></button>
+              <button type="button" class="np-tb" data-md="link"   title="Link"><i class="fas fa-link"></i></button>
+              <span class="np-tb-sep"></span>
+              <button type="button" class="np-tb np-tb--preview" id="npPreviewBtn"
+                onclick="npTogglePreview()" title="Preview">
                 <i class="fas fa-eye"></i> Preview
               </button>
-            </div>
-            <span class="cp-char-count" id="cpCharCount"><span id="cpCharNum">0</span>/5000</span>
-          </div>
-        </div>
-        <div class="cp-section-body">
-          <div class="cp-editor-card" id="cpEditorCard">
-            <div class="cp-toolbar" id="cpToolbar">
-              <button type="button" class="cp-tb-btn" data-md="bold"   title="Bold"><i class="fas fa-bold"></i></button>
-              <button type="button" class="cp-tb-btn" data-md="italic" title="Italic"><i class="fas fa-italic"></i></button>
-              <button type="button" class="cp-tb-btn" data-md="h2"     title="Heading"><i class="fas fa-heading"></i></button>
-              <span class="cp-tb-sep"></span>
-              <button type="button" class="cp-tb-btn" data-md="ul"     title="List"><i class="fas fa-list-ul"></i></button>
-              <button type="button" class="cp-tb-btn" data-md="quote"  title="Quote"><i class="fas fa-quote-left"></i></button>
-              <button type="button" class="cp-tb-btn" data-md="code"   title="Code"><i class="fas fa-code"></i></button>
-              <button type="button" class="cp-tb-btn" data-md="link"   title="Link"><i class="fas fa-link"></i></button>
-              <div class="cp-tb-hints">
-                <kbd>Ctrl+B</kbd><kbd>Ctrl+I</kbd>
-              </div>
+              <span class="np-char-count" id="npCharCount">0/5000</span>
             </div>
             {{ form.description(
-              id="cpTextarea",
-              class="cp-textarea",
-              placeholder="Describe what you're sharing…"
+              id="npTextarea",
+              class="np-textarea",
+              placeholder="What do you want to say? Markdown supported…"
             ) }}
-            <div class="cp-preview cp-prose" id="cpPreview" hidden>
-              <div class="cp-preview-empty">
+            <div class="np-preview np-prose" id="npPreview" hidden>
+              <div class="np-preview-empty">
                 <i class="fas fa-feather-pointed"></i>
-                <span>Preview appears here as you write…</span>
+                <span>Preview appears here…</span>
               </div>
             </div>
-            <div class="cp-editor-footer">
-              <span class="cp-md-hint"><i class="fab fa-markdown"></i> Markdown supported</span>
+          </div>
+
+          <!-- File pane -->
+          <div id="npPaneFile" hidden>
+            {{ form.content_type(id="npContentType", class="np-hidden-input") }}
+            <div class="np-dropzone" id="npDropZone"
+              ondragover="npDrag(event,true)"
+              ondragleave="npDrag(event,false)"
+              ondrop="npDrop(event)">
+              {{ form.document(id="npFileInput", class="np-drop-input", onchange="npHandleFile(this)") }}
+              <label for="npFileInput" class="np-drop-label">
+                <div class="np-drop-icon" id="npDropIcon">
+                  <i class="fas fa-cloud-arrow-up"></i>
+                </div>
+                <div class="np-drop-text">
+                  <strong id="npDropName">Drop file or click to browse</strong>
+                  <span id="npDropSub">PDF · DOCX · PPTX · TXT — max 5 MB</span>
+                </div>
+              </label>
+              <button type="button" class="np-drop-rm" id="npFileRm"
+                onclick="npClearFile()" style="display:none;" aria-label="Remove">
+                <i class="fas fa-xmark"></i>
+              </button>
+            </div>
+
+            <!-- content-type selector — only relevant when attaching a file -->
+            <div class="np-type-row" id="npTypeRow">
+              <span class="np-type-label">File type:</span>
+              <div class="np-type-pills">
+                <button type="button" class="np-tpill np-tpill--notes np-tpill--on" data-value="notes">
+                  <i class="fas fa-sticky-note"></i> Notes
+                </button>
+                <button type="button" class="np-tpill np-tpill--sheet" data-value="cheatsheet">
+                  <i class="fas fa-clone"></i> Cheatsheet
+                </button>
+                <button type="button" class="np-tpill np-tpill--quiz" data-value="quiz">
+                  <i class="fas fa-brain"></i> Quiz
+                </button>
+              </div>
+            </div>
+
+            <!-- JSON sidecar (quiz PDFs only) -->
+            <div id="npSidecarSection" style="display:none;" class="np-sidecar">
+              <span class="np-sidecar-label"><i class="fas fa-brain"></i> Quiz JSON Sidecar <span class="np-opt">optional</span></span>
+              <div class="np-dropzone np-dropzone--sm" id="npJsonZone"
+                ondragover="npDragJson(event,true)"
+                ondragleave="npDragJson(event,false)"
+                ondrop="npDropJson(event)">
+                {% if form.json_sidecar is defined %}
+                  {{ form.json_sidecar(id="npJsonInput", class="np-drop-input", onchange="npHandleJson(this)") }}
+                {% else %}
+                  <input type="file" name="json_sidecar" accept=".json" id="npJsonInput" class="np-drop-input" onchange="npHandleJson(this)">
+                {% endif %}
+                <label for="npJsonInput" class="np-drop-label">
+                  <div class="np-drop-icon np-drop-icon--sm np-drop-icon--cyan">
+                    <i class="fas fa-file-code" id="npJsonIco"></i>
+                  </div>
+                  <div class="np-drop-text">
+                    <strong id="npJsonName">Attach .json quiz file</strong>
+                    <span>Pre-built questions</span>
+                  </div>
+                </label>
+                <button type="button" class="np-drop-rm" id="npJsonRm"
+                  onclick="npClearJson()" style="display:none;">
+                  <i class="fas fa-xmark"></i>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- ── SUBJECT ── -->
-      <div class="cp-section">
-        <div class="cp-section-head">
-          <div class="cp-section-icon cp-section-icon--green">
-            <i class="fas fa-tag"></i>
-          </div>
-          <div class="cp-section-head-text">
-            <h3>Subject <span class="cp-optional">optional</span></h3>
-            <p>Categorise your post for better discovery</p>
-          </div>
-        </div>
-        <div class="cp-section-body">
-          {{ form.subject(class="cp-hidden-sel", id=form.subject.id, tabindex="-1", **{"aria-hidden": "true"}) }}
-          <div class="cp-subject-widget">
-            <div class="cp-search-wrap">
-              <i class="fas fa-magnifying-glass cp-search-ico"></i>
-              <input type="text" id="cpSubjectSearch" class="cp-search-input"
-                placeholder="Search subjects…" autocomplete="off" spellcheck="false"/>
-              <button type="button" id="cpSubjectClear" class="cp-search-clear"
+        </div><!-- /np-body-card -->
+
+        <!-- ── SUBJECT ── -->
+        <div class="np-subject-row">
+          {{ form.subject(class="np-hidden-input", id=form.subject.id, tabindex="-1") }}
+          <div class="np-subject-widget">
+            <div class="np-subj-search-wrap">
+              <i class="fas fa-tag np-subj-ico"></i>
+              <input type="text" id="npSubjectSearch" class="np-subj-input"
+                placeholder="Add a subject tag…" autocomplete="off" spellcheck="false">
+              <button type="button" id="npSubjectClear" class="np-subj-clear"
                 style="display:none;" aria-label="Clear subject">
                 <i class="fas fa-xmark"></i>
               </button>
             </div>
-            <div class="cp-chips" id="cpSubjectChips"></div>
-          </div>
-          {% if form.subject.errors %}
-            <p class="cp-error"><i class="fas fa-circle-exclamation"></i> {{ form.subject.errors[0] }}</p>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- ── ATTACHMENT ── -->
-      <div class="cp-section">
-        <div class="cp-section-head">
-          <div class="cp-section-icon cp-section-icon--cyan">
-            <i class="fas fa-paperclip"></i>
-          </div>
-          <div class="cp-section-head-text">
-            <h3>Attachment <span class="cp-optional">optional</span></h3>
-            <p>PDF · DOCX · PPTX · TXT — max 5 MB</p>
+            <div class="np-subj-chips" id="npSubjectChips"></div>
           </div>
         </div>
-        <div class="cp-section-body">
-          <div class="cp-drop-zone" id="cpDropZone"
-            ondragover="cpDrag(event,'cpDropZone',true)"
-            ondragleave="cpDrag(event,'cpDropZone',false)"
-            ondrop="cpDrag(event,'cpDropZone',false)">
-            {{ form.document(id="cpFileInput", class="cp-drop-input", onchange="cpHandleFile(this)") }}
-            <label for="cpFileInput" class="cp-drop-label">
-              <div class="cp-drop-icon" id="cpDropIcon">
-                <i class="fas fa-cloud-arrow-up" id="cpDropIco"></i>
-              </div>
-              <div class="cp-drop-text">
-                <strong id="cpDropName">Drop file or click to browse</strong>
-                <span id="cpDropTypes">PDF · DOCX · PPTX · TXT — max 5 MB</span>
-              </div>
-            </label>
-            <button type="button" class="cp-drop-rm" id="cpFileRm"
-              onclick="cpClearFile()" style="display:none;" aria-label="Remove file">
-              <i class="fas fa-xmark"></i>
-            </button>
-          </div>
-          {% if form.document.errors %}
-            <p class="cp-error"><i class="fas fa-circle-exclamation"></i> {{ form.document.errors[0] }}</p>
-          {% endif %}
 
-          <!-- JSON sidecar (PDF only) -->
-          <div id="cpSidecarSection" style="display:none;" class="cp-sidecar">
-            <div class="cp-sidecar-head">
-              <div class="cp-section-icon cp-section-icon--cyan" style="width:28px;height:28px;border-radius:7px;font-size:.75rem;">
-                <i class="fas fa-brain"></i>
-              </div>
-              <span>Quiz Sidecar <span class="cp-optional">optional</span></span>
-            </div>
-            <div class="cp-drop-zone cp-drop-zone--sm" id="cpJsonZone"
-              ondragover="cpDrag(event,'cpJsonZone',true)"
-              ondragleave="cpDrag(event,'cpJsonZone',false)"
-              ondrop="cpDrag(event,'cpJsonZone',false)">
-              {% if form.json_sidecar is defined %}
-                {{ form.json_sidecar(id="cpJsonInput", class="cp-drop-input", onchange="cpHandleJson(this)") }}
-              {% else %}
-                <input type="file" name="json_sidecar" accept=".json" id="cpJsonInput" class="cp-drop-input" onchange="cpHandleJson(this)">
-              {% endif %}
-              <label for="cpJsonInput" class="cp-drop-label">
-                <div class="cp-drop-icon cp-drop-icon--cyan" id="cpJsonIcon">
-                  <i class="fas fa-file-code" id="cpJsonIco"></i>
-                </div>
-                <div class="cp-drop-text">
-                  <strong id="cpJsonName">Attach .json quiz file</strong>
-                  <span>Pre-built questions for this PDF</span>
-                </div>
-              </label>
-              <button type="button" class="cp-drop-rm" id="cpJsonRm"
-                onclick="cpClearJson()" style="display:none;" aria-label="Remove JSON">
-                <i class="fas fa-xmark"></i>
-              </button>
-            </div>
+        <!-- ── PRICING (admin only) ── -->
+        {% if show_pricing %}
+        <div class="np-pricing-row">
+          <div class="np-pricing-toggle">
+            {{ form.is_paid(id="is_paid", class="np-toggle-inp") }}
+            <label for="is_paid" class="np-toggle"></label>
+            <span id="npPriceLabel" class="np-pricing-lbl">Free</span>
+          </div>
+          <div id="npPriceBody" style="display:none;" class="np-price-field">
+            <span class="np-price-ccy">GHS</span>
+            {{ form.price(class="np-price-inp", placeholder="0.00") }}
           </div>
         </div>
-      </div>
+        {% endif %}
 
-      <!-- ── PRICING (admin only) ── -->
-      {% if show_pricing %}
-      <div class="cp-section">
-        <div class="cp-section-head">
-          <div class="cp-section-icon cp-section-icon--amber">
-            <i class="fas fa-coins"></i>
-          </div>
-          <div class="cp-section-head-text">
-            <h3>Pricing</h3>
-            <p>Set access as free or paid</p>
-          </div>
-          <div class="cp-section-head-right">
-            <div class="cp-toggle-wrap">
-              {{ form.is_paid(id="is_paid", class="cp-toggle-inp") }}
-              <label for="is_paid" class="cp-toggle" aria-label="Enable paid access"></label>
-              <span class="cp-toggle-label" id="cpPriceLabel">Free</span>
-            </div>
-          </div>
+        <!-- ── ACTIONS ── -->
+        <div class="np-actions">
+          <a href="{{ url_for('main.explore') }}" class="np-btn-ghost">
+            <i class="fas fa-xmark"></i> Discard
+          </a>
+          {{ form.submit(class="np-btn-primary", id="npSubmitDesk", value="Post") }}
         </div>
-        <div id="cpPriceBody" style="display:none;">
-          <div class="cp-section-body" style="padding-top:.5rem;">
-            <div class="cp-price-row">
-              <span class="cp-price-ccy">GHS</span>
-              {{ form.price(class="cp-input cp-price-inp", placeholder="0.00") }}
-            </div>
-            {% if form.price.errors %}
-              <p class="cp-error"><i class="fas fa-circle-exclamation"></i> {{ form.price.errors[0] }}</p>
-            {% endif %}
-          </div>
+
+        <!-- Mobile sticky bar -->
+        <div class="np-mobile-bar">
+          <a href="{{ url_for('main.explore') }}" class="np-btn-ghost np-btn-ghost--ico">
+            <i class="fas fa-arrow-left"></i>
+          </a>
+          <button type="submit" class="np-btn-primary np-btn-primary--full">
+            <i class="fas fa-paper-plane"></i> Post
+          </button>
         </div>
+
+      </form>
+    </div><!-- /np-main -->
+
+    <!-- ── SIDEBAR TIPS ── -->
+    <aside class="np-sidebar">
+      <div class="np-tips-panel">
+        <h3 class="np-tips-title"><i class="fas fa-circle-info"></i> Posting tips</h3>
+        <ul class="np-tips-list">
+          <li><strong>Be specific</strong> — a clear title gets more helpful replies.</li>
+          <li><strong>Use flairs</strong> — helps others know if you need an answer or just want to chat.</li>
+          <li><strong>Attach files</strong> only when they add value — text threads are totally fine.</li>
+          <li><strong>Stay on topic</strong> — tag a subject so the right people find your post.</li>
+        </ul>
       </div>
-      {% endif %}
-
-      <!-- ── NOTICE ── -->
-      <div class="cp-notice">
-        <i class="fas fa-shield-halved"></i>
-        <p>Only upload <strong>your own notes</strong>, AI-assisted guides, or original resources. Copyrighted material will be removed immediately.</p>
+      <div class="np-rules-panel">
+        <h3 class="np-tips-title"><i class="fas fa-shield-halved"></i> Community rules</h3>
+        <ul class="np-tips-list">
+          <li>No plagiarised or copyrighted material.</li>
+          <li>Be respectful — no harassment or hate speech.</li>
+          <li>No spam or self-promotion.</li>
+          <li>Posts are reviewed before going live.</li>
+        </ul>
       </div>
+    </aside>
 
-      <!-- ── DESKTOP ACTIONS ── -->
-      <div class="cp-actions">
-        <a href="{{ url_for('main.index') }}" class="cp-btn-ghost">
-          <i class="fas fa-xmark"></i> Discard
-        </a>
-        {{ form.submit(class="cp-btn-primary", id="cpSubmitDesk") }}
-      </div>
-
-    </div><!-- /cp-form-body -->
-
-    <!-- Mobile sticky bar -->
-    <div class="cp-mobile-bar">
-      <a href="{{ url_for('main.index') }}" class="cp-btn-ghost cp-btn-ghost--ico" aria-label="Discard">
-        <i class="fas fa-arrow-left"></i>
-      </a>
-      <button type="submit" class="cp-btn-primary cp-btn-primary--full">
-        <i class="fas fa-paper-plane"></i> Submit Post
-      </button>
-    </div>
-
-  </form>
+  </div><!-- /np-layout -->
 </div>
 
-
 <style>
-/* ══ CREATE PAGE — scoped to .cp-shell ══ */
+/* ══ CREATE (REDDIT STYLE) — scoped to .np-shell ══ */
 
-.cp-shell {
-  max-width: 760px;
+.np-shell {
+  max-width: 1060px;
   margin: 0 auto;
   padding: 1.5rem 1.25rem 6rem;
-  -webkit-tap-highlight-color: transparent;
 }
-@media (min-width: 1024px) { .cp-shell { padding: 2rem 2rem 4rem; } }
-@media (max-width: 480px)  { .cp-shell { padding: 1rem .875rem 8rem; } }
+@media (max-width: 480px) { .np-shell { padding: 1rem .875rem 8rem; } }
 
-/* ══ BACK LINK ══ */
-.cp-back-link {
-  display: inline-flex; align-items: center; gap: .45rem;
+/* ── BACK ── */
+.np-back {
+  display: inline-flex; align-items: center; gap: .4rem;
   font-size: .8rem; font-weight: 600; color: var(--text-muted);
   text-decoration: none; margin-bottom: 1.25rem; transition: color .15s;
 }
-.cp-back-link:hover { color: var(--primary, #6366f1); }
+.np-back:hover { color: var(--primary, #6366f1); }
 
-/* ══ PAGE HEADER ══ */
-.cp-header-content {
-  display: flex; align-items: center; gap: .875rem;
-  padding: 1.25rem;
-  background: rgba(99,102,241,.06);
-  border: 1px solid rgba(99,102,241,.15);
-  border-radius: 20px;
-  margin-bottom: 1.5rem;
+/* ── LAYOUT ── */
+.np-layout {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 1.25rem;
+  align-items: start;
 }
-.cp-header-icon {
-  width: 44px; height: 44px; flex-shrink: 0;
-  background: linear-gradient(135deg, #2563eb, #06b6d4);
-  border-radius: 13px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.15rem; color: #fff;
-  box-shadow: 0 4px 14px rgba(37,99,235,.3);
-}
-.cp-page-title {
-  font-family: 'Poppins', sans-serif;
-  font-size: 1.15rem; font-weight: 900;
-  color: var(--text-primary); letter-spacing: -.02em; margin: 0 0 .15rem;
-}
-.cp-page-sub { margin: 0; font-size: .78rem; color: var(--text-muted); }
-
-/* ══ FORM BODY ══ */
-.cp-form-body { display: flex; flex-direction: column; gap: 1rem; }
-
-/* ══ SECTION PANELS — match .home-panel ══ */
-.cp-section {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  overflow: hidden;
+@media (max-width: 860px) {
+  .np-layout { grid-template-columns: 1fr; }
+  .np-sidebar { display: none; }
 }
 
-/* ══ PANEL HEAD — match .panel-head ══ */
-.cp-section-head {
+/* ── COMPOSER HEAD ── */
+.np-composer-head {
   display: flex; align-items: center; gap: .65rem;
   padding: .875rem 1.1rem;
-  border-bottom: 1px solid var(--border-light, rgba(255,255,255,.05));
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px 18px 0 0;
+  border-bottom: none;
 }
-.cp-section-icon {
-  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: .85rem;
-}
-.cp-section-icon--blue   { background: rgba(37,99,235,.12);  color: #2563eb; }
-.cp-section-icon--green  { background: rgba(5,150,105,.12);  color: #059669; }
-.cp-section-icon--purple { background: rgba(99,102,241,.12); color: #6366f1; }
-.cp-section-icon--cyan   { background: rgba(6,182,212,.12);  color: #06b6d4; }
-.cp-section-icon--amber  { background: rgba(245,158,11,.12); color: #f59e0b; }
-.cp-section-head-text h3 {
-  font-family: 'Poppins', sans-serif;
-  font-size: .9rem; font-weight: 800;
-  color: var(--text-primary); letter-spacing: -.02em; margin: 0 0 .05rem;
-}
-.cp-section-head-text p { font-size: .72rem; color: var(--text-muted); margin: 0; }
-.cp-section-head-right { margin-left: auto; display: flex; align-items: center; gap: .65rem; }
+.np-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
+.np-posting-as { font-size: .7rem; color: var(--text-muted); display: block; }
+.np-username { font-size: .84rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-display); }
 
-/* ══ SECTION BODY ══ */
-.cp-section-body { padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .65rem; }
+/* ── FORM WRAPPER ── */
+#npForm {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 0 0 18px 18px;
+  display: flex; flex-direction: column;
+}
 
-/* ══ SIDECAR HEAD ══ */
-.cp-sidecar-head {
-  display: flex; align-items: center; gap: .5rem;
-  padding: .6rem 0 .5rem;
-  font-size: .78rem; font-weight: 700;
+/* ── FLAIR STRIP ── */
+.np-flair-row {
+  display: flex; align-items: center; gap: .35rem; flex-wrap: wrap;
+  padding: .75rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto; scrollbar-width: none;
+}
+.np-flair-row::-webkit-scrollbar { display: none; }
+.np-flair {
+  display: inline-flex; align-items: center; gap: .28rem;
+  padding: .3rem .7rem; border-radius: 50px;
+  border: 1.5px solid var(--border);
+  background: transparent; color: var(--text-muted);
+  font-size: .72rem; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  font-family: inherit; transition: all .14s;
+}
+.np-flair i { font-size: .6rem; }
+.np-flair:hover {
+  border-color: var(--fc, var(--primary));
+  color: var(--fc, var(--primary));
+  background: color-mix(in srgb, var(--fc, var(--primary)) 8%, transparent);
+}
+.np-flair--active {
+  border-color: var(--fc, var(--primary));
+  color: var(--fc, #fff);
+  background: var(--fc, var(--primary));
+}
+.np-flair--active[data-value=""] {
+  border-color: var(--border);
+  background: var(--bg-hover);
   color: var(--text-secondary);
-  border-top: 1px solid var(--border-light, rgba(255,255,255,.05));
-  margin-top: .25rem;
 }
 
-/* ══ EDITOR TABS ══ */
-.cp-editor-tabs { display: flex; background: var(--bg-hover); border-radius: 8px; padding: 3px; gap: 2px; }
-.cp-tab { padding: .28rem .7rem; border-radius: 6px; border: none; background: transparent; font-size: .76rem; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: .3rem; transition: all .15s; }
-.cp-tab i { font-size: .65rem; }
-.cp-tab--active { background: var(--bg-card); color: var(--primary, #6366f1); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
-
-/* ══ CHAR COUNT ══ */
-.cp-char-count { font-size: .7rem; font-weight: 600; color: var(--text-muted); background: var(--bg-hover); padding: .2rem .55rem; border-radius: 20px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.cp-char-count.cp--warn { color: #f59e0b; background: rgba(245,158,11,.1); }
-.cp-char-count.cp--over { color: #ef4444; background: rgba(239,68,68,.1); }
-
-/* ══ INPUTS ══ */
-.cp-input {
-  width: 100%; padding: .75rem 1rem;
-  border: 1.5px solid var(--border); border-radius: 10px;
-  font-size: .95rem; background: var(--bg-hover);
-  color: var(--text-primary); font-family: inherit;
-  outline: none; transition: border-color .18s, box-shadow .18s; box-sizing: border-box;
+/* ── TITLE ── */
+.np-field { position: relative; padding: .75rem 1.1rem; border-bottom: 1px solid var(--border); }
+.np-title-input {
+  width: 100%; padding: .55rem 3.5rem .55rem 0;
+  border: none; background: transparent;
+  font-size: 1.15rem; font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--text-primary); outline: none;
+  letter-spacing: -.02em; box-sizing: border-box;
 }
-.cp-input:focus { border-color: var(--primary, #6366f1); box-shadow: 0 0 0 3px rgba(99,102,241,.12); background: var(--bg-card); }
-.cp-title-input { font-size: 1.05rem; font-weight: 600; padding: .875rem 1rem; }
+.np-title-input::placeholder { color: var(--text-muted); font-weight: 500; }
+.np-title-count {
+  position: absolute; right: 1.1rem; top: 50%; transform: translateY(-50%);
+  font-size: .68rem; font-weight: 600; color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.np-err { display: flex; align-items: center; gap: .3rem; font-size: .76rem; color: #ef4444; margin: .35rem 0 0; }
 
-/* ══ EDITOR CARD ══ */
-.cp-editor-card { border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--bg-card); transition: border-color .18s, box-shadow .18s; }
-.cp-editor-card:focus-within { border-color: var(--primary, #6366f1); box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
-.cp-toolbar { display: flex; align-items: center; gap: .1rem; padding: .45rem .75rem; border-bottom: 1px solid var(--border-light, rgba(255,255,255,.05)); background: var(--bg-hover); flex-wrap: wrap; }
-.cp-tb-btn { width: 30px; height: 30px; border-radius: 7px; border: none; background: transparent; color: var(--text-muted); font-size: .72rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
-.cp-tb-btn:hover { background: var(--bg-card); color: var(--primary, #6366f1); transform: scale(1.08); }
-.cp-tb-sep { width: 1px; height: 16px; background: var(--border); margin: 0 .3rem; }
-.cp-tb-hints { margin-left: auto; display: flex; gap: .25rem; }
-.cp-tb-hints kbd { font-size: .6rem; color: var(--text-muted); background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: .1rem .35rem; font-family: inherit; }
-.cp-textarea { display: block; width: 100%; min-height: 200px; padding: .875rem 1rem; border: none; background: transparent; resize: vertical; font-size: .875rem; font-family: 'Fira Code','Consolas',monospace; color: var(--text-primary); outline: none; line-height: 1.8; box-sizing: border-box; }
-.cp-textarea::placeholder { color: var(--text-muted); font-style: italic; font-family: inherit; }
-.cp-preview { min-height: 200px; padding: .875rem 1rem; font-size: .875rem; line-height: 1.8; color: var(--text-secondary); }
-.cp-preview[hidden] { display: none; }
-.cp-preview-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .65rem; min-height: 180px; color: var(--text-muted); font-style: italic; font-size: .82rem; }
-.cp-preview-empty i { font-size: 1.75rem; opacity: .2; }
-.cp-editor-footer { padding: .35rem .75rem; background: var(--bg-hover); border-top: 1px solid var(--border-light, rgba(255,255,255,.05)); }
-.cp-md-hint { font-size: .68rem; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: .3rem; }
-.cp-md-hint i { color: var(--primary, #6366f1); }
+/* ── BODY TABS ── */
+.np-body-card { border-bottom: 1px solid var(--border); }
+.np-body-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.np-btab {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .7rem 1.1rem;
+  border: none; border-bottom: 2.5px solid transparent;
+  background: transparent; color: var(--text-muted);
+  font-size: .8rem; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+  transition: all .14s; white-space: nowrap;
+}
+.np-btab i { font-size: .66rem; }
+.np-btab--active { color: var(--primary, #6366f1); border-bottom-color: var(--primary, #6366f1); background: var(--bg-card); }
+.np-btab:hover:not(.np-btab--active) { color: var(--text-secondary); background: var(--bg-hover); }
 
-/* ══ SUBJECT CHIPS ══ */
-.cp-hidden-sel { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.cp-subject-widget { display: flex; flex-direction: column; gap: .625rem; }
-.cp-search-wrap { position: relative; }
-.cp-search-ico { position: absolute; left: .875rem; top: 50%; transform: translateY(-50%); font-size: .75rem; color: var(--text-muted); pointer-events: none; }
-.cp-search-input { width: 100%; padding: .6rem .875rem .6rem 2.25rem; border: 1.5px solid var(--border); border-radius: 50px; background: var(--bg-hover); font-size: .875rem; color: var(--text-primary); font-family: inherit; outline: none; transition: border-color .18s, box-shadow .18s; box-sizing: border-box; }
-.cp-search-input:focus { border-color: var(--primary, #6366f1); box-shadow: 0 0 0 3px rgba(99,102,241,.12); background: var(--bg-card); }
-.cp-search-clear { position: absolute; right: .6rem; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 50%; border: none; background: var(--bg-hover); color: var(--text-muted); font-size: .65rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
-.cp-search-clear:hover { background: rgba(239,68,68,.12); color: #ef4444; }
-.cp-chips { display: none; flex-wrap: wrap; gap: .35rem; }
-.cp-chips:empty { display: none; }
-.cp-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .75rem; border-radius: 50px; border: 1.5px solid var(--border); background: var(--bg-hover); color: var(--text-secondary); font-size: .75rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .15s; user-select: none; }
-.cp-chip:hover { border-color: rgba(99,102,241,.35); color: var(--primary, #6366f1); transform: translateY(-1px); }
-.cp-chip.cp-chip--on { background: var(--chip-color, var(--primary, #6366f1)); border-color: var(--chip-color, var(--primary, #6366f1)); color: #fff; }
-.cp-chip.cp-chip--hide { display: none; }
-.cp-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .65; }
-.cp-chip.cp-chip--on .cp-chip-dot { opacity: .85; background: rgba(255,255,255,.7); }
+/* ── TOOLBAR ── */
+.np-toolbar {
+  display: flex; align-items: center; gap: .1rem; flex-wrap: wrap;
+  padding: .4rem .75rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.np-tb {
+  width: 30px; height: 30px; border-radius: 7px;
+  border: none; background: transparent; color: var(--text-muted);
+  font-size: .72rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .13s;
+}
+.np-tb:hover { background: var(--bg-card); color: var(--primary, #6366f1); }
+.np-tb-sep { width: 1px; height: 16px; background: var(--border); margin: 0 .2rem; }
+.np-tb--preview {
+  width: auto; padding: 0 .6rem; gap: .3rem; font-size: .72rem; font-weight: 600; font-family: inherit;
+}
+.np-char-count { margin-left: auto; font-size: .68rem; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.np-char-count.np--warn { color: #f59e0b; }
+.np-char-count.np--over { color: #ef4444; }
 
-/* ══ DROP ZONE ══ */
-.cp-drop-zone { position: relative; border: 2px dashed var(--border); border-radius: 12px; cursor: pointer; transition: border-color .18s, background .18s; overflow: hidden; }
-.cp-drop-zone:hover, .cp-drop-zone.cp--drag { border-color: var(--primary, #6366f1); background: rgba(99,102,241,.04); }
-.cp-drop-zone.cp--done { border-style: solid; border-color: #10b981; background: rgba(16,185,129,.04); }
-.cp-drop-zone--sm { border-radius: 10px; margin-top: .5rem; }
-.cp-drop-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; z-index: 2; }
-.cp-drop-label { display: flex; align-items: center; gap: .875rem; padding: 1rem 1.1rem; cursor: pointer; }
-.cp-drop-icon { width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0; background: linear-gradient(135deg, #2563eb, #06b6d4); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: 0 4px 12px rgba(37,99,235,.25); transition: transform .2s, box-shadow .2s; }
-.cp-drop-icon--cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); box-shadow: 0 4px 12px rgba(6,182,212,.25); }
-.cp-drop-zone:hover .cp-drop-icon, .cp-drop-zone.cp--drag .cp-drop-icon { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(37,99,235,.35); }
-.cp-drop-zone.cp--done .cp-drop-icon { background: #10b981; box-shadow: 0 4px 12px rgba(16,185,129,.3); }
-.cp-drop-text { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
-.cp-drop-text strong { font-family: 'Poppins', sans-serif; font-size: .875rem; font-weight: 700; color: var(--text-primary); word-break: break-word; }
-.cp-drop-text span { font-size: .72rem; color: var(--text-muted); }
-.cp-drop-rm { position: absolute; top: .6rem; right: .6rem; z-index: 3; width: 26px; height: 26px; border-radius: 50%; background: rgba(239,68,68,.1); border: none; color: #ef4444; font-size: .68rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
-.cp-drop-rm:hover { background: rgba(239,68,68,.22); transform: scale(1.1); }
+/* ── TEXTAREA / PREVIEW ── */
+.np-textarea {
+  display: block; width: 100%; min-height: 180px;
+  padding: .875rem 1.1rem;
+  border: none; background: transparent;
+  color: var(--text-primary);
+  font-size: .9rem; font-family: var(--font-body);
+  resize: vertical; outline: none; line-height: 1.75;
+  box-sizing: border-box;
+}
+.np-textarea::placeholder { color: var(--text-muted); font-style: italic; }
+.np-preview { min-height: 160px; padding: .875rem 1.1rem; }
+.np-preview[hidden] { display: none; }
+.np-preview-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .5rem; min-height: 140px; color: var(--text-muted); font-style: italic; font-size: .82rem;
+}
+.np-preview-empty i { font-size: 1.6rem; opacity: .18; }
 
-/* ══ TOGGLE ══ */
-.cp-toggle-wrap { display: flex; align-items: center; gap: .625rem; }
-.cp-toggle-inp { display: none; }
-.cp-toggle { display: inline-block; width: 40px; height: 23px; background: var(--border); border-radius: 50px; cursor: pointer; position: relative; transition: background .2s; }
-.cp-toggle::after { content: ''; position: absolute; top: 3.5px; left: 3.5px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); transition: transform .2s; }
-.cp-toggle-inp:checked + .cp-toggle { background: #10b981; }
-.cp-toggle-inp:checked + .cp-toggle::after { transform: translateX(17px); }
-.cp-toggle-label { font-size: .78rem; font-weight: 600; color: var(--text-muted); }
-.cp-price-row { position: relative; }
-.cp-price-ccy { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: .78rem; font-weight: 700; color: var(--text-secondary); pointer-events: none; z-index: 1; }
-.cp-price-inp { padding-left: 3.5rem !important; font-weight: 600; }
+/* prose */
+.np-prose { font-size: .875rem; line-height: 1.8; color: var(--text-secondary); word-wrap: break-word; }
+.np-prose p { margin: 0 0 .65rem; } .np-prose p:last-child { margin: 0; }
+.np-prose h2 { font-family: var(--font-display); font-size: 1.05rem; font-weight: 800; color: var(--text-primary); margin: .875rem 0 .35rem; letter-spacing: -.02em; }
+.np-prose strong { font-weight: 700; color: var(--text-primary); }
+.np-prose a { color: var(--primary, #6366f1); text-decoration: underline; text-underline-offset: 3px; }
+.np-prose ul, .np-prose ol { margin: .3rem 0 .65rem 1.25rem; display: flex; flex-direction: column; gap: .2rem; }
+.np-prose ul { list-style: disc; } .np-prose ol { list-style: decimal; }
+.np-prose blockquote { border-left: 3px solid var(--primary, #6366f1); margin: .5rem 0; padding: .35rem .875rem; background: rgba(99,102,241,.05); border-radius: 0 8px 8px 0; color: var(--text-secondary); font-style: italic; }
+.np-prose code { background: var(--bg-hover); border: 1px solid var(--border); border-radius: 4px; padding: .1em .38em; font-size: .84em; color: var(--primary, #6366f1); }
+.np-prose pre { background: #16131f; border-radius: 10px; padding: .875rem 1rem; overflow-x: auto; margin: .5rem 0; }
+.np-prose pre code { background: none; border: none; padding: 0; color: #e2e8f0; }
 
-/* ══ NOTICE ══ */
-.cp-notice { display: flex; align-items: flex-start; gap: .65rem; padding: .875rem 1rem; background: rgba(249,115,22,.05); border: 1px solid rgba(249,115,22,.18); border-left: 3px solid #fb923c; border-radius: 14px; }
-.cp-notice i { color: #f97316; font-size: .85rem; margin-top: .1rem; flex-shrink: 0; }
-.cp-notice p { margin: 0; font-size: .77rem; color: #92400e; line-height: 1.55; }
-.cp-notice strong { color: #7c2d12; }
-[data-theme="dark"] .cp-notice { background: rgba(249,115,22,.07); }
-[data-theme="dark"] .cp-notice p { color: #fdba74; }
-[data-theme="dark"] .cp-notice strong { color: #fed7aa; }
+/* ── DROPZONE ── */
+.np-dropzone {
+  position: relative; margin: .875rem 1.1rem;
+  border: 2px dashed var(--border); border-radius: 12px;
+  cursor: pointer; transition: border-color .18s, background .18s;
+}
+.np-dropzone:hover, .np-dropzone.np--drag { border-color: var(--primary, #6366f1); background: rgba(99,102,241,.04); }
+.np-dropzone.np--done { border-style: solid; border-color: #10b981; background: rgba(16,185,129,.04); }
+.np-dropzone--sm { margin: .5rem 1.1rem .875rem; }
+.np-drop-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; z-index: 2; }
+.np-drop-label { display: flex; align-items: center; gap: .875rem; padding: .875rem 1rem; cursor: pointer; }
+.np-drop-icon {
+  width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+  background: linear-gradient(135deg, #2563eb, #06b6d4); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(37,99,235,.25); transition: transform .18s, box-shadow .18s;
+}
+.np-dropzone:hover .np-drop-icon, .np-dropzone.np--drag .np-drop-icon { transform: translateY(-2px); }
+.np-dropzone.np--done .np-drop-icon { background: #10b981; box-shadow: 0 4px 12px rgba(16,185,129,.3); }
+.np-drop-icon--sm { width: 32px; height: 32px; font-size: .85rem; border-radius: 8px; }
+.np-drop-icon--cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); box-shadow: 0 4px 12px rgba(6,182,212,.25); }
+.np-drop-text { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.np-drop-text strong { font-size: .875rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-display); word-break: break-word; }
+.np-drop-text span { font-size: .72rem; color: var(--text-muted); }
+.np-drop-rm { position: absolute; top: .55rem; right: .55rem; z-index: 3; width: 24px; height: 24px; border-radius: 50%; background: rgba(239,68,68,.1); border: none; color: #ef4444; font-size: .62rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .14s; }
+.np-drop-rm:hover { background: rgba(239,68,68,.2); transform: scale(1.1); }
 
-/* ══ MISC ══ */
-.cp-req { color: #f87171; font-size: 1rem; font-weight: 400; line-height: 1; }
-.cp-optional { font-size: .65rem; font-weight: 500; color: var(--text-muted); background: var(--bg-hover); padding: .1rem .4rem; border-radius: 20px; }
-.cp-error { display: flex; align-items: center; gap: .35rem; font-size: .78rem; color: #ef4444; margin: 0; }
+/* ── CONTENT TYPE PILLS ── */
+.np-type-row { display: flex; align-items: center; gap: .65rem; padding: 0 1.1rem .875rem; flex-wrap: wrap; }
+.np-type-label { font-size: .72rem; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+.np-type-pills { display: flex; gap: .35rem; flex-wrap: wrap; }
+.np-tpill {
+  display: inline-flex; align-items: center; gap: .28rem;
+  padding: .28rem .75rem; border-radius: 50px;
+  border: 1.5px solid var(--border); background: var(--bg-hover);
+  font-size: .72rem; font-weight: 700; font-family: inherit; cursor: pointer;
+  color: var(--text-muted); transition: all .14s;
+}
+.np-tpill i { font-size: .58rem; }
+.np-tpill--notes.np-tpill--on  { border-color: #10b981; background: rgba(16,185,129,.1); color: #10b981; }
+.np-tpill--sheet.np-tpill--on  { border-color: #f59e0b; background: rgba(245,158,11,.1); color: #f59e0b; }
+.np-tpill--quiz.np-tpill--on   { border-color: #8b5cf6; background: rgba(139,92,246,.1); color: #8b5cf6; }
+.np-tpill--notes i { color: #10b981; } .np-tpill--sheet i { color: #f59e0b; } .np-tpill--quiz i { color: #8b5cf6; }
 
-/* ══ ACTIONS ══ */
-.cp-actions { display: flex; gap: .75rem; align-items: center; justify-content: flex-end; padding-top: .25rem; }
-.cp-actions .cp-btn-ghost  { min-width: 120px; }
-.cp-actions .cp-btn-primary { min-width: 160px; }
+/* ── SIDECAR ── */
+.np-sidecar { padding: 0 1.1rem; }
+.np-sidecar-label {
+  display: flex; align-items: center; gap: .4rem;
+  font-size: .72rem; font-weight: 700; color: #06b6d4;
+  padding: .5rem 0 .25rem;
+  border-top: 1px solid var(--border);
+}
 
-.cp-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; padding: .8rem 1.75rem; background: linear-gradient(135deg, #2563eb, #06b6d4); color: #fff; border: none; border-radius: 50px; font-family: inherit; font-weight: 700; font-size: .9rem; cursor: pointer; text-decoration: none; box-shadow: 0 4px 14px rgba(37,99,235,.35); transition: opacity .15s, transform .2s, box-shadow .2s; white-space: nowrap; }
-.cp-btn-primary:hover { opacity: .9; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,99,235,.45); color: #fff; }
-.cp-btn-primary:active { transform: none; }
-.cp-btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-.cp-btn-primary--full { flex: 1; }
+/* ── SUBJECT ── */
+.np-subject-row { padding: .75rem 1.1rem; border-bottom: 1px solid var(--border);overflow-y: hidden; max-height: 5.5rem }
+.np-subject-widget { display: flex; flex-direction: column; gap: .5rem; }
+.np-subj-search-wrap { position: relative; }
+.np-subj-ico { position: absolute; left: .875rem; top: 50%; transform: translateY(-50%); font-size: .72rem; color: var(--text-muted); pointer-events: none; }
+.np-subj-input {
+  width: 100%; padding: .55rem .875rem .55rem 2.25rem;
+  border: 1.5px solid var(--border); border-radius: 50px;
+  background: var(--bg-hover); color: var(--text-primary);
+  font-size: .84rem; font-family: inherit; outline: none;
+  transition: border-color .16s, box-shadow .16s; box-sizing: border-box;
+}
+.np-subj-input:focus { border-color: var(--primary, #6366f1); box-shadow: 0 0 0 3px rgba(99,102,241,.1); background: var(--bg-card); }
+.np-subj-input::placeholder { color: var(--text-muted); }
+.np-subj-clear {
+  position: absolute; right: .65rem; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 20px; border-radius: 50%;
+  border: none; background: var(--bg-hover); color: var(--text-muted);
+  font-size: .6rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .13s;
+}
+.np-subj-clear:hover { background: rgba(239,68,68,.1); color: #ef4444; }
+.np-subj-chips { display: none; flex-wrap: wrap; gap: .3rem; }
+.np-subj-chips:empty { display: none; }
+.np-chip {
+  display: inline-flex; align-items: center; gap: .28rem;
+  padding: .25rem .65rem; border-radius: 50px;
+  border: 1.5px solid var(--border); background: var(--bg-hover);
+  color: var(--text-secondary); font-size: .72rem; font-weight: 600;
+  font-family: inherit; cursor: pointer; transition: all .13s; user-select: none;
+}
+.np-chip:hover { border-color: rgba(99,102,241,.35); color: var(--primary, #6366f1); transform: translateY(-1px); }
+.np-chip.np-chip--on { background: var(--chip-color, var(--primary, #6366f1)); border-color: var(--chip-color, var(--primary, #6366f1)); color: #fff; }
+.np-chip.np-chip--hide { display: none; }
+.np-chip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .6; }
 
-.cp-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: .8rem 1.25rem; background: var(--bg-card); color: var(--text-secondary); border: 1.5px solid var(--border); border-radius: 50px; font-family: inherit; font-weight: 600; font-size: .9rem; cursor: pointer; text-decoration: none; transition: all .15s; white-space: nowrap; }
-.cp-btn-ghost:hover { border-color: var(--primary, #6366f1); color: var(--primary, #6366f1); }
-.cp-btn-ghost--ico { padding: .8rem; aspect-ratio: 1; }
+/* ── PRICING ── */
+.np-pricing-row {
+  display: flex; align-items: center; gap: .875rem; flex-wrap: wrap;
+  padding: .75rem 1.1rem; border-bottom: 1px solid var(--border);
+}
+.np-pricing-toggle { display: flex; align-items: center; gap: .5rem; }
+.np-toggle-inp { display: none; }
+.np-toggle { display: inline-block; width: 38px; height: 22px; background: var(--border); border-radius: 50px; cursor: pointer; position: relative; transition: background .18s; }
+.np-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.2); transition: transform .18s; }
+.np-toggle-inp:checked + .np-toggle { background: #10b981; }
+.np-toggle-inp:checked + .np-toggle::after { transform: translateX(16px); }
+.np-pricing-lbl { font-size: .78rem; font-weight: 700; color: var(--text-muted); }
+.np-price-field { position: relative; }
+.np-price-ccy { position: absolute; left: .875rem; top: 50%; transform: translateY(-50%); font-size: .78rem; font-weight: 700; color: var(--text-secondary); pointer-events: none; z-index: 1; }
+.np-price-inp { padding: .5rem .875rem .5rem 3.25rem !important; border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg-hover); color: var(--text-primary); font-size: .875rem; font-family: inherit; outline: none; font-weight: 600; transition: border-color .16s; }
+.np-price-inp:focus { border-color: var(--primary, #6366f1); }
 
-/* ══ PROSE PREVIEW ══ */
-.cp-prose { word-wrap: break-word; overflow-wrap: break-word; font-size: .875rem; line-height: 1.8; color: var(--text-secondary); }
-.cp-prose p { margin: 0 0 .75rem; } .cp-prose p:last-child { margin: 0; }
-.cp-prose h2 { font-family: 'Poppins', sans-serif; font-size: 1.05rem; font-weight: 800; color: var(--text-primary); margin: .875rem 0 .35rem; letter-spacing: -.02em; }
-.cp-prose h3 { font-family: 'Poppins', sans-serif; font-size: .9rem; font-weight: 800; color: var(--text-primary); margin: .75rem 0 .3rem; }
-.cp-prose strong { font-weight: 700; color: var(--text-primary); }
-.cp-prose a { color: var(--primary, #6366f1); text-decoration: underline; text-underline-offset: 3px; }
-.cp-prose ul, .cp-prose ol { margin: .3rem 0 .75rem 1.25rem; display: flex; flex-direction: column; gap: .2rem; }
-.cp-prose ul { list-style: disc; } .cp-prose ol { list-style: decimal; }
-.cp-prose blockquote { border-left: 3px solid var(--primary, #6366f1); margin: .6rem 0; padding: .4rem .875rem; background: rgba(99,102,241,.05); border-radius: 0 8px 8px 0; color: var(--text-secondary); font-style: italic; }
-.cp-prose code { background: var(--bg-hover); border: 1px solid var(--border); border-radius: 4px; padding: .1em .38em; font-size: .84em; color: var(--primary, #6366f1); }
-.cp-prose pre { background: #16131f; border-radius: 10px; padding: .875rem 1rem; overflow-x: auto; margin: .6rem 0; }
-.cp-prose pre code { background: none; border: none; padding: 0; color: #e2e8f0; }
-.cp-prose hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+/* ── MISC ── */
+.np-hidden-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.np-opt { font-size: .6rem; font-weight: 500; color: var(--text-muted); background: var(--bg-hover); padding: .1rem .35rem; border-radius: 20px; }
 
-/* ══ MOBILE BAR ══ */
-.cp-mobile-bar { display: none; }
-@media (max-width: 900px) {
-  .cp-actions { display: none !important; }
-  .cp-mobile-bar { display: flex !important; gap: .75rem; position: fixed; bottom: 62px; left: 0; right: 0; z-index: 150; padding: .75rem 1rem; background: var(--bg-card); border-top: 1px solid var(--border); box-shadow: 0 -4px 20px rgba(0,0,0,.12); align-items: center; }
-  .cp-mobile-bar .cp-btn-ghost--ico { flex-shrink: 0; width: 46px; height: 46px; padding: 0; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; }
-  .cp-mobile-bar .cp-btn-primary--full { flex: 1; padding: .75rem 1rem; font-size: .9rem; }
+/* ── ACTIONS ── */
+.np-actions {
+  display: flex; gap: .65rem; align-items: center; justify-content: flex-end;
+  padding: .875rem 1.1rem;
+}
+.np-btn-primary {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  padding: .7rem 1.75rem;
+  background: var(--primary, #6366f1); color: #fff;
+  border: none; border-radius: 50px;
+  font-family: inherit; font-weight: 800; font-size: .9rem;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(99,102,241,.35);
+  transition: opacity .15s, transform .18s, box-shadow .18s;
+}
+.np-btn-primary:hover { opacity: .9; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,.45); color: #fff; }
+.np-btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+.np-btn-primary--full { flex: 1; }
+.np-btn-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: .38rem;
+  padding: .7rem 1.25rem;
+  background: var(--bg-card); color: var(--text-secondary);
+  border: 1.5px solid var(--border); border-radius: 50px;
+  font-family: inherit; font-weight: 600; font-size: .9rem;
+  cursor: pointer; text-decoration: none; white-space: nowrap; transition: all .15s;
+}
+.np-btn-ghost:hover { border-color: var(--primary, #6366f1); color: var(--primary, #6366f1); }
+.np-btn-ghost--ico { padding: .7rem; aspect-ratio: 1; }
+
+/* ── SIDEBAR ── */
+.np-sidebar { display: flex; flex-direction: column; gap: .875rem; position: sticky; top: 76px; }
+.np-tips-panel, .np-rules-panel {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px; padding: 1rem;
+}
+.np-tips-title {
+  font-family: var(--font-display); font-size: .82rem; font-weight: 800;
+  color: var(--text-primary); letter-spacing: -.01em; margin: 0 0 .65rem;
+  display: flex; align-items: center; gap: .4rem;
+}
+.np-tips-title i { font-size: .7rem; color: var(--primary, #6366f1); }
+.np-tips-list { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .45rem; }
+.np-tips-list li { font-size: .78rem; color: var(--text-secondary); line-height: 1.55; }
+.np-tips-list li strong { color: var(--text-primary); }
+
+/* ── MOBILE BAR ── */
+.np-mobile-bar { display: none; }
+@media (max-width: 860px) {
+  .np-actions { display: none !important; }
+  .np-mobile-bar {
+    display: flex !important; gap: .65rem;
+    position: fixed; bottom: 62px; left: 0; right: 0; z-index: 150;
+    padding: .75rem 1rem;
+    background: var(--bg-card); border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 20px rgba(0,0,0,.12); align-items: center;
+  }
+  .np-mobile-bar .np-btn-ghost--ico { flex-shrink: 0; width: 44px; height: 44px; padding: 0; border-radius: 12px; }
+}
+@media (max-width: 480px) {
+  .np-flair-row { gap: .25rem; padding: .6rem .875rem; }
+  .np-flair span { display: none; }  /* icon-only on tiny screens */
+  .np-flair { padding: .35rem .55rem; }
+  .np-title-input { font-size: 1rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .cp-drop-icon, .cp-btn-primary, .cp-btn-ghost { transition: none !important; }
+  .np-btn-primary, .np-btn-ghost, .np-drop-icon, .np-chip { transition: none !important; }
 }
 </style>
-
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script>
 (function () {
   'use strict';
 
-  if (typeof marked !== 'undefined') {
-    marked.setOptions({ breaks: true, gfm: true });
-  }
+  if (typeof marked !== 'undefined') marked.setOptions({ breaks: true, gfm: true });
 
-  const ta   = document.getElementById('cpTextarea');
-  const prev = document.getElementById('cpPreview');
-  const cnum = document.getElementById('cpCharNum');
-  const ctr  = document.getElementById('cpCharCount');
+  // ── Flair picker ──────────────────────────────────────────────────────────
+  const flairHidden = document.getElementById('npFlairHidden');
+  document.querySelectorAll('.np-flair').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.np-flair').forEach(b => b.classList.remove('np-flair--active'));
+      btn.classList.add('np-flair--active');
+      if (flairHidden) flairHidden.value = btn.dataset.value;
+    });
+  });
+
+  // ── Title counter ─────────────────────────────────────────────────────────
+  const titleIn = document.getElementById('npTitle');
+  const titleCt = document.getElementById('npTitleCount');
+  function updateTitle() {
+    if (!titleIn || !titleCt) return;
+    const n = titleIn.value.length;
+    titleCt.textContent = `${n}/200`;
+    titleCt.style.color = n > 180 ? '#ef4444' : n > 160 ? '#f59e0b' : '';
+  }
+  titleIn && titleIn.addEventListener('input', updateTitle);
+  updateTitle();
+
+  // ── Body tab switch ───────────────────────────────────────────────────────
+  window.npSetBodyTab = function (tab) {
+    const pText = document.getElementById('npPaneText');
+    const pFile = document.getElementById('npPaneFile');
+    const tText = document.getElementById('npTabText');
+    const tFile = document.getElementById('npTabFile');
+    if (tab === 'text') {
+      pText.hidden = false; pFile.hidden = true;
+      tText.classList.add('np-btab--active'); tFile.classList.remove('np-btab--active');
+    } else {
+      pText.hidden = true; pFile.hidden = false;
+      tFile.classList.add('np-btab--active'); tText.classList.remove('np-btab--active');
+    }
+  };
+
+  // ── Markdown toolbar ──────────────────────────────────────────────────────
+  const ta   = document.getElementById('npTextarea');
+  const prev = document.getElementById('npPreview');
+  const ctr  = document.getElementById('npCharCount');
   const MAX  = 5000;
 
   function updateCount() {
-    if (!ta || !cnum) return;
+    if (!ta || !ctr) return;
     const n = ta.value.length;
-    cnum.textContent = n.toLocaleString();
-    if (ctr) {
-      ctr.className = 'cp-char-count' +
-        (n > MAX ? ' cp--over' : n > MAX * .85 ? ' cp--warn' : '');
-    }
+    ctr.textContent = `${n.toLocaleString()}/${MAX.toLocaleString()}`;
+    ctr.className = 'np-char-count' + (n > MAX ? ' np--over' : n > MAX * .85 ? ' np--warn' : '');
   }
   ta && ta.addEventListener('input', updateCount);
   updateCount();
-
-  window.cpSetTab = function (mode) {
-    const tw = document.getElementById('cpTabWrite');
-    const tp = document.getElementById('cpTabPreview');
-    const tb = document.getElementById('cpToolbar');
-    if (mode === 'write') {
-      ta.hidden = false; prev.hidden = true;
-      tw.classList.add('cp-tab--active'); tp.classList.remove('cp-tab--active');
-      if (tb) { tb.style.opacity = ''; tb.style.pointerEvents = ''; }
-      ta.focus();
-    } else {
-      const html = (typeof marked !== 'undefined') ? marked.parse(ta.value || '') : '';
-      prev.innerHTML = html.trim()
-        ? `<div class="cp-prose">${html}</div>`
-        : `<div class="cp-preview-empty"><i class="fas fa-feather-pointed"></i><span>Preview appears here as you write…</span></div>`;
-      ta.hidden = true; prev.hidden = false;
-      tp.classList.add('cp-tab--active'); tw.classList.remove('cp-tab--active');
-      if (tb) { tb.style.opacity = '.35'; tb.style.pointerEvents = 'none'; }
-    }
-  };
 
   const MD = {
     bold:   { wrap: ['**','**'], ph: 'bold text' },
     italic: { wrap: ['*','*'],   ph: 'italic text' },
     code:   { wrap: ['`','`'],   ph: 'code' },
     h2:     { line: '## ',       ph: 'Heading' },
-    quote:  { line: '> ',        ph: 'Blockquote' },
-    ul:     { line: '- ',        ph: 'List item' },
-    ol:     { line: '1. ',       ph: 'List item' },
+    quote:  { line: '> ',        ph: 'Quote' },
+    ul:     { line: '- ',        ph: 'Item' },
     link:   { special: 'link' },
-    hr:     { special: 'hr' },
   };
 
   function insertMd(action) {
@@ -571,10 +684,8 @@
     const sel = ta.value.slice(s, e);
     let before = ta.value.slice(0, s), after = ta.value.slice(e), ins = '';
     if (c.special === 'link') {
-      const url = prompt('Enter URL:', 'https://'); if (!url) return;
+      const url = prompt('URL:', 'https://'); if (!url) return;
       ins = `[${sel || 'link text'}](${url})`;
-    } else if (c.special === 'hr') {
-      if (before && !before.endsWith('\n')) before += '\n'; ins = '\n---\n';
     } else if (c.wrap) {
       const [o, cl] = c.wrap;
       ins = sel ? (sel.startsWith(o) && sel.endsWith(cl) ? sel.slice(o.length, -cl.length) : o + sel + cl) : o + c.ph + cl;
@@ -587,7 +698,7 @@
     ta.focus(); ta.dispatchEvent(new Event('input'));
   }
 
-  document.querySelectorAll('.cp-tb-btn[data-md]').forEach(btn =>
+  document.querySelectorAll('.np-tb[data-md]').forEach(btn =>
     btn.addEventListener('click', () => insertMd(btn.dataset.md))
   );
 
@@ -605,80 +716,98 @@
     }
   });
 
-  window.cpDrag = function (ev, id, on) {
+  let previewOn = false;
+  window.npTogglePreview = function () {
+    previewOn = !previewOn;
+    const btn = document.getElementById('npPreviewBtn');
+    if (previewOn) {
+      const html = (typeof marked !== 'undefined') ? marked.parse(ta.value || '') : '';
+      prev.innerHTML = html.trim()
+        ? `<div class="np-prose">${html}</div>`
+        : `<div class="np-preview-empty"><i class="fas fa-feather-pointed"></i><span>Preview appears here…</span></div>`;
+      ta.hidden = true; prev.hidden = false;
+      if (btn) btn.innerHTML = '<i class="fas fa-pen"></i> Edit';
+    } else {
+      ta.hidden = false; prev.hidden = true;
+      if (btn) btn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+      ta.focus();
+    }
+  };
+
+  // ── File drop ─────────────────────────────────────────────────────────────
+  window.npDrag = function (ev, on) {
     ev.preventDefault();
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle('cp--drag', on);
+    document.getElementById('npDropZone').classList.toggle('np--drag', on);
   };
-
-  window.cpHandleFile = function (input) {
+  window.npDrop = function (ev) {
+    ev.preventDefault();
+    document.getElementById('npDropZone').classList.remove('np--drag');
+    const inp = document.getElementById('npFileInput');
+    if (ev.dataTransfer.files.length) { inp.files = ev.dataTransfer.files; npHandleFile(inp); }
+  };
+  window.npHandleFile = function (input) {
     if (!input.files || !input.files[0]) return;
-    const f = input.files[0];
+    const f   = input.files[0];
     const ext = f.name.split('.').pop().toLowerCase();
-    document.getElementById('cpDropName').textContent = `${f.name}  ·  ${(f.size/1048576).toFixed(1)} MB`;
-    document.getElementById('cpDropIco').className = 'fas fa-circle-check';
-    const types = document.getElementById('cpDropTypes');
-    if (types) types.style.display = 'none';
-    document.getElementById('cpDropZone').classList.add('cp--done');
-    document.getElementById('cpFileRm').style.display = 'flex';
-    const sc = document.getElementById('cpSidecarSection');
-    if (sc) sc.style.display = ext === 'pdf' ? 'block' : 'none';
+    document.getElementById('npDropName').textContent = `${f.name}  ·  ${(f.size / 1048576).toFixed(1)} MB`;
+    document.getElementById('npDropSub').style.display = 'none';
+    document.getElementById('npDropIcon').innerHTML = '<i class="fas fa-circle-check"></i>';
+    document.getElementById('npDropZone').classList.add('np--done');
+    document.getElementById('npFileRm').style.display = 'flex';
+    const sc = document.getElementById('npSidecarSection');
+    if (sc) sc.style.display = (ext === 'pdf') ? 'block' : 'none';
   };
-
-  window.cpClearFile = function () {
-    document.getElementById('cpFileInput').value = '';
-    document.getElementById('cpDropName').textContent = 'Drop file or click to browse';
-    document.getElementById('cpDropIco').className = 'fas fa-cloud-arrow-up';
-    const types = document.getElementById('cpDropTypes');
-    if (types) types.style.display = '';
-    document.getElementById('cpDropZone').classList.remove('cp--done');
-    document.getElementById('cpFileRm').style.display = 'none';
-    const sc = document.getElementById('cpSidecarSection');
+  window.npClearFile = function () {
+    document.getElementById('npFileInput').value = '';
+    document.getElementById('npDropName').textContent = 'Drop file or click to browse';
+    document.getElementById('npDropSub').style.display = '';
+    document.getElementById('npDropIcon').innerHTML = '<i class="fas fa-cloud-arrow-up"></i>';
+    document.getElementById('npDropZone').classList.remove('np--done');
+    document.getElementById('npFileRm').style.display = 'none';
+    const sc = document.getElementById('npSidecarSection');
     if (sc) sc.style.display = 'none';
-    cpClearJson();
+    npClearJson();
   };
 
-  window.cpHandleJson = function (input) {
+  window.npDragJson = function (ev, on) { ev.preventDefault(); document.getElementById('npJsonZone').classList.toggle('np--drag', on); };
+  window.npDropJson = function (ev) {
+    ev.preventDefault(); document.getElementById('npJsonZone').classList.remove('np--drag');
+    const inp = document.getElementById('npJsonInput');
+    if (ev.dataTransfer.files.length) { inp.files = ev.dataTransfer.files; npHandleJson(inp); }
+  };
+  window.npHandleJson = function (input) {
     if (!input.files || !input.files[0]) return;
-    document.getElementById('cpJsonName').textContent = input.files[0].name;
-    document.getElementById('cpJsonIco').className = 'fas fa-circle-check';
-    document.getElementById('cpJsonZone').classList.add('cp--done');
-    document.getElementById('cpJsonRm').style.display = 'flex';
+    document.getElementById('npJsonName').textContent = input.files[0].name;
+    document.getElementById('npJsonIco').className = 'fas fa-circle-check';
+    document.getElementById('npJsonZone').classList.add('np--done');
+    document.getElementById('npJsonRm').style.display = 'flex';
+  };
+  window.npClearJson = function () {
+    const i = document.getElementById('npJsonInput'); if (i) i.value = '';
+    const n = document.getElementById('npJsonName');  if (n) n.textContent = 'Attach .json quiz file';
+    const ic = document.getElementById('npJsonIco');  if (ic) ic.className = 'fas fa-file-code';
+    const z  = document.getElementById('npJsonZone'); if (z) z.classList.remove('np--done');
+    const r  = document.getElementById('npJsonRm');   if (r) r.style.display = 'none';
   };
 
-  window.cpClearJson = function () {
-    const i = document.getElementById('cpJsonInput'); if (i) i.value = '';
-    const n = document.getElementById('cpJsonName');  if (n) n.textContent = 'Attach .json quiz file';
-    const ic = document.getElementById('cpJsonIco');  if (ic) ic.className = 'fas fa-file-code';
-    const z  = document.getElementById('cpJsonZone'); if (z) z.classList.remove('cp--done');
-    const r  = document.getElementById('cpJsonRm');   if (r) r.style.display = 'none';
-  };
-
-  const paidToggle = document.getElementById('is_paid');
-  if (paidToggle) {
-    paidToggle.addEventListener('change', function () {
-      const pb = document.getElementById('cpPriceBody');
-      const lbl = document.getElementById('cpPriceLabel');
-      if (pb) pb.style.display = this.checked ? 'block' : 'none';
-      if (lbl) lbl.textContent = this.checked ? 'Paid' : 'Free';
-    });
+  // ── Content type pills ────────────────────────────────────────────────────
+  const ctHidden = document.getElementById('npContentType');
+  function setType(val) {
+    document.querySelectorAll('.np-tpill').forEach(p =>
+      p.classList.toggle('np-tpill--on', p.dataset.value === val)
+    );
+    if (ctHidden) ctHidden.value = val;
   }
+  document.querySelectorAll('.np-tpill').forEach(p =>
+    p.addEventListener('click', () => setType(p.dataset.value))
+  );
+  setType(ctHidden ? ctHidden.value || 'notes' : 'notes');
 
-  const form = document.getElementById('cpForm');
-  if (form) {
-    form.addEventListener('submit', function () {
-      document.querySelectorAll('.cp-btn-primary').forEach(btn => {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
-      });
-    });
-  }
-
-  /* Subject chips */
+  // ── Subject chips ─────────────────────────────────────────────────────────
   const hiddenSel = document.getElementById('{{ form.subject.id }}');
-  const searchIn  = document.getElementById('cpSubjectSearch');
-  const chipsWrap = document.getElementById('cpSubjectChips');
-  const clearBtn  = document.getElementById('cpSubjectClear');
+  const searchIn  = document.getElementById('npSubjectSearch');
+  const chipsWrap = document.getElementById('npSubjectChips');
+  const clearBtn  = document.getElementById('npSubjectClear');
 
   if (hiddenSel && searchIn && chipsWrap) {
     const opts = Array.from(hiddenSel.options)
@@ -690,14 +819,15 @@
     opts.forEach(opt => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'cp-chip' + (opt.v === current ? ' cp-chip--on' : '');
+      btn.className = 'np-chip' + (opt.v === current ? ' np-chip--on' : '');
       btn.dataset.v = opt.v;
       btn.dataset.l = opt.l.toLowerCase();
       btn.style.setProperty('--chip-color', opt.c);
-      btn.innerHTML = `<span class="cp-chip-dot"></span>${opt.l}`;
+      btn.innerHTML = `<span class="np-chip-dot"></span>${opt.l}`;
       btn.addEventListener('click', () => selectChip(btn, opt));
       chipsWrap.appendChild(btn);
     });
+    if (opts.length) chipsWrap.style.display = 'flex';
 
     if (current) {
       const pre = opts.find(o => o.v === current);
@@ -705,37 +835,51 @@
     }
 
     function selectChip(btn, opt) {
-      chipsWrap.querySelectorAll('.cp-chip.cp-chip--on').forEach(b => b.classList.remove('cp-chip--on'));
+      chipsWrap.querySelectorAll('.np-chip.np-chip--on').forEach(b => b.classList.remove('np-chip--on'));
       if (current === opt.v) { clearSel(); return; }
-      btn.classList.add('cp-chip--on');
+      btn.classList.add('np-chip--on');
       current = opt.v; hiddenSel.value = opt.v;
       searchIn.value = opt.l;
       if (clearBtn) clearBtn.style.display = 'flex';
-      btn.scrollIntoView({ inline: 'nearest', block: 'nearest' });
     }
-
     function clearSel() {
       current = ''; hiddenSel.value = '0'; searchIn.value = '';
       if (clearBtn) clearBtn.style.display = 'none';
-      chipsWrap.querySelectorAll('.cp-chip.cp-chip--on').forEach(b => b.classList.remove('cp-chip--on'));
+      chipsWrap.querySelectorAll('.np-chip.np-chip--on').forEach(b => b.classList.remove('np-chip--on'));
       filter(''); searchIn.focus();
     }
-
     if (clearBtn) clearBtn.addEventListener('click', clearSel);
-
     function filter(q) {
       q = q.trim().toLowerCase();
-      chipsWrap.querySelectorAll('.cp-chip').forEach(c => {
-        c.classList.toggle('cp-chip--hide', q ? !c.dataset.l.includes(q) : false);
-      });
+      chipsWrap.querySelectorAll('.np-chip').forEach(c =>
+        c.classList.toggle('np-chip--hide', q ? !c.dataset.l.includes(q) : false)
+      );
     }
-
     searchIn.addEventListener('input', () => {
       filter(searchIn.value);
       if (!searchIn.value.trim() && current) clearSel();
     });
   }
 
+  // ── Pricing toggle ────────────────────────────────────────────────────────
+  const paidToggle = document.getElementById('is_paid');
+  if (paidToggle) {
+    paidToggle.addEventListener('change', function () {
+      const pb  = document.getElementById('npPriceBody');
+      const lbl = document.getElementById('npPriceLabel');
+      if (pb)  pb.style.display  = this.checked ? 'flex' : 'none';
+      if (lbl) lbl.textContent   = this.checked ? 'Paid' : 'Free';
+    });
+  }
+
+  // ── Submit lock ───────────────────────────────────────────────────────────
+  document.getElementById('npForm').addEventListener('submit', function () {
+    document.querySelectorAll('.np-btn-primary').forEach(btn => {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Posting…';
+    });
+  });
+
 })();
 </script>
-{% endblock %}
+{% endblock %}  

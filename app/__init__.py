@@ -34,7 +34,7 @@ def register_error_handlers(app):
     @app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
-        return render_template('errors/404.html'), 500
+        return render_template('errors/500.html'), 500
 
 
 def register_template_context(app):
@@ -179,11 +179,13 @@ def create_app(config_class=Config):
 
 
     # ── Database ──────────────────────────────────────────────────────────────
-    with app.app_context():
-        try:
-            db.create_all()
-        except Exception as e:
-            print(f"Database already initialized: {e}")
+    # db.create_all() only in development; production uses `flask db upgrade`
+    if app.config.get('IS_DEVELOPMENT', True):
+        with app.app_context():
+            try:
+                db.create_all()
+            except Exception as e:
+                print(f"Database init skipped: {e}")
 
     # Add custom JSON filter
     @app.template_filter('from_json')

@@ -1,9 +1,14 @@
+from datetime import datetime, timedelta, timezone
 from flask_login import current_user, login_required
 from sqlalchemy import or_
+from sqlalchemy.orm import selectinload, joinedload
 from flask import Blueprint, render_template, request, current_app, redirect, url_for, session, abort, make_response, send_from_directory
 from app import db
 from flask import jsonify
-from app.models import User, Post, Document, Subject, Like, Comment
+from app.models import User, Post, Document, Subject, Like, Comment, Programme, Notification
+from app.past_papers.routes import XP_REWARD
+import random as _random
+import re
 
 
 # Create main blueprint
@@ -55,9 +60,11 @@ def _build_suggestions():
                     ~User.id.in_(exclude)
                 ).limit(4).all()
 
-            suggested_users['random'] = User.query.filter(
+            import random as _random
+            candidates = User.query.filter(
                 ~User.id.in_(exclude)
-            ).order_by(db.func.random()).limit(4).all()
+            ).limit(50).all()   # index-friendly; sample in Python
+            suggested_users['random'] = _random.sample(candidates, min(4, len(candidates)))
 
     return show_suggestions, suggested_users
 
@@ -67,6 +74,46 @@ def _build_suggestions():
 # ─────────────────────────────────────────────────────────────────────────────
 
 VALID_CONTENT_TYPES = {'notes', 'cheatsheet', 'quiz', 'mixed'}
+
+# ── In-process TTL caches (no Redis required) ─────────────────────────────────
+import time as _time
+
+_subject_cache   = {'data': None, 'at': 0}
+_programme_cache = {'data': None, 'at': 0}
+_count_cache     = {'posts': None, 'subjects': None, 'at': 0}
+
+def _get_active_subjects():
+    """Cache active subjects for 5 minutes — they almost never change."""
+    now = _time.time()
+    if not _subject_cache['data'] or now - _subject_cache['at'] > 300:
+        _subject_cache['data'] = Subject.query.filter_by(is_active=True).order_by(Subject.order, Subject.name).all()
+        _subject_cache['at'] = now
+    return _subject_cache['data']
+
+def _get_active_programmes(limit=6):
+    """Cache active programmes for 5 minutes."""
+    now = _time.time()
+    if not _programme_cache['data'] or now - _programme_cache['at'] > 300:
+        _programme_cache['data'] = Programme.query.filter_by(is_active=True).order_by(Programme.order, Programme.name).all()
+        _programme_cache['at'] = now
+    return _programme_cache['data'][:limit]
+
+def _get_post_counts():
+    """Cache total post/subject counts for 2 minutes."""
+    now = _time.time()
+    if _count_cache['posts'] is None or now - _count_cache['at'] > 120:
+        _count_cache['posts']    = Post.query.filter_by(status='approved').count()
+        _count_cache['subjects'] = Subject.query.filter_by(is_active=True).count()
+        _count_cache['at']       = now
+    return _count_cache['posts'], _count_cache['subjects']
+
+def _eager_posts_query(query):
+    """Apply eager loading so post cards cause zero extra queries."""
+    return query.options(
+        joinedload(Post.subject),
+        joinedload(Post.author),
+    )
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -86,7 +133,7 @@ def index():
                 'knowly_visited', '1',
                 max_age=60 * 60 * 24 * 30,   # 30 days
                 samesite='Lax',
-                secure=False,                  # set True in production (HTTPS)
+                secure=current_app.config.get('SESSION_COOKIE_SECURE', False),
             )
             return response
 
@@ -102,19 +149,16 @@ def index():
         query = Post.query.filter(Post.status == 'approved')
         if selected_subjects:
             query = query.filter(Post.subject_id.in_(selected_subjects))
+        query = _eager_posts_query(query)
         posts = query.order_by(Post.created_at.desc()).paginate(
             page=page, per_page=current_app.config['POSTS_PER_PAGE'], error_out=False
         )
-        subjects       = Subject.query.filter_by(is_active=True).order_by(Subject.order, Subject.name).all()
-        total_posts    = Post.query.filter_by(status='approved').count()
-        total_subjects = Subject.query.filter_by(is_active=True).count()
-        # Show at most 10 courses in the sidebar for guests; "See all" goes to /library
+        subjects       = _get_active_subjects()
+        total_posts, total_subjects = _get_post_counts()
         all_subjects   = subjects[:10]
-        from app.models import Programme
-        guest_programmes = Programme.query.filter_by(is_active=True).order_by(Programme.order, Programme.name).limit(6).all()
+        guest_programmes = _get_active_programmes(limit=6)
         for p in guest_programmes:
-            p.subject_count = p.subjects.filter_by(is_active=True).count()
-        from app.past_papers.routes import XP_REWARD
+            p.subject_count = p.active_subject_count()
         return render_template(
             'index.html',
             title='Home',
@@ -133,12 +177,11 @@ def index():
             total_subjects=total_subjects,
         )
 
-    from app.models import Programme
     from sqlalchemy import func as sqlfunc
 
-    programmes = Programme.query.filter_by(is_active=True).order_by(Programme.order, Programme.name).limit(6).all()
+    programmes = _get_active_programmes(limit=6)
     for p in programmes:
-        p.subject_count = p.subjects.filter_by(is_active=True).count()
+        p.subject_count = p.active_subject_count()
 
     user_programme = None
     user_subjects  = []
@@ -150,7 +193,7 @@ def index():
             user_subjects = user_programme.subjects.filter_by(is_active=True)\
                                                     .order_by(Subject.order, Subject.name).limit(8).all()
 
-    all_subjects = Subject.query.filter_by(is_active=True).order_by(Subject.order, Subject.name).limit(8).all()
+    all_subjects = _get_active_subjects()[:8]
 
     show_suggestions, suggested_users = _build_suggestions()
 
@@ -166,6 +209,7 @@ def index():
     query = Post.query.filter(Post.status == 'approved')
     if selected_subjects:
         query = query.filter(Post.subject_id.in_(selected_subjects))
+    query = _eager_posts_query(query)
 
     posts = query.order_by(Post.created_at.desc()).paginate(
         page=page,
@@ -173,12 +217,8 @@ def index():
         error_out=False
     )
 
-    subjects = Subject.query.filter_by(is_active=True).order_by(Subject.order, Subject.name).all()
-
-    total_posts    = Post.query.filter_by(status='approved').count()
-    total_subjects = Subject.query.filter_by(is_active=True).count()
-
-    from app.past_papers.routes import XP_REWARD
+    subjects = _get_active_subjects()
+    total_posts, total_subjects = _get_post_counts()
     return render_template(
         'index.html',
         title='Home',
@@ -226,7 +266,6 @@ def api_stats():
 @bp.route('/feed')
 @login_required
 def feed_route():
-    from app.models import Programme
     from sqlalchemy import func as sqlfunc
 
     show_suggestions, suggested_users = _build_suggestions()
@@ -260,15 +299,15 @@ def feed_route():
     if selected_subjects:
         query = query.filter(Post.subject_id.in_(selected_subjects))
 
+    query = _eager_posts_query(query)
     posts = query.order_by(Post.created_at.desc()).paginate(
         page=page,
         per_page=current_app.config['POSTS_PER_PAGE'],
         error_out=False
     )
 
-    subjects = Subject.query.filter_by(is_active=True).order_by(Subject.order, Subject.name).all()
-
-    programmes = Programme.query.filter_by(is_active=True).order_by(Programme.order, Programme.name).limit(6).all()
+    subjects = _get_active_subjects()
+    programmes = _get_active_programmes(limit=6)
 
     user_programme = None
     user_subjects  = []
@@ -280,9 +319,8 @@ def feed_route():
             user_subjects = user_programme.subjects.filter_by(is_active=True)\
                                                     .order_by(Subject.order, Subject.name).limit(8).all()
 
-    all_subjects   = Subject.query.filter_by(is_active=True).order_by(Subject.order, Subject.name).limit(8).all()
-    total_posts    = Post.query.filter_by(status='approved').count()
-    total_subjects = Subject.query.filter_by(is_active=True).count()
+    all_subjects   = _get_active_subjects()[:8]
+    total_posts, total_subjects = _get_post_counts()
 
     return render_template(
         'index.html',
@@ -303,10 +341,22 @@ def feed_route():
 
 @bp.route('/explore')
 def explore():
+    from sqlalchemy import func as sqlfunc
+
     page           = request.args.get('page', 1, type=int)
     subjects_param = request.args.get('subjects', '')
     selected_type  = request.args.get('type', '').strip().lower() or None
     search_query   = request.args.get('q', '').strip() or None
+    active_tab     = request.args.get('tab', 'foryou').strip().lower()
+
+    if active_tab not in ('foryou', 'following', 'trending', 'school'):
+        active_tab = 'foryou'
+
+    # Guard: school tab requires auth + a school set — redirect guests cleanly
+    if active_tab == 'school' and (
+        not current_user.is_authenticated or not current_user.school
+    ):
+        return redirect(url_for('main.explore', tab='foryou'))
 
     # ── Subject filter ────────────────────────────────────────────────────────
     selected_subjects = []
@@ -318,6 +368,61 @@ def explore():
 
     # ── Base query ───────────────────────────────────────────────────────────
     query = Post.query.filter(Post.status == 'approved')
+
+    # Tab-specific filtering
+    if active_tab == 'following' and current_user.is_authenticated:
+        following_ids = [u.id for u in current_user.following.all()]
+        if following_ids:
+            query = query.filter(Post.user_id.in_(following_ids))
+        else:
+            # Return empty set if not following anyone
+            query = query.filter(db.false())
+
+    elif active_tab == 'trending':
+        # Trending = most likes in last 14 days
+        cutoff = datetime.now(timezone.utc) - timedelta(days=14)
+        # Guard against naive datetimes in older rows — cast cutoff to naive if needed
+        try:
+            trending_ids = (
+                db.session.query(Like.post_id, sqlfunc.count(Like.id).label('like_cnt'))
+                .filter(Like.created_at >= cutoff)
+                .group_by(Like.post_id)
+                .order_by(db.text('like_cnt DESC'))
+                .limit(60)
+                .all()
+            )
+        except TypeError:
+            cutoff_naive = cutoff.replace(tzinfo=None)
+            trending_ids = (
+                db.session.query(Like.post_id, sqlfunc.count(Like.id).label('like_cnt'))
+                .filter(Like.created_at >= cutoff_naive)
+                .group_by(Like.post_id)
+                .order_by(db.text('like_cnt DESC'))
+                .limit(60)
+                .all()
+            )
+        id_order = [row.post_id for row in trending_ids]
+        if id_order:
+            query = query.filter(Post.id.in_(id_order))
+        # Join like counts so the ordering block can sort by cnt
+        like_count_subq = (
+            db.session.query(Like.post_id, sqlfunc.count(Like.id).label('cnt'))
+            .group_by(Like.post_id)
+            .subquery()
+        )
+        query = query.outerjoin(like_count_subq, Post.id == like_count_subq.c.post_id)
+
+    elif active_tab == 'school' and current_user.is_authenticated and current_user.school:
+        # Posts by users from the same school
+        school_user_ids = (
+            User.query
+            .filter(User.school == current_user.school)
+            .with_entities(User.id)
+            .all()
+        )
+        school_ids = [u.id for u in school_user_ids]
+        if school_ids:
+            query = query.filter(Post.user_id.in_(school_ids))
 
     if selected_subjects:
         query = query.filter(Post.subject_id.in_(selected_subjects))
@@ -331,26 +436,62 @@ def explore():
             Post.title.ilike(like) | Post.description.ilike(like)
         )
 
-    posts = query.order_by(Post.created_at.desc()).paginate(
-        page=page,
-        per_page=20,
-        error_out=False
-    )
+    # Ordering — for trending the join was already applied above; just sort it.
+    # Do NOT rebuild the query here — that would discard tab/subject/type filters.
+    if active_tab == 'trending':
+        query = query.order_by(db.text('cnt DESC NULLS LAST'), Post.created_at.desc())
+    else:
+        query = query.order_by(Post.created_at.desc())
 
-    subjects       = Subject.query.filter_by(is_active=True).order_by(Subject.order, Subject.name).all()
-    total_posts    = Post.query.filter_by(status='approved').count()
-    total_subjects = Subject.query.filter_by(is_active=True).count()
+    query = _eager_posts_query(query)
+    posts = query.paginate(page=page, per_page=20, error_out=False)
+
+    subjects = _get_active_subjects()
+    total_posts, total_subjects = _get_post_counts()
+
+    # Trending subjects for right sidebar.
+    # Falls back to a live join-count if post_count hasn't been backfilled yet.
+    trending_subjects = (
+        Subject.query
+        .filter(Subject.is_active == True, Subject.post_count > 0)
+        .order_by(Subject.post_count.desc())
+        .limit(6)
+        .all()
+    )
+    if not trending_subjects:
+        from sqlalchemy import func as _sfunc
+        trending_subjects = (
+            db.session.query(Subject)
+            .join(Post, Post.subject_id == Subject.id)
+            .filter(Subject.is_active == True, Post.status == 'approved')
+            .group_by(Subject.id)
+            .order_by(_sfunc.count(Post.id).desc())
+            .limit(6)
+            .all()
+        )
+
+    # Suggested users for right sidebar (people not yet followed)
+    suggested_users = []
+    if current_user.is_authenticated:
+        import random as _random
+        already_following = [u.id for u in current_user.following.all()]
+        exclude = already_following + [current_user.id]
+        candidates = User.query.filter(~User.id.in_(exclude)).limit(50).all()
+        suggested_users = _random.sample(candidates, min(4, len(candidates)))
 
     return render_template(
         'explore.html',
-        title='Explore',
+        title='Community',
         posts=posts,
         subjects=subjects,
         selected_subjects=selected_subjects,
         selected_type=selected_type,
         search_query=search_query,
+        active_tab=active_tab,
         total_posts=total_posts,
         total_subjects=total_subjects,
+        trending_subjects=trending_subjects,
+        suggested_users=suggested_users,
     )
 
 
@@ -367,7 +508,6 @@ def terms():
 # LIBRARY  — Programme → Course → Content
 # ─────────────────────────────────────────────────────────────────────────────
 
-from app.models import Programme
 from sqlalchemy import func
 
 
@@ -400,9 +540,8 @@ def library():
                                                     .order_by(Subject.order, Subject.name).all()
             user_faculty  = user_programme.faculty
 
-    total_posts      = Post.query.filter_by(status='approved').count()
-    total_subjects   = Subject.query.filter_by(is_active=True).count()
-    total_programmes = Programme.query.filter_by(is_active=True).count()
+    total_posts, total_subjects = _get_post_counts()
+    total_programmes = len(_get_active_programmes(limit=9999))
 
     return render_template(
         'library/index.html',
@@ -422,7 +561,6 @@ def library():
 @bp.route('/library/faculty/<faculty_slug>')
 def library_faculty(faculty_slug):
     """Faculty page — shows all programmes within a faculty."""
-    import re
 
     def _slugify(text):
         text = text.lower()
@@ -566,7 +704,6 @@ def library_subject(slug):
 @login_required
 def notifications():
     """Return the 30 most recent notifications for the current user."""
-    from app.models import Notification
     notifs = (
         Notification.query
         .filter_by(user_id=current_user.id)
@@ -588,7 +725,6 @@ def notifications():
 @login_required
 def notifications_mark_read():
     """Mark all unread notifications as read."""
-    from app.models import Notification
     Notification.query.filter_by(
         user_id=current_user.id,
         is_read=False,
@@ -597,16 +733,25 @@ def notifications_mark_read():
     return jsonify({'status': 'ok'})
 
 
+_notif_cache: dict = {}  # {user_id: (count, timestamp)}
+
 @bp.route('/notifications/unread-count')
 @login_required
 def notifications_unread_count():
-    """Lightweight poll endpoint for the nav badge."""
-    from app.models import Notification
-    count = Notification.query.filter_by(
-        user_id=current_user.id,
-        is_read=False,
-    ).count()
+    """Lightweight poll endpoint for the nav badge. Cached 30s per user."""
+    import time as _t
+    uid = current_user.id
+    cached = _notif_cache.get(uid)
+    if cached and _t.time() - cached[1] < 30:
+        return jsonify({'count': cached[0]})
+    count = Notification.query.filter_by(user_id=uid, is_read=False).count()
+    _notif_cache[uid] = (count, _t.time())
     return jsonify({'count': count})
+
+
+def invalidate_notif_cache(user_id):
+    """Call this when notifications are marked read."""
+    _notif_cache.pop(user_id, None)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -617,7 +762,6 @@ def notifications_unread_count():
 
 @bp.route('/debug-storage')
 def debug_storage():
-    from app.models import Document
     d = Document.query.first()
     if not d:
         return "No documents in DB"
@@ -641,4 +785,3 @@ def service_worker():
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Service-Worker-Allowed'] = '/'
     return response
-
