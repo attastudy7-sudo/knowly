@@ -36,120 +36,97 @@
 </div>
 
 {% if users.items %}
-<div class="au-grid">
+<div class="au-list">
     {% for user in users.items %}
-    <div class="au-card {% if not user.is_active %}au-card--inactive{% endif %}">
+    <div class="au-row {% if not user.is_active %}au-row--inactive{% endif %}">
 
-        {# ── Top row: avatar + identity + badges ── #}
-        <div class="au-top">
-            <img src="{{ user.profile_picture_url }}"
-                 alt="{{ user.username }}" class="au-avatar">
-            <div class="au-identity">
-                <div class="au-name">
-                    {{ user.username }}
-                    {% if user.is_admin %}
-                        <span class="adm-pill adm-pill--purple">Admin</span>
-                    {% endif %}
-                </div>
-                <div class="au-fullname">{{ user.full_name or '—' }}</div>
-                <div class="au-email">
-                    <i class="fas fa-envelope"></i> {{ user.email }}
-                </div>
+        {# ── Avatar with live status dot ── #}
+        <div class="au-avatar-wrap">
+            <img src="{{ user.profile_picture_url }}" alt="{{ user.username }}" class="au-avatar">
+            <span class="au-dot {% if user.is_active %}au-dot--on{% else %}au-dot--off{% endif %}"
+                  title="{{ 'Active' if user.is_active else 'Inactive' }}"></span>
+        </div>
+
+        {# ── Identity + meta ── #}
+        <div class="au-body">
+            <div class="au-name-row">
+                <span class="au-username">{{ user.username }}</span>
+                {% if user.is_admin %}
+                    <span class="au-badge au-badge--admin">Admin</span>
+                {% endif %}
+                {% if user.subscription_tier == 'premium' %}
+                    <span class="au-badge au-badge--premium">Premium</span>
+                {% elif user.can_access_all_content %}
+                    <span class="au-badge au-badge--access">All Access</span>
+                {% else %}
+                    <span class="au-badge au-badge--free">Free</span>
+                {% endif %}
             </div>
-            <div class="au-status-badge">
-                <span class="adm-pill {% if user.is_active %}adm-pill--green{% else %}adm-pill--red{% endif %}">
-                    <i class="fas fa-{% if user.is_active %}circle-check{% else %}ban{% endif %}"
-                       style="font-size:.55rem"></i>
-                    {{ 'Active' if user.is_active else 'Inactive' }}
-                </span>
+
+            {% if user.full_name %}
+            <div class="au-fullname">{{ user.full_name }}</div>
+            {% endif %}
+
+            <div class="au-email"><i class="fas fa-envelope"></i> {{ user.email }}</div>
+
+            <div class="au-chips">
+                {% if user.school %}
+                <span class="au-chip au-chip--school"><i class="fas fa-university"></i> {{ user.school }}</span>
+                {% endif %}
+                {% if user.programme %}
+                <span class="au-chip au-chip--prog"><i class="fas fa-graduation-cap"></i> {{ user.programme }}</span>
+                {% endif %}
             </div>
         </div>
 
-        {# ── Meta chips ── #}
-        <div class="au-meta">
-            {% if user.school %}
-            <span class="au-chip au-chip--school">
-                <i class="fas fa-university"></i> {{ user.school }}
-            </span>
-            {% endif %}
-            {% if user.programme %}
-            <span class="au-chip au-chip--prog">
-                <i class="fas fa-graduation-cap"></i> {{ user.programme }}
-            </span>
-            {% endif %}
-            {% if not user.school and not user.programme %}
-            <span class="au-chip au-chip--empty">
-                <i class="fas fa-circle-info"></i> No school / programme set
-            </span>
-            {% endif %}
-        </div>
-
-        {# ── Stats row ── #}
+        {# ── Stats ── #}
         <div class="au-stats">
             <div class="au-stat">
-                <span class="au-stat-val">
-                    <i class="fas fa-star" style="color:#f59e0b;font-size:.7rem"></i>
-                    {{ user.xp_points }}
-                </span>
-                <span class="au-stat-label">XP</span>
+                <span class="au-stat-val"><i class="fas fa-star au-xp-icon"></i>{{ user.xp_points }}</span>
+                <span class="au-stat-lbl">XP</span>
             </div>
             <div class="au-stat">
                 <span class="au-stat-val">Lv {{ user.xp_level }}</span>
-                <span class="au-stat-label">Level</span>
+                <span class="au-stat-lbl">Level</span>
             </div>
             <div class="au-stat">
-                <span class="au-stat-val">
-                    {% if user.subscription_tier == 'premium' %}
-                        <span class="adm-pill adm-pill--amber" style="font-size:.65rem">Premium</span>
-                    {% elif user.can_access_all_content %}
-                        <span class="adm-pill adm-pill--green" style="font-size:.65rem">All Access</span>
-                    {% else %}
-                        <span class="adm-pill adm-pill--grey" style="font-size:.65rem">Free</span>
-                    {% endif %}
-                </span>
-                <span class="au-stat-label">Tier</span>
-            </div>
-            <div class="au-stat">
-                <span class="au-stat-val">{{ user.created_at.strftime('%b %Y') }}</span>
-                <span class="au-stat-label">Joined</span>
+                <span class="au-stat-val">{{ user.created_at.strftime('%b %y') }}</span>
+                <span class="au-stat-lbl">Joined</span>
             </div>
         </div>
 
         {# ── Actions ── #}
         <div class="au-actions">
             <a href="{{ url_for('users.profile', username=user.username) }}"
-               class="adm-btn adm-btn--secondary adm-btn--sm" target="_blank">
-                <i class="fas fa-eye"></i> View
+               class="adm-btn adm-btn--secondary adm-btn--sm au-action-btn" target="_blank" title="View profile">
+                <i class="fas fa-eye"></i><span class="au-lbl"> View</span>
             </a>
             {% if user.id != current_user.id %}
-            <form action="{{ url_for('admin.toggle_user_active', user_id=user.id) }}"
-                  method="post" style="display:contents">
+            <form action="{{ url_for('admin.toggle_user_active', user_id=user.id) }}" method="post" style="display:contents">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit"
-                        class="adm-btn adm-btn--sm {% if user.is_active %}adm-btn--warning{% else %}adm-btn--success{% endif %}">
-                    <i class="fas fa-{% if user.is_active %}ban{% else %}check{% endif %}"></i>
-                    {{ 'Deactivate' if user.is_active else 'Activate' }}
+                        class="adm-btn adm-btn--sm au-action-btn {% if user.is_active %}adm-btn--warning{% else %}adm-btn--success{% endif %}"
+                        title="{{ 'Deactivate' if user.is_active else 'Activate' }}">
+                    <i class="fas fa-{% if user.is_active %}ban{% else %}check{% endif %}"></i><span class="au-lbl"> {{ 'Deactivate' if user.is_active else 'Activate' }}</span>
                 </button>
             </form>
-            <form action="{{ url_for('admin.toggle_premium_access', user_id=user.id) }}"
-                  method="post" style="display:contents">
+            <form action="{{ url_for('admin.toggle_premium_access', user_id=user.id) }}" method="post" style="display:contents">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="adm-btn adm-btn--sm adm-btn--secondary"
+                <button type="submit" class="adm-btn adm-btn--sm adm-btn--secondary au-action-btn"
                         title="{{ 'Revoke all-access' if user.can_access_all_content else 'Grant all-access' }}">
-                    <i class="fas fa-{% if user.can_access_all_content %}lock{% else %}unlock{% endif %}"></i>
-                    {{ 'Revoke Access' if user.can_access_all_content else 'Grant Access' }}
+                    <i class="fas fa-{% if user.can_access_all_content %}lock{% else %}unlock{% endif %}"></i><span class="au-lbl"> {{ 'Revoke' if user.can_access_all_content else 'Grant' }}</span>
                 </button>
             </form>
-            <form action="{{ url_for('admin.delete_user', user_id=user.id) }}"
-                  method="post" style="display:contents"
+            <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" method="post" style="display:contents"
                   onsubmit="return confirm('Permanently delete {{ user.username }}? This cannot be undone.')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="adm-btn adm-btn--danger adm-btn--sm">
-                    <i class="fas fa-trash"></i> Delete
+                <button type="submit" class="adm-btn adm-btn--danger adm-btn--sm au-action-btn" title="Delete">
+                    <i class="fas fa-trash"></i>
                 </button>
             </form>
             {% endif %}
         </div>
+
     </div>
     {% endfor %}
 </div>
@@ -179,152 +156,213 @@
 {% endif %}
 
 <style>
-/* ── User card grid ── */
-.au-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: .875rem;
-}
-
-.au-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.125rem;
+/* ─── List container ─── */
+.au-list {
     display: flex;
     flex-direction: column;
-    gap: .875rem;
-    transition: box-shadow .2s, border-color .2s;
+    gap: .45rem;
 }
-.au-card:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,.07);
-    border-color: rgba(99,102,241,.25);
-}
-.au-card--inactive { opacity: .65; }
 
-/* ── Top row ── */
-.au-top {
+/* ─── Row: desktop horizontal layout ─── */
+.au-row {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: .875rem 1rem;
     display: flex;
-    align-items: flex-start;
-    gap: .75rem;
+    align-items: center;
+    gap: .875rem;
+    transition: box-shadow .18s, border-color .18s;
+    min-width: 0;
+}
+.au-row:hover {
+    box-shadow: 0 2px 14px rgba(0,0,0,.07);
+    border-color: rgba(99,102,241,.22);
+}
+.au-row--inactive { opacity: .58; }
+
+/* ─── Avatar + status dot ─── */
+.au-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: .1rem;
 }
 .au-avatar {
-    width: 46px; height: 46px;
+    width: 42px; height: 42px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2.5px solid var(--border);
-    flex-shrink: 0;
+    border: 2px solid var(--border);
+    display: block;
 }
-.au-identity { flex: 1; min-width: 0; }
-.au-name {
-    font-weight: 800;
-    font-size: .9rem;
-    color: var(--text-primary);
-    display: flex; align-items: center; gap: .4rem;
+.au-dot {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    border: 2.5px solid var(--bg-card);
+}
+.au-dot--on  { background: #10b981; }
+.au-dot--off { background: #ef4444; }
+
+/* ─── Identity body ─── */
+.au-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .18rem;
+}
+.au-name-row {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
     flex-wrap: wrap;
 }
+.au-username {
+    font-weight: 800;
+    font-size: .875rem;
+    color: var(--text-primary);
+}
+.au-badge {
+    font-size: .58rem;
+    font-weight: 700;
+    padding: .1rem .38rem;
+    border-radius: 20px;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.au-badge--admin   { background: rgba(139,92,246,.12); color: #7c3aed; }
+.au-badge--premium { background: rgba(245,158,11,.12); color: #b45309; }
+.au-badge--access  { background: rgba(16,185,129,.12); color: #047857; }
+.au-badge--free    { background: var(--bg-secondary);  color: var(--text-muted); border: 1px solid var(--border); }
+[data-theme="dark"] .au-badge--free { border-color: var(--border); }
+
 .au-fullname {
-    font-size: .78rem;
+    font-size: .75rem;
     color: var(--text-muted);
-    margin-top: .1rem;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .au-email {
-    font-size: .74rem;
+    font-size: .71rem;
     color: var(--text-muted);
-    margin-top: .15rem;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.au-email i { opacity: .5; margin-right: .2rem; }
-.au-status-badge { flex-shrink: 0; }
+.au-email i { opacity: .4; margin-right: .2rem; font-size: .62rem; }
 
-/* ── Meta chips ── */
-.au-meta {
+/* ─── Chips ─── */
+.au-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: .4rem;
+    gap: .28rem;
+    margin-top: .12rem;
 }
 .au-chip {
-    display: inline-flex; align-items: center; gap: .3rem;
-    padding: .22rem .65rem;
+    display: inline-flex; align-items: center; gap: .22rem;
+    padding: .16rem .5rem;
     border-radius: 20px;
-    font-size: .72rem; font-weight: 600;
-    white-space: nowrap;
-    max-width: 100%;
+    font-size: .66rem; font-weight: 600;
+    white-space: nowrap; max-width: 140px;
     overflow: hidden; text-overflow: ellipsis;
 }
-.au-chip i { font-size: .65rem; flex-shrink: 0; }
-.au-chip--school {
-    background: rgba(37,99,235,.08);
-    color: #2563eb;
-}
-.au-chip--prog {
-    background: rgba(124,58,237,.08);
-    color: #7c3aed;
-}
-.au-chip--empty {
-    background: var(--bg-secondary);
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-}
+.au-chip i { font-size: .58rem; flex-shrink: 0; }
+.au-chip--school { background: rgba(37,99,235,.08);  color: #2563eb; }
+.au-chip--prog   { background: rgba(124,58,237,.08); color: #7c3aed; }
+[data-theme="dark"] .au-chip--school { background: rgba(37,99,235,.15); }
+[data-theme="dark"] .au-chip--prog   { background: rgba(124,58,237,.15); }
 
-/* ── Stats row ── */
+/* ─── Stats block ─── */
 .au-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    background: var(--bg-secondary);
-    border-radius: 10px;
-    overflow: hidden;
+    display: flex;
+    gap: .75rem;
+    flex-shrink: 0;
+    align-items: center;
 }
 .au-stat {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: .5rem .25rem;
-    gap: .15rem;
-    border-right: 1px solid var(--border);
+    gap: .05rem;
 }
-.au-stat:last-child { border-right: none; }
 .au-stat-val {
     font-size: .78rem; font-weight: 700;
     color: var(--text-primary);
-    display: flex; align-items: center; gap: .2rem;
+    white-space: nowrap;
+    display: flex; align-items: center; gap: .18rem;
 }
-.au-stat-label {
-    font-size: .62rem;
+.au-xp-icon { color: #f59e0b; font-size: .62rem; }
+.au-stat-lbl {
+    font-size: .57rem;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: .05em;
     font-weight: 600;
 }
 
-/* ── Actions ── */
+/* ─── Actions ─── */
 .au-actions {
     display: flex;
-    gap: .4rem;
-    flex-wrap: wrap;
-    border-top: 1px solid var(--border);
-    padding-top: .75rem;
+    gap: .3rem;
+    align-items: center;
+    flex-shrink: 0;
+}
+.au-action-btn { white-space: nowrap; }
+
+/* ─── Mobile: full stack ─── */
+@media (max-width: 640px) {
+    .au-row {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        padding: .8rem;
+        gap: 0;
+    }
+
+    /* Top section: avatar + body side by side */
+    .au-avatar-wrap {
+        margin-right: .625rem;
+        margin-bottom: 0;
+    }
+    .au-body {
+        /* takes remaining width next to avatar */
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* Stats + actions sit below, full width, separated by a line */
+    .au-stats {
+        width: 100%;
+        margin-top: .6rem;
+        padding-top: .6rem;
+        border-top: 1px solid var(--border);
+        justify-content: flex-start;
+        gap: 1rem;
+    }
+    .au-actions {
+        width: 100%;
+        margin-top: .5rem;
+        flex-wrap: wrap;
+        gap: .3rem;
+    }
+    /* Grow all action buttons evenly */
+    .au-actions .adm-btn {
+        flex: 1;
+        justify-content: center;
+        min-width: 0;
+    }
+    /* Delete button stays compact — icon only */
+    .au-actions form:last-child .adm-btn {
+        flex: 0 0 auto;
+    }
+    /* Always show labels on mobile so buttons are readable */
+    .au-lbl { display: inline; }
 }
 
-/* ── Dark mode ── */
-[data-theme="dark"] .au-card {
-    box-shadow: none;
-}
-[data-theme="dark"] .au-card:hover {
-    box-shadow: 0 4px 20px rgba(0,0,0,.3);
-}
-[data-theme="dark"] .au-chip--school { background: rgba(37,99,235,.15); }
-[data-theme="dark"] .au-chip--prog   { background: rgba(124,58,237,.15); }
-
-/* ── Responsive ── */
-@media (max-width: 600px) {
-    .au-grid { grid-template-columns: 1fr; gap: .75rem; }
-    .au-stats { grid-template-columns: repeat(2, 1fr); }
-    .au-stat:nth-child(2) { border-right: none; }
-    .au-stat:nth-child(3) { border-right: 1px solid var(--border); }
-    .au-actions .adm-btn { flex: 1; justify-content: center; }
+/* ─── Tablet: hide text labels, icon-only actions ─── */
+@media (min-width: 641px) and (max-width: 900px) {
+    .au-lbl { display: none; }
+    .au-stats { gap: .5rem; }
+    .au-chip { max-width: 100px; }
 }
 </style>
 
