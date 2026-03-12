@@ -484,7 +484,22 @@
 }
 
 /* ── SUBJECT ── */
-.np-subject-row { padding: .75rem 1.1rem; border-bottom: 1px solid var(--border);overflow-y: hidden; max-height: 5.5rem }
+.np-subject-row { padding: .75rem 1.1rem; border-bottom: 1px solid var(--border); overflow: visible; position: relative; }
+.np-subj-dropdown {
+  position: absolute;
+  top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  list-style: none; margin: 0; padding: .25rem 0;
+  z-index: 200;
+  max-height: 220px; overflow-y: auto;
+}
+.np-subj-dd-item { padding: .55rem 1rem; cursor: pointer; font-size: .875rem; color: var(--text-primary); transition: background .12s; }
+.np-subj-dd-item:hover { background: var(--bg-hover); }
+.np-subj-dd-custom { color: var(--primary, #6366f1); border-top: 1px solid var(--border); margin-top: .25rem; padding-top: .55rem; }
+.np-subj-dd-custom i { margin-right: .4rem; font-size: .75rem; }
 .np-subject-widget { display: flex; flex-direction: column; gap: .5rem; }
 .np-subj-search-wrap { position: relative; }
 .np-subj-ico { position: absolute; left: .875rem; top: 50%; transform: translateY(-50%); font-size: .72rem; color: var(--text-muted); pointer-events: none; }
@@ -803,7 +818,7 @@
   );
   setType(ctHidden ? ctHidden.value || 'notes' : 'notes');
 
-  // ── Subject chips ─────────────────────────────────────────────────────────
+  // ── Subject search + dropdown ─────────────────────────────────────────────────────
   const hiddenSel = document.getElementById('{{ form.subject.id }}');
   const searchIn  = document.getElementById('npSubjectSearch');
   const chipsWrap = document.getElementById('npSubjectChips');
@@ -821,13 +836,12 @@
       btn.type = 'button';
       btn.className = 'np-chip' + (opt.v === current ? ' np-chip--on' : '');
       btn.dataset.v = opt.v;
-      btn.dataset.l = opt.l.toLowerCase();
       btn.style.setProperty('--chip-color', opt.c);
       btn.innerHTML = `<span class="np-chip-dot"></span>${opt.l}`;
       btn.addEventListener('click', () => selectChip(btn, opt));
       chipsWrap.appendChild(btn);
     });
-    if (opts.length) chipsWrap.style.display = 'flex';
+    chipsWrap.style.display = 'none';
 
     if (current) {
       const pre = opts.find(o => o.v === current);
@@ -846,19 +860,57 @@
       current = ''; hiddenSel.value = '0'; searchIn.value = '';
       if (clearBtn) clearBtn.style.display = 'none';
       chipsWrap.querySelectorAll('.np-chip.np-chip--on').forEach(b => b.classList.remove('np-chip--on'));
-      filter(''); searchIn.focus();
+      searchIn.focus();
     }
     if (clearBtn) clearBtn.addEventListener('click', clearSel);
-    function filter(q) {
+
+    // Dropdown
+    const dropdown = document.createElement('ul');
+    dropdown.className = 'np-subj-dropdown';
+    dropdown.style.display = 'none';
+    searchIn.parentNode.appendChild(dropdown);
+
+    function showDropdown(q) {
       q = q.trim().toLowerCase();
-      chipsWrap.querySelectorAll('.np-chip').forEach(c =>
-        c.classList.toggle('np-chip--hide', q ? !c.dataset.l.includes(q) : false)
-      );
+      dropdown.innerHTML = '';
+      if (!q) { dropdown.style.display = 'none'; return; }
+      const matches = opts.filter(o => o.l.toLowerCase().includes(q));
+      matches.forEach(opt => {
+        const li = document.createElement('li');
+        li.className = 'np-subj-dd-item';
+        li.textContent = opt.l;
+        li.addEventListener('mousedown', e => {
+          e.preventDefault();
+          const btn = chipsWrap.querySelector(`[data-v="${opt.v}"]`);
+          if (btn) selectChip(btn, opt);
+          dropdown.style.display = 'none';
+        });
+        dropdown.appendChild(li);
+      });
+      const exactMatch = opts.find(o => o.l.toLowerCase() === q);
+      if (!exactMatch) {
+        const li = document.createElement('li');
+        li.className = 'np-subj-dd-item np-subj-dd-custom';
+        li.innerHTML = `<i class="fas fa-plus"></i> Use "<strong>${searchIn.value.trim()}</strong>"`;
+        li.addEventListener('mousedown', e => {
+          e.preventDefault();
+          current = '0'; hiddenSel.value = '0';
+          searchIn.value = searchIn.value.trim();
+          if (clearBtn) clearBtn.style.display = 'flex';
+          chipsWrap.querySelectorAll('.np-chip.np-chip--on').forEach(b => b.classList.remove('np-chip--on'));
+          dropdown.style.display = 'none';
+        });
+        dropdown.appendChild(li);
+      }
+      dropdown.style.display = (matches.length || !exactMatch) ? 'block' : 'none';
     }
+
     searchIn.addEventListener('input', () => {
-      filter(searchIn.value);
+      showDropdown(searchIn.value);
       if (!searchIn.value.trim() && current) clearSel();
     });
+    searchIn.addEventListener('blur',  () => { setTimeout(() => { dropdown.style.display = 'none'; }, 150); });
+    searchIn.addEventListener('focus', () => { if (searchIn.value.trim()) showDropdown(searchIn.value); });
   }
 
   // ── Pricing toggle ────────────────────────────────────────────────────────
@@ -882,4 +934,4 @@
 
 })();
 </script>
-{% endblock %}  
+{% endblock %}

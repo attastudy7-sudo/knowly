@@ -199,7 +199,7 @@
                   {% if cm.definition_count %}<span class="meta-chip meta-chip-sheet"><i class="fas fa-book"></i> {{ cm.definition_count }} def{{ 's' if cm.definition_count != 1 }}</span>{% endif %}
                 {% endif %}
               {% endif %}
-              <span><i class="fas fa-heart"></i> {{ post.like_count() }}</span>
+              <span><i class="fas fa-heart"></i> <span><i class="fas fa-heart"></i> {{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span></span>
               <span>{{ post.created_at.strftime('%b %d') if post.created_at else '' }}</span>
             </div>
           </div>

@@ -77,7 +77,7 @@
         <div class="hpost-actions">
           <span class="hpa-btn">
             <i class="fas fa-heart"></i>
-            <span>{{ post.like_count() }}</span>
+            <span>{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
           </span>
           <button class="hpa-btn bookmark-btn bookmarked"
                   data-post-id="{{ post.id }}"

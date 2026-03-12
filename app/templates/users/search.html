@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Search — knowly{% endblock %}
+{% block title %}Search {% endblock %}
 
 {% block content %}
 <div class="home-wrap">
@@ -141,7 +141,7 @@
               </span>
               {% endif %}
               <span class="meta-sep">·</span>
-              <span class="meta-stat"><i class="fas fa-heart"></i> {{ post.like_count() }}</span>
+              <span class="meta-stat"><i class="fas fa-heart"></i> {{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
               <span class="meta-sep">·</span>
               <span class="meta-stat">{{ post.created_at.strftime('%b %d') }}</span>
             </div>
@@ -377,6 +377,11 @@ function srchSpinner() {
   const btn = document.getElementById('srchBtn');
   if (btn) btn.classList.add('srch-btn--spin');
 }
+
+// Also trigger spinner on keyboard submit (Enter key)
+document.getElementById('searchForm').addEventListener('submit', function () {
+  srchSpinner();
+});
 
 // Filter helpers: show spinner then submit
 function srchGo(field, val) {

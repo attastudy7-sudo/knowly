@@ -209,12 +209,12 @@
             <button class="exp-action exp-action--like {% if post.is_liked_by(current_user) %}is-liked{% endif %}"
                     onclick="communityLike(this, {{ post.id }})" title="Like">
               <i class="fas fa-heart"></i>
-              <span class="exp-action-count">{{ post.like_count() }}</span>
+              <span class="exp-action-count">{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
             </button>
             {% else %}
             <a href="{{ url_for('auth.login') }}" class="exp-action" title="Like">
               <i class="fas fa-heart"></i>
-              <span class="exp-action-count">{{ post.like_count() }}</span>
+              <span class="exp-action-count">{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
             </a>
             {% endif %}
 

@@ -189,7 +189,8 @@ _NOTES_SCHEMA: dict = {
                                     "enum": [
                                         "paragraph", "definition", "theorem",
                                         "proof", "note", "formula", "example",
-                                        "worked_example", "list", "table"
+                                        "worked_example", "list", "table",
+                                        "diagram_placeholder"
                                     ]
                                 },
                                 "label": {"type": "string"},

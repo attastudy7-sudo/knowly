@@ -225,7 +225,7 @@
                     {% endif %}
                   {% endif %}
                 <span class="meta-sep">·</span>
-                <span class="meta-stat"><i class="fas fa-heart"></i> {{ post.like_count() }}</span>
+                <span class="meta-stat"><i class="fas fa-heart"></i> {{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
                 <span class="meta-sep">·</span>
                 <span class="meta-stat">{{ post.created_at.strftime('%b %d') }}</span>
               </div>

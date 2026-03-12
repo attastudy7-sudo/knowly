@@ -198,7 +198,7 @@
                 {% endif %}
             </div>
             <div style="display:flex;gap:.6rem;font-size:.75rem;color:var(--text-muted)">
-                <span><i class="fas fa-heart"></i> {{ post.like_count() }}</span>
+                <span><i class="fas fa-heart"></i> <span><i class="fas fa-heart"></i> {{ post.like_count() }}</span></span>
                 <span><i class="fas fa-comment"></i> {{ post.comment_count() }}</span>
                 {% if post.document %}<span><i class="fas fa-download"></i> {{ post.document.download_count }}</span>{% endif %}
             </div>

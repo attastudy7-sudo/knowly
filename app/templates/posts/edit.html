@@ -1,886 +1,822 @@
 {% extends "base.html" %}
-{% block title %}Community — knowly{% endblock %}
+{% block title %}Edit Post — knowly{% endblock %}
 
 {% block content %}
-<div class="community-root">
+<div class="np-shell">
 
-  {# ── LEFT SIDEBAR ── #}
-  <aside class="comm-sidebar">
+  <a href="{{ url_for('posts.view', post_id=post.id) }}" class="np-back">
+    <i class="fas fa-arrow-left"></i> Back to Post
+  </a>
 
-    {# Feed tabs #}
-    <div class="comm-nav-panel">
-      <div class="comm-nav-head">
-        <i class="fas fa-compass"></i>
-        <span>Community</span>
+  <div class="np-layout">
+
+    <!-- ── MAIN COMPOSER ── -->
+    <div class="np-main">
+
+      <div class="np-composer-head">
+        <img src="{{ current_user.profile_picture_url }}" class="np-avatar" alt="">
+        <div>
+          <span class="np-posting-as">Editing as</span>
+          <strong class="np-username">{{ current_user.username }}</strong>
+        </div>
       </div>
 
-      <nav class="comm-nav-links">
-        <a href="{{ url_for('main.explore') }}?tab=foryou"
-           class="comm-nav-link {% if active_tab == 'foryou' or not active_tab %}is-active{% endif %}">
-          <div class="comm-nav-icon comm-nav-icon--blue"><i class="fas fa-fire"></i></div>
-          <span>For You</span>
-        </a>
-        {% if current_user.is_authenticated %}
-        <a href="{{ url_for('main.explore') }}?tab=following"
-           class="comm-nav-link {% if active_tab == 'following' %}is-active{% endif %}">
-          <div class="comm-nav-icon comm-nav-icon--purple"><i class="fas fa-user-group"></i></div>
-          <span>Following</span>
-        </a>
-        {% endif %}
-        <a href="{{ url_for('main.explore') }}?tab=trending"
-           class="comm-nav-link {% if active_tab == 'trending' %}is-active{% endif %}">
-          <div class="comm-nav-icon comm-nav-icon--amber"><i class="fas fa-chart-line"></i></div>
-          <span>Trending</span>
-        </a>
-        {% if current_user.is_authenticated and current_user.school %}
-        <a href="{{ url_for('main.explore') }}?tab=school"
-           class="comm-nav-link {% if active_tab == 'school' %}is-active{% endif %}">
-          <div class="comm-nav-icon comm-nav-icon--green"><i class="fas fa-school"></i></div>
-          <span>My School</span>
-        </a>
-        {% endif %}
-      </nav>
-    </div>
+      <form method="post" enctype="multipart/form-data" novalidate id="npForm">
+        {{ form.hidden_tag() }}
 
-    {# Content type filter #}
-    <div class="comm-filter-panel">
-      <p class="comm-filter-label">Content Type</p>
-      <div class="comm-filter-chips">
-        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou', q=search_query or '') }}"
-           class="comm-fchip {% if not selected_type %}is-active{% endif %}">
-          <i class="fas fa-th-large"></i> All
-        </a>
-        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou', type='notes', q=search_query or '') }}"
-           class="comm-fchip comm-fchip--notes {% if selected_type == 'notes' %}is-active{% endif %}">
-          <i class="fas fa-sticky-note"></i> Notes
-        </a>
-        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou', type='quiz', q=search_query or '') }}"
-           class="comm-fchip comm-fchip--quiz {% if selected_type == 'quiz' %}is-active{% endif %}">
-          <i class="fas fa-brain"></i> Quizzes
-        </a>
-        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou', type='cheatsheet', q=search_query or '') }}"
-           class="comm-fchip comm-fchip--sheet {% if selected_type == 'cheatsheet' %}is-active{% endif %}">
-          <i class="fas fa-clone"></i> Cheatsheets
-        </a>
-      </div>
-    </div>
+        <!-- ── FLAIR STRIP ── -->
+        <div class="np-flair-row" id="npFlairRow">
+          {{ form.flair(id="npFlairHidden", class="np-hidden-input") }}
+          {% set flairs = [
+            ('', 'No flair', 'tag', '#9ca3af'),
+            ('discussion', 'Discussion', 'comments', '#6366f1'),
+            ('question', 'Question', 'circle-question', '#3b82f6'),
+            ('resource', 'Resource', 'paperclip', '#10b981'),
+            ('tip', 'Tip', 'lightbulb', '#f59e0b'),
+            ('rant', 'Rant', 'fire', '#ef4444'),
+            ('announcement', 'Announcement', 'bullhorn', '#8b5cf6'),
+          ] %}
+          {% for val, label, icon, color in flairs %}
+          <button type="button"
+            class="np-flair{% if (post.flair or '') == val %} np-flair--active{% endif %}"
+            data-value="{{ val }}"
+            style="--fc: {{ color }}">
+            <i class="fas fa-{{ icon }}"></i>
+            <span>{{ label }}</span>
+          </button>
+          {% endfor %}
+        </div>
 
-    {# Stats #}
-    <div class="comm-stats-panel">
-      <div class="comm-stat-row">
-        <span class="comm-stat-label"><i class="fas fa-file-alt"></i> Total uploads</span>
-        <strong class="comm-stat-val">{{ total_posts }}</strong>
-      </div>
-      <div class="comm-stat-row">
-        <span class="comm-stat-label"><i class="fas fa-book"></i> Subjects</span>
-        <strong class="comm-stat-val">{{ total_subjects }}</strong>
-      </div>
-    </div>
-
-    {# Subject filter #}
-    {% if subjects %}
-    <div class="comm-subject-panel">
-      <p class="comm-filter-label">Subjects</p>
-      <div class="comm-subjects-list">
-        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou', type=selected_type or '', q=search_query or '') }}"
-           class="comm-subject-item {% if not selected_subjects %}is-active{% endif %}">
-          <i class="fas fa-layer-group"></i>
-          <span>All subjects</span>
-        </a>
-        {% for subject in subjects[:12] %}
-        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou', subjects=subject.id, type=selected_type or '', q=search_query or '') }}"
-           class="comm-subject-item {% if subject.id in selected_subjects %}is-active{% endif %}"
-           {% if subject.color %}style="--sc: {{ subject.color }}"{% endif %}>
-          <i class="fas fa-{{ subject.icon or 'book' }}"></i>
-          <span>{{ subject.name }}</span>
-        </a>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    {% if current_user.is_authenticated %}
-    <a href="{{ url_for('posts.create') }}" class="comm-create-btn">
-      <i class="fas fa-plus"></i> New Post
-    </a>
-    {% endif %}
-
-  </aside>
-
-  {# ── MAIN FEED ── #}
-  <main class="comm-feed">
-
-    {# Search bar #}
-    <div class="comm-search-wrap">
-      <form method="get" action="{{ url_for('main.explore') }}" class="comm-search-form">
-        {% if selected_subjects %}<input type="hidden" name="subjects" value="{{ selected_subjects | join(',') }}">{% endif %}
-        {% if selected_type %}<input type="hidden" name="type" value="{{ selected_type }}">{% endif %}
-        <input type="hidden" name="tab" value="{{ active_tab or 'foryou' }}">
-        <i class="fas fa-search comm-search-ico"></i>
-        <input type="text" name="q" value="{{ search_query or '' }}"
-               class="comm-search-input" placeholder="Search community uploads…" autocomplete="off">
-        {% if search_query %}
-        <a href="{{ url_for('main.explore', tab=active_tab or 'foryou') }}" class="comm-search-clear">
-          <i class="fas fa-times"></i>
-        </a>
-        {% endif %}
-      </form>
-    </div>
-
-    {# Mobile tabs #}
-    <div class="comm-mobile-tabs">
-      <a href="{{ url_for('main.explore') }}?tab=foryou"
-         class="comm-mtab {% if active_tab == 'foryou' or not active_tab %}is-active{% endif %}">
-        <i class="fas fa-fire"></i> For You
-      </a>
-      {% if current_user.is_authenticated %}
-      <a href="{{ url_for('main.explore') }}?tab=following"
-         class="comm-mtab {% if active_tab == 'following' %}is-active{% endif %}">
-        <i class="fas fa-user-group"></i> Following
-      </a>
-      {% endif %}
-      <a href="{{ url_for('main.explore') }}?tab=trending"
-         class="comm-mtab {% if active_tab == 'trending' %}is-active{% endif %}">
-        <i class="fas fa-chart-line"></i> Trending
-      </a>
-      {% if current_user.is_authenticated and current_user.school %}
-      <a href="{{ url_for('main.explore') }}?tab=school"
-         class="comm-mtab {% if active_tab == 'school' %}is-active{% endif %}">
-        <i class="fas fa-school"></i> School
-      </a>
-      {% endif %}
-    </div>
-
-    {# Feed header #}
-    <div class="comm-feed-header">
-      <div class="comm-feed-title-wrap">
-        <h2 class="comm-feed-title">
-          {% if search_query %}
-            Results for "{{ search_query }}"
-          {% elif active_tab == 'following' %}
-            Following
-          {% elif active_tab == 'trending' %}
-            Trending
-          {% elif active_tab == 'school' %}
-            My School
-          {% else %}
-            For You
+        <!-- ── TITLE ── -->
+        <div class="np-field">
+          {{ form.title(
+            id="npTitle",
+            class="np-title-input",
+            placeholder="Title — what's this post about?",
+            autocomplete="off",
+            maxlength="200"
+          ) }}
+          <span class="np-title-count" id="npTitleCount">0/200</span>
+          {% if form.title.errors %}
+            <p class="np-err"><i class="fas fa-circle-exclamation"></i> {{ form.title.errors[0] }}</p>
           {% endif %}
-        </h2>
-        {% if posts.total %}
-        <span class="comm-feed-count">{{ posts.total }} post{{ 's' if posts.total != 1 }}</span>
-        {% endif %}
-      </div>
-      {% if search_query or selected_subjects or selected_type %}
-      <a href="{{ url_for('main.explore', tab=active_tab or 'foryou') }}" class="comm-clear-filters">
-        <i class="fas fa-times"></i> Clear
-      </a>
-      {% endif %}
-    </div>
+        </div>
 
-    {# ── POSTS ── #}
-    {% if posts.items %}
-    <div class="comm-posts">
-      {% for post in posts.items %}
-      <article class="comm-post" style="--delay: {{ loop.index0 * 0.04 }}s">
+        <!-- ── BODY TABS ── -->
+        <div class="np-body-card" id="npBodyCard">
+          <div class="np-body-tabs" role="tablist">
+            <button type="button" class="np-btab np-btab--active" id="npTabText"
+              onclick="npSetBodyTab('text')" role="tab">
+              <i class="fas fa-pen"></i> Text
+            </button>
+            <button type="button" class="np-btab" id="npTabFile"
+              onclick="npSetBodyTab('file')" role="tab">
+              <i class="fas fa-paperclip"></i> Attachment
+            </button>
+          </div>
 
-        {# Left: avatar #}
-        <a href="{{ url_for('users.profile', username=post.author.username) }}" class="comm-post-avatar-link">
-          <img src="{{ post.author.profile_picture_url }}"
-               alt="{{ post.author.username }}" class="comm-post-avatar"
-               title="{{ post.author.full_name or post.author.username }}">
-        </a>
-
-        {# Right: post body #}
-        <div class="comm-post-body">
-
-          {# Author + meta line #}
-          <div class="comm-post-meta">
-            <a href="{{ url_for('users.profile', username=post.author.username) }}" class="comm-post-author">
-              {{ post.author.full_name or post.author.username }}
-            </a>
-            <span class="comm-post-username">@{{ post.author.username }}</span>
-            <span class="comm-post-dot">·</span>
-            <span class="comm-post-time" title="{{ post.created_at.strftime('%b %d, %Y at %H:%M') }}">
-              {{ post.created_at.strftime('%b %d') }}
-            </span>
-            <div class="comm-post-type-pill comm-post-type-pill--{{ post.content_type }}" style="margin-left:auto;">
-              <i class="fas fa-{{ post.content_type_icon }}"></i>
-              <span>{{ post.content_type_label }}</span>
+          <!-- Text pane -->
+          <div id="npPaneText">
+            <div class="np-toolbar" id="npToolbar">
+              <button type="button" class="np-tb" data-md="bold"   title="Bold"><i class="fas fa-bold"></i></button>
+              <button type="button" class="np-tb" data-md="italic" title="Italic"><i class="fas fa-italic"></i></button>
+              <button type="button" class="np-tb" data-md="h2"     title="Heading"><i class="fas fa-heading"></i></button>
+              <span class="np-tb-sep"></span>
+              <button type="button" class="np-tb" data-md="ul"     title="List"><i class="fas fa-list-ul"></i></button>
+              <button type="button" class="np-tb" data-md="quote"  title="Quote"><i class="fas fa-quote-left"></i></button>
+              <button type="button" class="np-tb" data-md="code"   title="Code"><i class="fas fa-code"></i></button>
+              <button type="button" class="np-tb" data-md="link"   title="Link"><i class="fas fa-link"></i></button>
+              <span class="np-tb-sep"></span>
+              <button type="button" class="np-tb np-tb--preview" id="npPreviewBtn"
+                onclick="npTogglePreview()" title="Preview">
+                <i class="fas fa-eye"></i> Preview
+              </button>
+              <span class="np-char-count" id="npCharCount">0/5000</span>
+            </div>
+            {{ form.description(
+              id="npTextarea",
+              class="np-textarea",
+              placeholder="What do you want to say? Markdown supported…"
+            ) }}
+            <div class="np-preview np-prose" id="npPreview" hidden>
+              <div class="np-preview-empty">
+                <i class="fas fa-feather-pointed"></i>
+                <span>Preview appears here…</span>
+              </div>
             </div>
           </div>
 
-          {# Title + description #}
-          <a href="{{ url_for('posts.view', post_id=post.id) }}" class="comm-post-link">
-            <h3 class="comm-post-title">{{ post.title }}</h3>
-            {% if post.description %}
-            <p class="comm-post-desc">{{ post.description | truncate(140) }}</p>
-            {% endif %}
-          </a>
+          <!-- File pane -->
+          <div id="npPaneFile" hidden>
+            {{ form.content_type(id="npContentType", class="np-hidden-input") }}
+            <div class="np-dropzone" id="npDropZone"
+              ondragover="npDrag(event,true)"
+              ondragleave="npDrag(event,false)"
+              ondrop="npDrop(event)">
+              {{ form.document(id="npFileInput", class="np-drop-input", onchange="npHandleFile(this)") }}
+              <label for="npFileInput" class="np-drop-label">
+                <div class="np-drop-icon" id="npDropIcon">
+                  <i class="fas fa-cloud-arrow-up"></i>
+                </div>
+                <div class="np-drop-text">
+                  {% if post.document %}
+                  <strong id="npDropName">{{ post.document.original_filename or 'Current file — drop to replace' }}</strong>
+                  <span id="npDropSub">Drop a new file to replace · PDF · DOCX · PPTX · TXT</span>
+                  {% else %}
+                  <strong id="npDropName">Drop file or click to browse</strong>
+                  <span id="npDropSub">PDF · DOCX · PPTX · TXT — max 5 MB</span>
+                  {% endif %}
+                </div>
+              </label>
+              <button type="button" class="np-drop-rm" id="npFileRm"
+                onclick="npClearFile()" style="display:none;" aria-label="Remove">
+                <i class="fas fa-xmark"></i>
+              </button>
+            </div>
 
-          {# Subject + meta chips #}
-          <div class="comm-post-chips">
-            {% if post.subject %}
-            <span class="comm-post-subject" {% if post.subject.color %}style="color:{{ post.subject.color }}; background: {{ post.subject.color }}14;"{% endif %}>
-              <i class="fas fa-{{ post.subject.icon or 'book' }}"></i> {{ post.subject.name }}
-            </span>
-            {% endif %}
+            <!-- content-type selector -->
+            <div class="np-type-row" id="npTypeRow">
+              <span class="np-type-label">File type:</span>
+              <div class="np-type-pills">
+                <button type="button" class="np-tpill np-tpill--notes" data-value="notes">
+                  <i class="fas fa-sticky-note"></i> Notes
+                </button>
+                <button type="button" class="np-tpill np-tpill--sheet" data-value="cheatsheet">
+                  <i class="fas fa-clone"></i> Cheatsheet
+                </button>
+                <button type="button" class="np-tpill np-tpill--quiz" data-value="quiz">
+                  <i class="fas fa-brain"></i> Quiz
+                </button>
+              </div>
+            </div>
 
-            {% if post.content_type == 'quiz' %}
-              {% set qm = post.quiz_card_meta %}
-              {% if qm %}
-                {% if qm.questions %}<span class="comm-post-chip comm-post-chip--quiz"><i class="fas fa-list-ol"></i> {{ qm.questions }}q</span>{% endif %}
-                {% if qm.marks %}<span class="comm-post-chip comm-post-chip--quiz"><i class="fas fa-star"></i> {{ qm.marks }}pts</span>{% endif %}
-                {% if qm.duration %}<span class="comm-post-chip comm-post-chip--quiz"><i class="fas fa-clock"></i> {{ qm.duration }}</span>{% endif %}
-              {% endif %}
-            {% elif post.content_type == 'cheatsheet' %}
-              {% set cm = post.cheatsheet_card_meta %}
-              {% if cm %}
-                {% if cm.formula_count %}<span class="comm-post-chip comm-post-chip--sheet"><i class="fas fa-square-root-alt"></i> {{ cm.formula_count }} formula{{ 's' if cm.formula_count != 1 }}</span>{% endif %}
-                {% if cm.definition_count %}<span class="comm-post-chip comm-post-chip--sheet"><i class="fas fa-book"></i> {{ cm.definition_count }} def{{ 's' if cm.definition_count != 1 }}</span>{% endif %}
-              {% endif %}
-            {% endif %}
-
-            {% if post.has_document and post.document %}
-              {% if post.document.is_paid %}
-              <span class="comm-post-chip comm-post-chip--paid">GHS {{ "%.0f"|format(post.document.price) }}</span>
-              {% else %}
-              <span class="comm-post-chip comm-post-chip--free">Free</span>
-              {% endif %}
-            {% endif %}
+            <!-- JSON sidecar -->
+            <div id="npSidecarSection" style="display:none;" class="np-sidecar">
+              <span class="np-sidecar-label"><i class="fas fa-brain"></i> Quiz JSON Sidecar <span class="np-opt">optional</span></span>
+              <div class="np-dropzone np-dropzone--sm" id="npJsonZone"
+                ondragover="npDragJson(event,true)"
+                ondragleave="npDragJson(event,false)"
+                ondrop="npDropJson(event)">
+                {% if form.json_sidecar is defined %}
+                  {{ form.json_sidecar(id="npJsonInput", class="np-drop-input", onchange="npHandleJson(this)") }}
+                {% else %}
+                  <input type="file" name="json_sidecar" accept=".json" id="npJsonInput" class="np-drop-input" onchange="npHandleJson(this)">
+                {% endif %}
+                <label for="npJsonInput" class="np-drop-label">
+                  <div class="np-drop-icon np-drop-icon--sm np-drop-icon--cyan">
+                    <i class="fas fa-file-code" id="npJsonIco"></i>
+                  </div>
+                  <div class="np-drop-text">
+                    <strong id="npJsonName">Attach .json quiz file</strong>
+                    <span>Pre-built questions</span>
+                  </div>
+                </label>
+                <button type="button" class="np-drop-rm" id="npJsonRm"
+                  onclick="npClearJson()" style="display:none;">
+                  <i class="fas fa-xmark"></i>
+                </button>
+              </div>
+            </div>
           </div>
 
-          {# Action bar #}
-          <div class="comm-post-actions">
+        </div><!-- /np-body-card -->
 
-            {# Like #}
-            {% if current_user.is_authenticated %}
-            <button class="comm-action comm-action--like {% if post.is_liked_by(current_user) %}is-liked{% endif %}"
-                    data-post-id="{{ post.id }}"
-                    onclick="communityLike(this, {{ post.id }})"
-                    title="Like">
-              <i class="fas fa-heart"></i>
-              <span class="comm-action-count">{{ post.like_count() }}</span>
-            </button>
-            {% else %}
-            <a href="{{ url_for('auth.login') }}" class="comm-action" title="Like">
-              <i class="fas fa-heart"></i>
-              <span class="comm-action-count">{{ post.like_count() }}</span>
-            </a>
-            {% endif %}
-
-            {# Comment #}
-            <a href="{{ url_for('posts.view', post_id=post.id) }}#comments" class="comm-action" title="Comment">
-              <i class="fas fa-comment"></i>
-              <span class="comm-action-count">{{ post.comment_count() }}</span>
-            </a>
-
-            {# Bookmark #}
-            {% if current_user.is_authenticated %}
-            <button class="comm-action comm-action--bookmark {% if post.is_bookmarked_by(current_user) %}is-bookmarked{% endif %}"
-                    data-post-id="{{ post.id }}"
-                    onclick="communityBookmark(this, {{ post.id }})"
-                    title="Save">
-              <i class="fas fa-bookmark"></i>
-            </button>
-            {% endif %}
-
-            {# Share #}
-            <button class="comm-action" onclick="communityShare('{{ post.title | e }}', '{{ url_for('posts.view', post_id=post.id, _external=True) }}')" title="Share">
-              <i class="fas fa-share-nodes"></i>
-            </button>
-
-            {# View arrow #}
-            <a href="{{ url_for('posts.view', post_id=post.id) }}" class="comm-action comm-action--view" title="Open">
-              <i class="fas fa-arrow-up-right-from-square"></i>
-            </a>
-
+        <!-- ── SUBJECT ── -->
+        <div class="np-subject-row">
+          {{ form.subject(class="np-hidden-input", id=form.subject.id, tabindex="-1") }}
+          <div class="np-subject-widget">
+            <div class="np-subj-search-wrap">
+              <i class="fas fa-tag np-subj-ico"></i>
+              <input type="text" id="npSubjectSearch" class="np-subj-input"
+                placeholder="Add a subject tag…" autocomplete="off" spellcheck="false">
+              <button type="button" id="npSubjectClear" class="np-subj-clear"
+                style="display:none;" aria-label="Clear subject">
+                <i class="fas fa-xmark"></i>
+              </button>
+            </div>
+            <div class="np-subj-chips" id="npSubjectChips"></div>
           </div>
-
         </div>
 
-      </article>
-      {% endfor %}
-    </div>
-
-    {# Pagination #}
-    {% if posts.pages > 1 %}
-    <div class="comm-pagination">
-      {% if posts.has_prev %}
-      <a href="{{ url_for('main.explore', page=posts.prev_num, tab=active_tab or 'foryou', subjects=selected_subjects|join(',') if selected_subjects else '', type=selected_type or '', q=search_query or '') }}"
-         class="comm-page-btn"><i class="fas fa-chevron-left"></i> Prev</a>
-      {% endif %}
-      <div class="comm-page-nums">
-        {% for p in posts.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-          {% if p %}
-          <a href="{{ url_for('main.explore', page=p, tab=active_tab or 'foryou', subjects=selected_subjects|join(',') if selected_subjects else '', type=selected_type or '', q=search_query or '') }}"
-             class="comm-page-num {% if p == posts.page %}is-active{% endif %}">{{ p }}</a>
-          {% else %}
-          <span class="comm-page-ellipsis">…</span>
-          {% endif %}
-        {% endfor %}
-      </div>
-      {% if posts.has_next %}
-      <a href="{{ url_for('main.explore', page=posts.next_num, tab=active_tab or 'foryou', subjects=selected_subjects|join(',') if selected_subjects else '', type=selected_type or '', q=search_query or '') }}"
-         class="comm-page-btn">Next <i class="fas fa-chevron-right"></i></a>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    {% else %}
-    {# Empty state #}
-    <div class="comm-empty">
-      <div class="comm-empty-icon">
-        <i class="fas fa-{% if search_query %}search{% elif active_tab == 'following' %}user-group{% else %}inbox{% endif %}"></i>
-      </div>
-      <h3 class="comm-empty-title">
-        {% if search_query %}No results for "{{ search_query }}"
-        {% elif active_tab == 'following' %}Nothing from people you follow yet
-        {% elif active_tab == 'school' %}No posts from your school yet
-        {% else %}Nothing here yet{% endif %}
-      </h3>
-      <p class="comm-empty-sub">
-        {% if active_tab == 'following' %}
-          Follow some students to see their uploads here.
-        {% elif search_query or selected_subjects or selected_type %}
-          Try removing some filters.
-        {% else %}
-          Be the first to <a href="{{ url_for('posts.create') }}">share something</a>.
+        <!-- ── PRICING (admin only) ── -->
+        {% if show_pricing %}
+        <div class="np-pricing-row">
+          <div class="np-pricing-toggle">
+            {{ form.is_paid(id="is_paid", class="np-toggle-inp") }}
+            <label for="is_paid" class="np-toggle"></label>
+            <span id="npPriceLabel" class="np-pricing-lbl">{{ 'Paid' if post.document and post.document.is_paid else 'Free' }}</span>
+          </div>
+          <div id="npPriceBody" style="{{ 'display:flex' if post.document and post.document.is_paid else 'display:none' }};" class="np-price-field">
+            <span class="np-price-ccy">GHS</span>
+            {{ form.price(class="np-price-inp", placeholder="0.00") }}
+          </div>
+        </div>
         {% endif %}
-      </p>
-    </div>
-    {% endif %}
 
-  </main>
-
-  {# ── RIGHT SIDEBAR ── #}
-  <aside class="comm-right">
-
-    {% if current_user.is_authenticated %}
-    <a href="{{ url_for('posts.create') }}" class="comm-create-btn-lg">
-      <i class="fas fa-plus"></i>
-      <span>Create Post</span>
-    </a>
-    {% endif %}
-
-    {# Trending subjects #}
-    {% if trending_subjects %}
-    <div class="comm-right-panel">
-      <h3 class="comm-right-title"><i class="fas fa-fire"></i> Trending Subjects</h3>
-      {% for subject in trending_subjects %}
-      <a href="{{ url_for('main.explore', subjects=subject.id) }}" class="comm-trend-row">
-        <div class="comm-trend-icon" style="{% if subject.color %}background:{{ subject.color }}18; color:{{ subject.color }}{% endif %}">
-          <i class="fas fa-{{ subject.icon or 'book' }}"></i>
-        </div>
-        <div class="comm-trend-info">
-          <span class="comm-trend-name">{{ subject.name }}</span>
-          <span class="comm-trend-count">{{ subject.post_count or '' }}{% if subject.post_count %} posts{% endif %}</span>
-        </div>
-        <i class="fas fa-chevron-right comm-trend-arrow"></i>
-      </a>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    {# Suggested users #}
-    {% if suggested_users %}
-    <div class="comm-right-panel">
-      <h3 class="comm-right-title"><i class="fas fa-user-plus"></i> Who to Follow</h3>
-      {% for user in suggested_users %}
-      <div class="comm-suggest-row">
-        <a href="{{ url_for('users.profile', username=user.username) }}" class="comm-suggest-avatar-link">
-          <img src="{{ user.profile_picture_url }}" alt="{{ user.username }}" class="comm-suggest-avatar">
-        </a>
-        <div class="comm-suggest-info">
-          <a href="{{ url_for('users.profile', username=user.username) }}" class="comm-suggest-name">
-            {{ user.full_name or user.username }}
+        <!-- ── ACTIONS ── -->
+        <div class="np-actions">
+          <a href="{{ url_for('posts.view', post_id=post.id) }}" class="np-btn-ghost">
+            <i class="fas fa-xmark"></i> Cancel
           </a>
-          <span class="comm-suggest-meta">
-            {% if user.programme %}{{ user.programme[:25] }}{% else %}@{{ user.username }}{% endif %}
-          </span>
+          {{ form.submit(class="np-btn-primary", id="npSubmitDesk", value="Save Changes") }}
         </div>
-        {% if current_user.is_authenticated and not current_user.is_following(user) %}
-        <a href="{{ url_for('users.follow', username=user.username) }}" class="comm-follow-btn">
-          Follow
-        </a>
-        {% endif %}
+
+        <!-- Mobile sticky bar -->
+        <div class="np-mobile-bar">
+          <a href="{{ url_for('posts.view', post_id=post.id) }}" class="np-btn-ghost np-btn-ghost--ico">
+            <i class="fas fa-arrow-left"></i>
+          </a>
+          <button type="submit" class="np-btn-primary np-btn-primary--full">
+            <i class="fas fa-floppy-disk"></i> Save Changes
+          </button>
+        </div>
+
+      </form>
+    </div><!-- /np-main -->
+
+    <!-- ── SIDEBAR TIPS ── -->
+    <aside class="np-sidebar">
+      <div class="np-tips-panel">
+        <h3 class="np-tips-title"><i class="fas fa-circle-info"></i> Editing tips</h3>
+        <ul class="np-tips-list">
+          <li><strong>Minor edits</strong> (title/description) won't require re-approval.</li>
+          <li><strong>File or subject changes</strong> will send your post back for review.</li>
+          <li><strong>Rejected posts</strong> can be fixed and resubmitted here.</li>
+        </ul>
       </div>
-      {% endfor %}
-    </div>
-    {% endif %}
+    </aside>
 
-  </aside>
-
+  </div><!-- /np-layout -->
 </div>
 
-{# ── MOBILE CREATE FAB ── #}
-{% if current_user.is_authenticated %}
-<a href="{{ url_for('posts.create') }}" class="comm-fab" title="Create post">
-  <i class="fas fa-plus"></i>
-</a>
-{% endif %}
-
 <style>
-/* ── LAYOUT ── */
-.community-root {
-  display: grid;
-  grid-template-columns: 220px 1fr 240px;
-  gap: 1.25rem;
-  max-width: 1180px;
+.np-shell {
+  max-width: 1060px;
   margin: 0 auto;
-  padding: 1.5rem 1.25rem 5rem;
+  padding: 1.5rem 1.25rem 6rem;
+}
+@media (max-width: 480px) { .np-shell { padding: 1rem .875rem 8rem; } }
+
+.np-back {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-size: .8rem; font-weight: 600; color: var(--text-muted);
+  text-decoration: none; margin-bottom: 1.25rem; transition: color .15s;
+}
+.np-back:hover { color: var(--primary, #6366f1); }
+
+.np-layout {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 1.25rem;
   align-items: start;
 }
-@media (max-width: 1100px) { .community-root { grid-template-columns: 200px 1fr; } .comm-right { display: none; } }
-@media (max-width: 768px)  { .community-root { grid-template-columns: 1fr; padding: 0 0 5.5rem; } .comm-sidebar { display: none; } }
-
-/* ── LEFT SIDEBAR ── */
-.comm-sidebar { display: flex; flex-direction: column; gap: .75rem; position: sticky; top: 76px; }
-
-.comm-nav-panel {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px; overflow: hidden;
+@media (max-width: 860px) {
+  .np-layout { grid-template-columns: 1fr; }
+  .np-sidebar { display: none; }
 }
-.comm-nav-head {
-  display: flex; align-items: center; gap: .5rem;
-  padding: .875rem 1rem; border-bottom: 1px solid var(--border);
-  font-size: .78rem; font-weight: 800; color: var(--text-primary); letter-spacing: -.01em;
-  font-family: var(--font-display);
-}
-.comm-nav-head i { color: var(--primary); font-size: .72rem; }
-.comm-nav-links { padding: .4rem; display: flex; flex-direction: column; gap: .15rem; }
-.comm-nav-link {
-  display: flex; align-items: center; gap: .6rem;
-  padding: .55rem .65rem; border-radius: 10px;
-  font-size: .82rem; font-weight: 600; color: var(--text-secondary);
-  text-decoration: none; transition: all .15s;
-}
-.comm-nav-link:hover { background: var(--bg-hover); color: var(--text-primary); }
-.comm-nav-link.is-active { background: rgba(37,99,235,.08); color: var(--primary); font-weight: 700; }
-.comm-nav-icon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: .65rem; flex-shrink: 0; }
-.comm-nav-icon--blue   { background: rgba(37,99,235,.12);  color: #2563eb; }
-.comm-nav-icon--purple { background: rgba(139,92,246,.12); color: #8b5cf6; }
-.comm-nav-icon--amber  { background: rgba(245,158,11,.12); color: #f59e0b; }
-.comm-nav-icon--green  { background: rgba(16,185,129,.12); color: #10b981; }
 
-.comm-filter-panel, .comm-stats-panel, .comm-subject-panel {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px; padding: .875rem;
-}
-.comm-filter-label {
-  font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
-  color: var(--text-muted); margin: 0 0 .55rem;
-}
-.comm-filter-chips { display: flex; flex-direction: column; gap: .22rem; }
-.comm-fchip {
-  display: flex; align-items: center; gap: .4rem;
-  padding: .4rem .55rem; border-radius: 8px;
-  font-size: .78rem; font-weight: 600; color: var(--text-secondary);
-  text-decoration: none; transition: all .14s;
-}
-.comm-fchip i { font-size: .6rem; width: 14px; text-align: center; }
-.comm-fchip:hover { background: var(--bg-hover); color: var(--text-primary); }
-.comm-fchip.is-active, .comm-fchip--notes.is-active, .comm-fchip--quiz.is-active, .comm-fchip--sheet.is-active { font-weight: 700; }
-.comm-fchip.is-active { background: rgba(37,99,235,.08); color: #2563eb; }
-.comm-fchip--notes.is-active  { background: rgba(16,185,129,.08); color: #10b981; }
-.comm-fchip--quiz.is-active   { background: rgba(139,92,246,.08); color: #8b5cf6; }
-.comm-fchip--sheet.is-active  { background: rgba(245,158,11,.08); color: #f59e0b; }
-
-.comm-stats-panel { display: flex; flex-direction: column; gap: .45rem; }
-.comm-stat-row { display: flex; align-items: center; justify-content: space-between; }
-.comm-stat-label { display: flex; align-items: center; gap: .35rem; font-size: .75rem; color: var(--text-muted); }
-.comm-stat-label i { font-size: .6rem; color: var(--primary); }
-.comm-stat-val { font-size: .82rem; font-weight: 800; color: var(--text-primary); }
-
-.comm-subjects-list { display: flex; flex-direction: column; gap: .18rem; }
-.comm-subject-item {
-  display: flex; align-items: center; gap: .4rem;
-  padding: .38rem .5rem; border-radius: 7px;
-  font-size: .76rem; font-weight: 600; color: var(--text-secondary);
-  text-decoration: none; transition: all .14s; white-space: nowrap; overflow: hidden;
-}
-.comm-subject-item i { font-size: .58rem; flex-shrink: 0; }
-.comm-subject-item span { overflow: hidden; text-overflow: ellipsis; }
-.comm-subject-item:hover { background: var(--bg-hover); color: var(--sc, var(--primary)); }
-.comm-subject-item.is-active { background: var(--sc, var(--primary)); color: #fff; }
-
-.comm-create-btn {
-  display: flex; align-items: center; justify-content: center; gap: .45rem;
-  padding: .7rem; background: var(--primary); color: #fff;
-  border-radius: 50px; font-weight: 700; font-size: .84rem;
-  text-decoration: none; transition: all .18s;
-  box-shadow: 0 3px 12px rgba(37,99,235,.3);
-}
-.comm-create-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(37,99,235,.4); color: #fff; }
-
-/* ── MAIN FEED ── */
-.comm-feed { min-width: 0; display: flex; flex-direction: column; gap: 0; isolation: isolate; }
-
-.comm-search-wrap {
-  padding: .875rem 1.25rem;
-  border-bottom: 1px solid var(--border);
+.np-composer-head {
+  display: flex; align-items: center; gap: .65rem;
+  padding: .875rem 1.1rem;
   background: var(--bg-card);
-  position: sticky; top: 62px; z-index: 100;
-  /* isolation stops child stacking contexts from bleeding through */
-  isolation: isolate;
+  border: 1px solid var(--border);
+  border-radius: 18px 18px 0 0;
+  border-bottom: none;
 }
-@media (max-width: 768px) { .comm-search-wrap { top: 56px; border-radius: 0; } }
-.comm-search-form { position: relative; display: flex; align-items: center; }
-.comm-search-ico { position: absolute; left: .875rem; font-size: .72rem; color: var(--text-muted); pointer-events: none; }
-.comm-search-input {
-  width: 100%; padding: .65rem .875rem .65rem 2.25rem;
-  background: var(--bg-secondary); border: 1.5px solid var(--border); border-radius: 50px;
-  color: var(--text-primary); font-size: .84rem; font-family: var(--font-body);
-  outline: none; transition: border-color .15s, box-shadow .15s; box-sizing: border-box;
-}
-.comm-search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.1); background: var(--bg-card); }
-.comm-search-input::placeholder { color: var(--text-muted); }
-.comm-search-clear {
-  position: absolute; right: .7rem; width: 22px; height: 22px; border-radius: 50%;
-  background: var(--bg-hover); color: var(--text-muted); font-size: .6rem;
-  display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all .14s;
-}
-.comm-search-clear:hover { background: rgba(239,68,68,.1); color: #ef4444; }
+.np-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
+.np-posting-as { font-size: .7rem; color: var(--text-muted); display: block; }
+.np-username { font-size: .84rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-display); }
 
-/* Mobile tabs */
-.comm-mobile-tabs {
-  display: none;
+#npForm {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 0 0 18px 18px;
+  display: flex; flex-direction: column;
+}
+
+.np-flair-row {
+  display: flex; align-items: center; gap: .35rem; flex-wrap: wrap;
+  padding: .75rem 1.1rem;
+  border-bottom: 1px solid var(--border);
   overflow-x: auto; scrollbar-width: none;
+}
+.np-flair-row::-webkit-scrollbar { display: none; }
+.np-flair {
+  display: inline-flex; align-items: center; gap: .28rem;
+  padding: .3rem .7rem; border-radius: 50px;
+  border: 1.5px solid var(--border);
+  background: transparent; color: var(--text-muted);
+  font-size: .72rem; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  font-family: inherit; transition: all .14s;
+}
+.np-flair i { font-size: .6rem; }
+.np-flair:hover { border-color: var(--fc, var(--primary)); color: var(--fc, var(--primary)); background: color-mix(in srgb, var(--fc, var(--primary)) 8%, transparent); }
+.np-flair--active { border-color: var(--fc, var(--primary)); color: #fff; background: var(--fc, var(--primary)); }
+.np-flair--active[data-value=""] { border-color: var(--border); background: var(--bg-hover); color: var(--text-secondary); }
+
+.np-field { position: relative; padding: .75rem 1.1rem; border-bottom: 1px solid var(--border); }
+.np-title-input {
+  width: 100%; padding: .55rem 3.5rem .55rem 0;
+  border: none; background: transparent;
+  font-size: 1.15rem; font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--text-primary); outline: none;
+  letter-spacing: -.02em; box-sizing: border-box;
+}
+.np-title-input::placeholder { color: var(--text-muted); font-weight: 500; }
+.np-title-count { position: absolute; right: 1.1rem; top: 50%; transform: translateY(-50%); font-size: .68rem; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.np-err { display: flex; align-items: center; gap: .3rem; font-size: .76rem; color: #ef4444; margin: .35rem 0 0; }
+
+.np-body-card { border-bottom: 1px solid var(--border); }
+.np-body-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
+.np-btab {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .7rem 1.1rem;
+  border: none; border-bottom: 2.5px solid transparent;
+  background: transparent; color: var(--text-muted);
+  font-size: .8rem; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+  transition: all .14s; white-space: nowrap;
+}
+.np-btab i { font-size: .66rem; }
+.np-btab--active { color: var(--primary, #6366f1); border-bottom-color: var(--primary, #6366f1); background: var(--bg-card); }
+.np-btab:hover:not(.np-btab--active) { color: var(--text-secondary); background: var(--bg-hover); }
+
+.np-toolbar {
+  display: flex; align-items: center; gap: .1rem; flex-wrap: wrap;
+  padding: .4rem .75rem;
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
+}
+.np-tb { width: 30px; height: 30px; border-radius: 7px; border: none; background: transparent; color: var(--text-muted); font-size: .72rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .13s; }
+.np-tb:hover { background: var(--bg-card); color: var(--primary, #6366f1); }
+.np-tb-sep { width: 1px; height: 16px; background: var(--border); margin: 0 .2rem; }
+.np-tb--preview { width: auto; padding: 0 .6rem; gap: .3rem; font-size: .72rem; font-weight: 600; font-family: inherit; }
+.np-char-count { margin-left: auto; font-size: .68rem; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.np-char-count.np--warn { color: #f59e0b; }
+.np-char-count.np--over { color: #ef4444; }
+
+.np-textarea {
+  display: block; width: 100%; min-height: 180px;
+  padding: .875rem 1.1rem;
+  border: none; background: transparent;
+  color: var(--text-primary);
+  font-size: .9rem; font-family: var(--font-body);
+  resize: vertical; outline: none; line-height: 1.75;
+  box-sizing: border-box;
+}
+.np-textarea::placeholder { color: var(--text-muted); font-style: italic; }
+.np-preview { min-height: 160px; padding: .875rem 1.1rem; }
+.np-preview[hidden] { display: none; }
+.np-preview-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; min-height: 140px; color: var(--text-muted); font-style: italic; font-size: .82rem; }
+.np-preview-empty i { font-size: 1.6rem; opacity: .18; }
+
+.np-prose { font-size: .875rem; line-height: 1.8; color: var(--text-secondary); word-wrap: break-word; }
+.np-prose p { margin: 0 0 .65rem; } .np-prose p:last-child { margin: 0; }
+.np-prose h2 { font-family: var(--font-display); font-size: 1.05rem; font-weight: 800; color: var(--text-primary); margin: .875rem 0 .35rem; letter-spacing: -.02em; }
+.np-prose strong { font-weight: 700; color: var(--text-primary); }
+.np-prose a { color: var(--primary, #6366f1); text-decoration: underline; text-underline-offset: 3px; }
+.np-prose ul, .np-prose ol { margin: .3rem 0 .65rem 1.25rem; display: flex; flex-direction: column; gap: .2rem; }
+.np-prose ul { list-style: disc; } .np-prose ol { list-style: decimal; }
+.np-prose blockquote { border-left: 3px solid var(--primary, #6366f1); margin: .5rem 0; padding: .35rem .875rem; background: rgba(99,102,241,.05); border-radius: 0 8px 8px 0; color: var(--text-secondary); font-style: italic; }
+.np-prose code { background: var(--bg-hover); border: 1px solid var(--border); border-radius: 4px; padding: .1em .38em; font-size: .84em; color: var(--primary, #6366f1); }
+.np-prose pre { background: #16131f; border-radius: 10px; padding: .875rem 1rem; overflow-x: auto; margin: .5rem 0; }
+.np-prose pre code { background: none; border: none; padding: 0; color: #e2e8f0; }
+
+.np-dropzone {
+  position: relative; margin: .875rem 1.1rem;
+  border: 2px dashed var(--border); border-radius: 12px;
+  cursor: pointer; transition: border-color .18s, background .18s;
+}
+.np-dropzone:hover, .np-dropzone.np--drag { border-color: var(--primary, #6366f1); background: rgba(99,102,241,.04); }
+.np-dropzone.np--done { border-style: solid; border-color: #10b981; background: rgba(16,185,129,.04); }
+.np-dropzone--sm { margin: .5rem 1.1rem .875rem; }
+.np-drop-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; z-index: 2; }
+.np-drop-label { display: flex; align-items: center; gap: .875rem; padding: .875rem 1rem; cursor: pointer; }
+.np-drop-icon { width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0; background: linear-gradient(135deg, #2563eb, #06b6d4); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: 0 4px 12px rgba(37,99,235,.25); transition: transform .18s, box-shadow .18s; }
+.np-dropzone:hover .np-drop-icon, .np-dropzone.np--drag .np-drop-icon { transform: translateY(-2px); }
+.np-dropzone.np--done .np-drop-icon { background: #10b981; box-shadow: 0 4px 12px rgba(16,185,129,.3); }
+.np-drop-icon--sm { width: 32px; height: 32px; font-size: .85rem; border-radius: 8px; }
+.np-drop-icon--cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); box-shadow: 0 4px 12px rgba(6,182,212,.25); }
+.np-drop-text { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.np-drop-text strong { font-size: .875rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-display); word-break: break-word; }
+.np-drop-text span { font-size: .72rem; color: var(--text-muted); }
+.np-drop-rm { position: absolute; top: .55rem; right: .55rem; z-index: 3; width: 24px; height: 24px; border-radius: 50%; background: rgba(239,68,68,.1); border: none; color: #ef4444; font-size: .62rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .14s; }
+.np-drop-rm:hover { background: rgba(239,68,68,.2); transform: scale(1.1); }
+
+.np-type-row { display: flex; align-items: center; gap: .65rem; padding: 0 1.1rem .875rem; flex-wrap: wrap; }
+.np-type-label { font-size: .72rem; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+.np-type-pills { display: flex; gap: .35rem; flex-wrap: wrap; }
+.np-tpill { display: inline-flex; align-items: center; gap: .28rem; padding: .28rem .75rem; border-radius: 50px; border: 1.5px solid var(--border); background: var(--bg-hover); font-size: .72rem; font-weight: 700; font-family: inherit; cursor: pointer; color: var(--text-muted); transition: all .14s; }
+.np-tpill i { font-size: .58rem; }
+.np-tpill--notes.np-tpill--on  { border-color: #10b981; background: rgba(16,185,129,.1); color: #10b981; }
+.np-tpill--sheet.np-tpill--on  { border-color: #f59e0b; background: rgba(245,158,11,.1); color: #f59e0b; }
+.np-tpill--quiz.np-tpill--on   { border-color: #8b5cf6; background: rgba(139,92,246,.1); color: #8b5cf6; }
+
+.np-sidecar { padding: 0 1.1rem; }
+.np-sidecar-label { display: flex; align-items: center; gap: .4rem; font-size: .72rem; font-weight: 700; color: #06b6d4; padding: .5rem 0 .25rem; border-top: 1px solid var(--border); }
+.np-opt { font-size: .6rem; font-weight: 500; color: var(--text-muted); background: var(--bg-hover); padding: .1rem .35rem; border-radius: 20px; }
+
+.np-subject-row {
+  padding: .75rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  overflow: visible;
+  position: relative;
+}
+.np-subject-widget { display: flex; flex-direction: column; gap: .5rem; }
+.np-subj-search-wrap { position: relative; }
+.np-subj-ico { position: absolute; left: .875rem; top: 50%; transform: translateY(-50%); font-size: .72rem; color: var(--text-muted); pointer-events: none; }
+.np-subj-input { width: 100%; padding: .55rem .875rem .55rem 2.25rem; border: 1.5px solid var(--border); border-radius: 50px; background: var(--bg-hover); color: var(--text-primary); font-size: .84rem; font-family: inherit; outline: none; transition: border-color .16s, box-shadow .16s; box-sizing: border-box; }
+.np-subj-input:focus { border-color: var(--primary, #6366f1); box-shadow: 0 0 0 3px rgba(99,102,241,.1); background: var(--bg-card); }
+.np-subj-input::placeholder { color: var(--text-muted); }
+.np-subj-clear { position: absolute; right: .65rem; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border-radius: 50%; border: none; background: var(--bg-hover); color: var(--text-muted); font-size: .6rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .13s; }
+.np-subj-clear:hover { background: rgba(239,68,68,.1); color: #ef4444; }
+.np-subj-chips { display: none; flex-wrap: wrap; gap: .3rem; }
+.np-chip { display: inline-flex; align-items: center; gap: .28rem; padding: .25rem .65rem; border-radius: 50px; border: 1.5px solid var(--border); background: var(--bg-hover); color: var(--text-secondary); font-size: .72rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .13s; user-select: none; }
+.np-chip:hover { border-color: rgba(99,102,241,.35); color: var(--primary, #6366f1); }
+.np-chip.np-chip--on { background: var(--chip-color, var(--primary, #6366f1)); border-color: var(--chip-color, var(--primary, #6366f1)); color: #fff; }
+.np-chip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .6; }
+
+.np-subj-dropdown {
+  position: absolute;
+  top: calc(100% + 4px); left: 0; right: 0;
   background: var(--bg-card);
-  position: sticky; top: 0; z-index: 90;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  list-style: none; margin: 0; padding: .25rem 0;
+  z-index: 200;
+  max-height: 220px; overflow-y: auto;
 }
-.comm-mobile-tabs::-webkit-scrollbar { display: none; }
-@media (max-width: 768px) { .comm-mobile-tabs { display: flex; padding: 0 .875rem; } }
-.comm-mtab {
-  display: inline-flex; align-items: center; gap: .35rem; padding: .75rem .875rem;
-  font-size: .78rem; font-weight: 600; color: var(--text-muted);
-  text-decoration: none; border-bottom: 2px solid transparent; white-space: nowrap;
-  transition: all .15s; flex-shrink: 0;
-}
-.comm-mtab i { font-size: .62rem; }
-.comm-mtab.is-active { color: var(--primary); border-bottom-color: var(--primary); }
-.comm-mtab:hover { color: var(--text-secondary); }
+.np-subj-dd-item { padding: .55rem 1rem; cursor: pointer; font-size: .875rem; color: var(--text-primary); transition: background .12s; }
+.np-subj-dd-item:hover { background: var(--bg-hover); }
+.np-subj-dd-custom { color: var(--primary, #6366f1); border-top: 1px solid var(--border); margin-top: .25rem; padding-top: .55rem; }
+.np-subj-dd-custom i { margin-right: .4rem; font-size: .75rem; }
 
-/* Feed header */
-.comm-feed-header {
-  display: flex; align-items: center; gap: .75rem;
-  padding: .875rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-card);
-}
-.comm-feed-title-wrap { display: flex; align-items: baseline; gap: .5rem; flex: 1; min-width: 0; }
-.comm-feed-title {
-  font-family: var(--font-display);
-  font-size: 1rem; font-weight: 900; color: var(--text-primary);
-  letter-spacing: -.02em; margin: 0; white-space: nowrap;
-}
-.comm-feed-count { font-size: .72rem; color: var(--text-muted); font-weight: 600; font-family: var(--font-body); }
-.comm-clear-filters {
-  display: inline-flex; align-items: center; gap: .25rem;
-  font-size: .72rem; font-weight: 700; color: var(--text-muted);
-  text-decoration: none; padding: .3rem .65rem;
-  background: var(--bg-hover); border-radius: 50px; transition: all .14s; flex-shrink: 0;
-}
-.comm-clear-filters:hover { color: #ef4444; background: rgba(239,68,68,.08); }
+.np-pricing-row { display: flex; align-items: center; gap: .875rem; flex-wrap: wrap; padding: .75rem 1.1rem; border-bottom: 1px solid var(--border); }
+.np-pricing-toggle { display: flex; align-items: center; gap: .5rem; }
+.np-toggle-inp { display: none; }
+.np-toggle { display: inline-block; width: 38px; height: 22px; background: var(--border); border-radius: 50px; cursor: pointer; position: relative; transition: background .18s; }
+.np-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.2); transition: transform .18s; }
+.np-toggle-inp:checked + .np-toggle { background: #10b981; }
+.np-toggle-inp:checked + .np-toggle::after { transform: translateX(16px); }
+.np-pricing-lbl { font-size: .78rem; font-weight: 700; color: var(--text-muted); }
+.np-price-field { display: flex; align-items: center; position: relative; }
+.np-price-ccy { position: absolute; left: .875rem; top: 50%; transform: translateY(-50%); font-size: .78rem; font-weight: 700; color: var(--text-secondary); pointer-events: none; z-index: 1; }
+.np-price-inp { padding: .5rem .875rem .5rem 3.25rem !important; border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg-hover); color: var(--text-primary); font-size: .875rem; font-family: inherit; outline: none; font-weight: 600; transition: border-color .16s; }
+.np-price-inp:focus { border-color: var(--primary, #6366f1); }
 
-/* ── POST CARDS ── */
-.comm-posts { background: var(--bg-card); border: 1px solid var(--border); border-top: none; }
-@media (max-width: 768px) { .comm-posts { border-left: none; border-right: none; } }
+.np-hidden-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
-.comm-post {
-  display: flex; gap: .875rem;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  transition: background .12s;
-  animation: commFadeIn .3s ease both;
-  animation-delay: var(--delay, 0s);
-}
-.comm-post:last-child { border-bottom: none; }
-.comm-post:hover { background: var(--bg-secondary); }
-[data-theme="dark"] .comm-post:hover { background: rgba(255,255,255,.02); }
-@keyframes commFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
+.np-actions { display: flex; gap: .65rem; align-items: center; justify-content: flex-end; padding: .875rem 1.1rem; }
+.np-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: .7rem 1.75rem; background: var(--primary, #6366f1); color: #fff; border: none; border-radius: 50px; font-family: inherit; font-weight: 800; font-size: .9rem; cursor: pointer; text-decoration: none; white-space: nowrap; box-shadow: 0 3px 12px rgba(99,102,241,.35); transition: opacity .15s, transform .18s, box-shadow .18s; }
+.np-btn-primary:hover { opacity: .9; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,.45); color: #fff; }
+.np-btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+.np-btn-primary--full { flex: 1; }
+.np-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: .38rem; padding: .7rem 1.25rem; background: var(--bg-card); color: var(--text-secondary); border: 1.5px solid var(--border); border-radius: 50px; font-family: inherit; font-weight: 600; font-size: .9rem; cursor: pointer; text-decoration: none; white-space: nowrap; transition: all .15s; }
+.np-btn-ghost:hover { border-color: var(--primary, #6366f1); color: var(--primary, #6366f1); }
+.np-btn-ghost--ico { padding: .7rem; aspect-ratio: 1; }
 
-/* Avatar */
-.comm-post-avatar-link { flex-shrink: 0; }
-.comm-post-avatar {
-  width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
-  border: 2px solid var(--border); transition: border-color .15s; display: block;
-}
-.comm-post-avatar-link:hover .comm-post-avatar { border-color: var(--primary); }
+.np-sidebar { display: flex; flex-direction: column; gap: .875rem; position: sticky; top: 76px; }
+.np-tips-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px; padding: 1rem; }
+.np-tips-title { font-family: var(--font-display); font-size: .82rem; font-weight: 800; color: var(--text-primary); letter-spacing: -.01em; margin: 0 0 .65rem; display: flex; align-items: center; gap: .4rem; }
+.np-tips-title i { font-size: .7rem; color: var(--primary, #6366f1); }
+.np-tips-list { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .45rem; }
+.np-tips-list li { font-size: .78rem; color: var(--text-secondary); line-height: 1.55; }
+.np-tips-list li strong { color: var(--text-primary); }
 
-/* Post body */
-.comm-post-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .45rem; }
-
-/* Meta line */
-.comm-post-meta { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; min-width: 0; }
-.comm-post-author {
-  font-size: .86rem; font-weight: 800; color: var(--text-primary);
-  text-decoration: none; font-family: var(--font-display); letter-spacing: -.01em;
-  transition: color .14s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+.np-mobile-bar { display: none; }
+@media (max-width: 860px) {
+  .np-actions { display: none !important; }
+  .np-mobile-bar {
+    display: flex !important; gap: .65rem;
+    position: fixed; bottom: 62px; left: 0; right: 0; z-index: 150;
+    padding: .75rem 1rem;
+    background: var(--bg-card); border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 20px rgba(0,0,0,.12); align-items: center;
+  }
+  .np-mobile-bar .np-btn-ghost--ico { flex-shrink: 0; width: 44px; height: 44px; padding: 0; border-radius: 12px; }
 }
-.comm-post-author:hover { color: var(--primary); }
-.comm-post-username { font-size: .77rem; color: var(--text-muted); white-space: nowrap; font-family: var(--font-body); }
-.comm-post-dot { font-size: .4rem; color: var(--border); }
-.comm-post-time { font-size: .75rem; color: var(--text-muted); white-space: nowrap; font-family: var(--font-body); }
-.comm-post-type-pill {
-  display: inline-flex; align-items: center; gap: .2rem;
-  padding: .18rem .55rem; border-radius: 50px;
-  font-size: .65rem; font-weight: 700; font-family: var(--font-body);
-}
-.comm-post-type-pill i { font-size: .55rem; }
-.comm-post-type-pill--notes      { background: rgba(16,185,129,.1);  color: #10b981; }
-.comm-post-type-pill--quiz       { background: rgba(139,92,246,.1);  color: #8b5cf6; }
-.comm-post-type-pill--cheatsheet { background: rgba(245,158,11,.1);  color: #f59e0b; }
-.comm-post-type-pill--mixed      { background: rgba(37,99,235,.1);   color: #2563eb; }
-
-/* Title / desc */
-.comm-post-link { text-decoration: none; display: block; }
-.comm-post-title {
-  font-family: var(--font-display);
-  font-size: .9rem; font-weight: 800; color: var(--text-primary);
-  letter-spacing: -.02em; margin: 0; line-height: 1.3;
-  transition: color .14s;
-}
-.comm-post-link:hover .comm-post-title { color: var(--primary); }
-.comm-post-desc {
-  font-size: .8rem; color: var(--text-secondary); margin: .2rem 0 0;
-  line-height: 1.55; font-family: var(--font-body);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-
-/* Chips */
-.comm-post-chips { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; }
-.comm-post-subject {
-  display: inline-flex; align-items: center; gap: .2rem;
-  padding: .18rem .5rem; border-radius: 5px;
-  font-size: .68rem; font-weight: 700; font-family: var(--font-body);
-}
-.comm-post-subject i { font-size: .54rem; }
-.comm-post-chip {
-  display: inline-flex; align-items: center; gap: .18rem;
-  padding: .15rem .45rem; border-radius: 5px;
-  font-size: .65rem; font-weight: 600; font-family: var(--font-body);
-}
-.comm-post-chip i { font-size: .52rem; }
-.comm-post-chip--quiz  { background: rgba(139,92,246,.1); color: #8b5cf6; }
-.comm-post-chip--sheet { background: rgba(245,158,11,.1); color: #f59e0b; }
-.comm-post-chip--paid  { background: rgba(245,158,11,.12); color: #d97706; border: 1px solid rgba(245,158,11,.2); font-weight: 700; }
-.comm-post-chip--free  { background: rgba(16,185,129,.1); color: #059669; border: 1px solid rgba(16,185,129,.2); font-weight: 700; }
-
-/* Action bar */
-.comm-post-actions { display: flex; align-items: center; gap: .1rem; margin-top: .1rem; }
-.comm-action {
-  display: inline-flex; align-items: center; gap: .3rem;
-  padding: .42rem .65rem; border-radius: 50px; border: none; background: transparent;
-  color: var(--text-muted); font-size: .78rem; cursor: pointer;
-  text-decoration: none; font-family: var(--font-body); font-weight: 600;
-  transition: all .14s;
-}
-.comm-action i { font-size: .72rem; }
-.comm-action:hover { background: var(--bg-hover); color: var(--text-secondary); }
-.comm-action--like:hover   { color: #ef4444; background: rgba(239,68,68,.08); }
-.comm-action--like.is-liked { color: #ef4444; }
-.comm-action--like.is-liked i { font-variation-settings: 'FILL' 1; }
-.comm-action--bookmark:hover      { color: var(--primary); background: rgba(37,99,235,.08); }
-.comm-action--bookmark.is-bookmarked { color: var(--primary); }
-.comm-action--view { margin-left: auto; }
-.comm-action--view:hover { color: var(--primary); background: rgba(37,99,235,.08); }
-.comm-action-count { font-size: .74rem; }
-
-/* ── PAGINATION ── */
-.comm-pagination {
-  display: flex; align-items: center; justify-content: center; gap: .4rem;
-  padding: 1rem 1.25rem;
-  background: var(--bg-card); border: 1px solid var(--border); border-top: none;
-}
-.comm-page-btn {
-  display: inline-flex; align-items: center; gap: .28rem; padding: .42rem .8rem;
-  background: var(--bg-secondary); border: 1.5px solid var(--border); border-radius: 9px;
-  font-size: .76rem; font-weight: 700; color: var(--text-secondary);
-  text-decoration: none; transition: all .15s; font-family: var(--font-body);
-}
-.comm-page-btn:hover { border-color: var(--primary); color: var(--primary); }
-.comm-page-nums { display: flex; align-items: center; gap: .25rem; }
-.comm-page-num {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 8px;
-  font-size: .76rem; font-weight: 700; color: var(--text-muted);
-  text-decoration: none; transition: all .15s; font-family: var(--font-body);
-}
-.comm-page-num:hover { background: var(--bg-hover); color: var(--text-secondary); }
-.comm-page-num.is-active { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.3); }
-.comm-page-ellipsis { font-size: .76rem; color: var(--text-muted); }
-
-/* ── EMPTY ── */
-.comm-empty {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 4rem 1.5rem; text-align: center; gap: .5rem;
-  background: var(--bg-card); border: 1px solid var(--border); border-top: none;
-}
-.comm-empty-icon {
-  width: 56px; height: 56px; border-radius: 16px;
-  background: rgba(37,99,235,.07); color: var(--primary);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.4rem; margin-bottom: .25rem;
-}
-.comm-empty-title { font-family: var(--font-display); font-size: 1rem; font-weight: 800; color: var(--text-primary); margin: 0; }
-.comm-empty-sub { font-size: .83rem; color: var(--text-muted); margin: 0; font-family: var(--font-body); }
-.comm-empty-sub a { color: var(--primary); text-decoration: none; font-weight: 700; }
-
-/* ── RIGHT SIDEBAR ── */
-.comm-right { display: flex; flex-direction: column; gap: .875rem; position: sticky; top: 76px; }
-.comm-create-btn-lg {
-  display: flex; align-items: center; justify-content: center; gap: .5rem;
-  padding: .85rem 1.5rem; background: var(--primary); color: #fff;
-  border-radius: 50px; font-weight: 800; font-size: .875rem;
-  text-decoration: none; transition: all .18s;
-  box-shadow: 0 3px 14px rgba(37,99,235,.35);
-  font-family: var(--font-display);
-}
-.comm-create-btn-lg:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,.45); color: #fff; }
-
-.comm-right-panel {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px; overflow: hidden;
-  padding: .875rem;
-}
-.comm-right-title {
-  font-family: var(--font-display);
-  font-size: .82rem; font-weight: 800; color: var(--text-primary);
-  letter-spacing: -.01em; margin: 0 0 .65rem;
-  display: flex; align-items: center; gap: .4rem;
-}
-.comm-right-title i { font-size: .68rem; color: var(--primary); }
-
-.comm-trend-row {
-  display: flex; align-items: center; gap: .6rem;
-  padding: .45rem .3rem; border-radius: 9px;
-  text-decoration: none; transition: background .14s;
-}
-.comm-trend-row:hover { background: var(--bg-hover); }
-.comm-trend-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .65rem; flex-shrink: 0; }
-.comm-trend-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .05rem; }
-.comm-trend-name { font-size: .78rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-body); }
-.comm-trend-count { font-size: .68rem; color: var(--text-muted); font-family: var(--font-body); }
-.comm-trend-arrow { font-size: .55rem; color: var(--text-muted); transition: transform .14s; }
-.comm-trend-row:hover .comm-trend-arrow { transform: translateX(2px); color: var(--primary); }
-
-.comm-suggest-row { display: flex; align-items: center; gap: .6rem; padding: .4rem 0; }
-.comm-suggest-avatar-link { flex-shrink: 0; }
-.comm-suggest-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); display: block; }
-.comm-suggest-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .05rem; }
-.comm-suggest-name { font-size: .78rem; font-weight: 700; color: var(--text-primary); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-body); }
-.comm-suggest-name:hover { color: var(--primary); }
-.comm-suggest-meta { font-size: .68rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-body); }
-.comm-follow-btn {
-  padding: .28rem .75rem; background: var(--primary); color: #fff;
-  border-radius: 50px; font-size: .7rem; font-weight: 700; text-decoration: none;
-  flex-shrink: 0; transition: opacity .14s;
-}
-.comm-follow-btn:hover { opacity: .85; color: #fff; }
-
-/* FAB */
-.comm-fab {
-  display: none;
-  position: fixed; bottom: 80px; right: 1.25rem; z-index: 200;
-  width: 52px; height: 52px; border-radius: 50%;
-  background: var(--primary); color: #fff;
-  align-items: center; justify-content: center;
-  font-size: 1.1rem; text-decoration: none;
-  box-shadow: 0 4px 18px rgba(37,99,235,.45);
-  transition: transform .18s, box-shadow .18s;
-}
-.comm-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(37,99,235,.55); color: #fff; }
-@media (max-width: 768px) { .comm-fab { display: flex; } }
-
-/* ── RESPONSIVE ── */
-@media (max-width: 600px) {
-  .comm-search-wrap { padding: .65rem .875rem; }
-  .comm-post { padding: .875rem; gap: .65rem; }
-  .comm-post-avatar { width: 34px; height: 34px; }
-  .comm-post-title { font-size: .84rem; }
-  .comm-post-desc { display: none; }
-  .comm-feed-header { padding: .65rem .875rem; }
+@media (max-width: 480px) {
+  .np-flair span { display: none; }
+  .np-flair { padding: .35rem .55rem; }
+  .np-title-input { font-size: 1rem; }
 }
 </style>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script>
-function communityLike(btn, postId) {
-  const isLiked = btn.classList.contains('is-liked');
-  const countEl = btn.querySelector('.comm-action-count');
+(function () {
+  'use strict';
 
-  // Optimistic update
-  btn.classList.toggle('is-liked');
-  if (countEl) {
-    const cur = parseInt(countEl.textContent) || 0;
-    countEl.textContent = isLiked ? Math.max(0, cur - 1) : cur + 1;
+  if (typeof marked !== 'undefined') marked.setOptions({ breaks: true, gfm: true });
+
+  // ── Flair picker ──────────────────────────────────────────────────────────
+  const flairHidden = document.getElementById('npFlairHidden');
+  document.querySelectorAll('.np-flair').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.np-flair').forEach(function(b) { b.classList.remove('np-flair--active'); });
+      btn.classList.add('np-flair--active');
+      if (flairHidden) flairHidden.value = btn.dataset.value;
+    });
+  });
+
+  // ── Title counter ─────────────────────────────────────────────────────────
+  var titleIn = document.getElementById('npTitle');
+  var titleCt = document.getElementById('npTitleCount');
+  function updateTitle() {
+    if (!titleIn || !titleCt) return;
+    var n = titleIn.value.length;
+    titleCt.textContent = n + '/200';
+    titleCt.style.color = n > 180 ? '#ef4444' : n > 160 ? '#f59e0b' : '';
+  }
+  if (titleIn) titleIn.addEventListener('input', updateTitle);
+  updateTitle();
+
+  // ── Body tab switch ───────────────────────────────────────────────────────
+  window.npSetBodyTab = function(tab) {
+    var pText = document.getElementById('npPaneText');
+    var pFile = document.getElementById('npPaneFile');
+    var tText = document.getElementById('npTabText');
+    var tFile = document.getElementById('npTabFile');
+    if (tab === 'text') {
+      pText.hidden = false; pFile.hidden = true;
+      tText.classList.add('np-btab--active'); tFile.classList.remove('np-btab--active');
+    } else {
+      pText.hidden = true; pFile.hidden = false;
+      tFile.classList.add('np-btab--active'); tText.classList.remove('np-btab--active');
+    }
+  };
+
+  // ── Markdown toolbar ──────────────────────────────────────────────────────
+  var ta   = document.getElementById('npTextarea');
+  var prev = document.getElementById('npPreview');
+  var ctr  = document.getElementById('npCharCount');
+  var MAX  = 5000;
+
+  function updateCount() {
+    if (!ta || !ctr) return;
+    var n = ta.value.length;
+    ctr.textContent = n + '/' + MAX;
+    ctr.className = 'np-char-count' + (n > MAX ? ' np--over' : n > MAX * .85 ? ' np--warn' : '');
+  }
+  if (ta) ta.addEventListener('input', updateCount);
+  updateCount();
+
+  var MD = {
+    bold:   { wrap: ['**','**'], ph: 'bold text' },
+    italic: { wrap: ['*','*'],   ph: 'italic text' },
+    code:   { wrap: ['`','`'],   ph: 'code' },
+    h2:     { line: '## ',       ph: 'Heading' },
+    quote:  { line: '> ',        ph: 'Quote' },
+    ul:     { line: '- ',        ph: 'Item' },
+    link:   { special: 'link' },
+  };
+
+  function insertMd(action) {
+    if (!ta || ta.hidden) return;
+    var c = MD[action]; if (!c) return;
+    var s = ta.selectionStart, e = ta.selectionEnd;
+    var sel = ta.value.slice(s, e);
+    var before = ta.value.slice(0, s), after = ta.value.slice(e), ins = '';
+    if (c.special === 'link') {
+      var url = prompt('URL:', 'https://'); if (!url) return;
+      ins = '[' + (sel || 'link text') + '](' + url + ')';
+    } else if (c.wrap) {
+      var o = c.wrap[0], cl = c.wrap[1];
+      ins = sel ? (sel.startsWith(o) && sel.endsWith(cl) ? sel.slice(o.length, -cl.length) : o + sel + cl) : o + c.ph + cl;
+    } else if (c.line) {
+      if (before && !before.endsWith('\n')) before += '\n';
+      ins = (sel || c.ph).split('\n').map(function(l) { return c.line + l; }).join('\n');
+    }
+    ta.value = before + ins + after;
+    ta.selectionStart = before.length; ta.selectionEnd = before.length + ins.length;
+    ta.focus(); ta.dispatchEvent(new Event('input'));
   }
 
-  fetch(`/posts/${postId}/like`, {
-    method: 'POST',
-    headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || '' }
-  })
-  .then(r => r.json())
-  .then(data => {
-    // Sync with server truth
-    btn.classList.toggle('is-liked', data.liked);
-    if (countEl) countEl.textContent = data.like_count;
-  })
-  .catch(() => {
-    // Revert on error
-    btn.classList.toggle('is-liked');
-    if (countEl) {
-      const cur = parseInt(countEl.textContent) || 0;
-      countEl.textContent = isLiked ? cur + 1 : Math.max(0, cur - 1);
+  document.querySelectorAll('.np-tb[data-md]').forEach(function(btn) {
+    btn.addEventListener('click', function() { insertMd(btn.dataset.md); });
+  });
+
+  if (ta) ta.addEventListener('keydown', function(ev) {
+    if (ev.ctrlKey || ev.metaKey) {
+      if (ev.key === 'b') { ev.preventDefault(); insertMd('bold'); }
+      if (ev.key === 'i') { ev.preventDefault(); insertMd('italic'); }
+      if (ev.key === 'k') { ev.preventDefault(); insertMd('link'); }
+    }
+    if (ev.key === 'Tab') {
+      ev.preventDefault();
+      var p = ta.selectionStart;
+      ta.value = ta.value.slice(0, p) + '  ' + ta.value.slice(ta.selectionEnd);
+      ta.selectionStart = ta.selectionEnd = p + 2;
     }
   });
-}
 
-function communityBookmark(btn, postId) {
-  const isBookmarked = btn.classList.contains('is-bookmarked');
-  btn.classList.toggle('is-bookmarked');
+  var previewOn = false;
+  window.npTogglePreview = function() {
+    previewOn = !previewOn;
+    var btn = document.getElementById('npPreviewBtn');
+    if (previewOn) {
+      var html = (typeof marked !== 'undefined') ? marked.parse(ta.value || '') : '';
+      prev.innerHTML = html.trim()
+        ? '<div class="np-prose">' + html + '</div>'
+        : '<div class="np-preview-empty"><i class="fas fa-feather-pointed"></i><span>Preview appears here\u2026</span></div>';
+      ta.hidden = true; prev.hidden = false;
+      if (btn) btn.innerHTML = '<i class="fas fa-pen"></i> Edit';
+    } else {
+      ta.hidden = false; prev.hidden = true;
+      if (btn) btn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+      ta.focus();
+    }
+  };
 
-  fetch(`/posts/${postId}/bookmark`, {
-    method: 'POST',
-    headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || '' }
-  })
-  .then(r => r.json())
-  .then(data => {
-    btn.classList.toggle('is-bookmarked', data.bookmarked);
-  })
-  .catch(() => {
-    btn.classList.toggle('is-bookmarked');
+  // ── File drop ─────────────────────────────────────────────────────────────
+  window.npDrag = function(ev, on) {
+    ev.preventDefault();
+    document.getElementById('npDropZone').classList.toggle('np--drag', on);
+  };
+  window.npDrop = function(ev) {
+    ev.preventDefault();
+    document.getElementById('npDropZone').classList.remove('np--drag');
+    var inp = document.getElementById('npFileInput');
+    if (ev.dataTransfer.files.length) { inp.files = ev.dataTransfer.files; npHandleFile(inp); }
+  };
+  window.npHandleFile = function(input) {
+    if (!input.files || !input.files[0]) return;
+    var f   = input.files[0];
+    var ext = f.name.split('.').pop().toLowerCase();
+    document.getElementById('npDropName').textContent = f.name + '  \u00b7  ' + (f.size / 1048576).toFixed(1) + ' MB';
+    document.getElementById('npDropSub').style.display = 'none';
+    document.getElementById('npDropIcon').innerHTML = '<i class="fas fa-circle-check"></i>';
+    document.getElementById('npDropZone').classList.add('np--done');
+    document.getElementById('npFileRm').style.display = 'flex';
+    var sc = document.getElementById('npSidecarSection');
+    if (sc) sc.style.display = (ext === 'pdf') ? 'block' : 'none';
+  };
+  window.npClearFile = function() {
+    document.getElementById('npFileInput').value = '';
+    document.getElementById('npDropName').textContent = 'Drop file or click to replace';
+    document.getElementById('npDropSub').style.display = '';
+    document.getElementById('npDropIcon').innerHTML = '<i class="fas fa-cloud-arrow-up"></i>';
+    document.getElementById('npDropZone').classList.remove('np--done');
+    document.getElementById('npFileRm').style.display = 'none';
+    var sc = document.getElementById('npSidecarSection');
+    if (sc) sc.style.display = 'none';
+    npClearJson();
+  };
+
+  window.npDragJson = function(ev, on) { ev.preventDefault(); document.getElementById('npJsonZone').classList.toggle('np--drag', on); };
+  window.npDropJson = function(ev) {
+    ev.preventDefault(); document.getElementById('npJsonZone').classList.remove('np--drag');
+    var inp = document.getElementById('npJsonInput');
+    if (ev.dataTransfer.files.length) { inp.files = ev.dataTransfer.files; npHandleJson(inp); }
+  };
+  window.npHandleJson = function(input) {
+    if (!input.files || !input.files[0]) return;
+    document.getElementById('npJsonName').textContent = input.files[0].name;
+    document.getElementById('npJsonIco').className = 'fas fa-circle-check';
+    document.getElementById('npJsonZone').classList.add('np--done');
+    document.getElementById('npJsonRm').style.display = 'flex';
+  };
+  window.npClearJson = function() {
+    var i = document.getElementById('npJsonInput'); if (i) i.value = '';
+    var n = document.getElementById('npJsonName');  if (n) n.textContent = 'Attach .json quiz file';
+    var ic = document.getElementById('npJsonIco');  if (ic) ic.className = 'fas fa-file-code';
+    var z  = document.getElementById('npJsonZone'); if (z) z.classList.remove('np--done');
+    var r  = document.getElementById('npJsonRm');   if (r) r.style.display = 'none';
+  };
+
+  // ── Content type pills ────────────────────────────────────────────────────
+  var ctHidden = document.getElementById('npContentType');
+  function setType(val) {
+    document.querySelectorAll('.np-tpill').forEach(function(p) {
+      p.classList.toggle('np-tpill--on', p.dataset.value === val);
+    });
+    if (ctHidden) ctHidden.value = val;
+  }
+  document.querySelectorAll('.np-tpill').forEach(function(p) {
+    p.addEventListener('click', function() { setType(p.dataset.value); });
   });
-}
+  setType(ctHidden ? (ctHidden.value || 'notes') : 'notes');
 
-function communityShare(title, url) {
-  if (navigator.share) {
-    navigator.share({ title, url }).catch(() => {});
-  } else {
-    navigator.clipboard.writeText(url).then(() => {
-      // Brief toast
-      const toast = document.createElement('div');
-      toast.textContent = 'Link copied!';
-      toast.style.cssText = `
-        position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
-        background:#1e293b; color:#fff; padding:.55rem 1.25rem; border-radius:50px;
-        font-size:.78rem; font-weight:700; z-index:9999; pointer-events:none;
-        box-shadow: 0 4px 16px rgba(0,0,0,.3);
-        animation: toastIn .2s ease both;
-      `;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 2000);
+  // ── Subject chips + dropdown ──────────────────────────────────────────────
+  var hiddenSel = document.getElementById('{{ form.subject.id }}');
+  var searchIn  = document.getElementById('npSubjectSearch');
+  var chipsWrap = document.getElementById('npSubjectChips');
+  var clearBtn  = document.getElementById('npSubjectClear');
+
+  if (hiddenSel && searchIn && chipsWrap) {
+    var opts = Array.from(hiddenSel.options)
+      .filter(function(o) { return o.value && o.value !== '0'; })
+      .map(function(o) { return { v: o.value, l: o.text, c: o.dataset.color || 'var(--primary, #6366f1)' }; });
+
+    var current = (hiddenSel.value && hiddenSel.value !== '0') ? hiddenSel.value : '';
+
+    opts.forEach(function(opt) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'np-chip' + (opt.v === current ? ' np-chip--on' : '');
+      btn.dataset.v = opt.v;
+      btn.style.setProperty('--chip-color', opt.c);
+      btn.innerHTML = '<span class="np-chip-dot"></span>' + opt.l;
+      btn.addEventListener('click', function() { selectChip(btn, opt); });
+      chipsWrap.appendChild(btn);
+    });
+    chipsWrap.style.display = 'none';
+
+    if (current) {
+      var pre = opts.find(function(o) { return o.v === current; });
+      if (pre) { searchIn.value = pre.l; if (clearBtn) clearBtn.style.display = 'flex'; }
+    }
+
+    function selectChip(btn, opt) {
+      chipsWrap.querySelectorAll('.np-chip.np-chip--on').forEach(function(b) { b.classList.remove('np-chip--on'); });
+      if (current === opt.v) { clearSel(); return; }
+      btn.classList.add('np-chip--on');
+      current = opt.v; hiddenSel.value = opt.v;
+      searchIn.value = opt.l;
+      if (clearBtn) clearBtn.style.display = 'flex';
+    }
+    function clearSel() {
+      current = ''; hiddenSel.value = '0'; searchIn.value = '';
+      if (clearBtn) clearBtn.style.display = 'none';
+      chipsWrap.querySelectorAll('.np-chip.np-chip--on').forEach(function(b) { b.classList.remove('np-chip--on'); });
+      searchIn.focus();
+    }
+    if (clearBtn) clearBtn.addEventListener('click', clearSel);
+
+    var dropdown = document.createElement('ul');
+    dropdown.className = 'np-subj-dropdown';
+    dropdown.style.display = 'none';
+    searchIn.parentNode.appendChild(dropdown);
+
+    function showDropdown(q) {
+      q = q.trim().toLowerCase();
+      dropdown.innerHTML = '';
+      if (!q) { dropdown.style.display = 'none'; return; }
+      var matches = opts.filter(function(o) { return o.l.toLowerCase().includes(q); });
+      matches.forEach(function(opt) {
+        var li = document.createElement('li');
+        li.className = 'np-subj-dd-item';
+        li.textContent = opt.l;
+        li.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          var btn = chipsWrap.querySelector('[data-v="' + opt.v + '"]');
+          if (btn) selectChip(btn, opt);
+          dropdown.style.display = 'none';
+        });
+        dropdown.appendChild(li);
+      });
+      var exactMatch = opts.find(function(o) { return o.l.toLowerCase() === q; });
+      if (!exactMatch) {
+        var li2 = document.createElement('li');
+        li2.className = 'np-subj-dd-item np-subj-dd-custom';
+        li2.innerHTML = '<i class="fas fa-plus"></i> Use "<strong>' + searchIn.value.trim() + '</strong>"';
+        li2.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          current = '0'; hiddenSel.value = '0';
+          searchIn.value = searchIn.value.trim();
+          if (clearBtn) clearBtn.style.display = 'flex';
+          chipsWrap.querySelectorAll('.np-chip.np-chip--on').forEach(function(b) { b.classList.remove('np-chip--on'); });
+          dropdown.style.display = 'none';
+        });
+        dropdown.appendChild(li2);
+      }
+      dropdown.style.display = (matches.length || !exactMatch) ? 'block' : 'none';
+    }
+
+    searchIn.addEventListener('input', function() {
+      showDropdown(searchIn.value);
+      if (!searchIn.value.trim() && current) clearSel();
+    });
+    searchIn.addEventListener('blur', function() {
+      setTimeout(function() { dropdown.style.display = 'none'; }, 150);
+    });
+    searchIn.addEventListener('focus', function() {
+      if (searchIn.value.trim()) showDropdown(searchIn.value);
     });
   }
-}
+
+  // ── Pricing toggle ────────────────────────────────────────────────────────
+  var paidToggle = document.getElementById('is_paid');
+  if (paidToggle) {
+    paidToggle.addEventListener('change', function() {
+      var pb  = document.getElementById('npPriceBody');
+      var lbl = document.getElementById('npPriceLabel');
+      if (pb)  pb.style.display  = this.checked ? 'flex' : 'none';
+      if (lbl) lbl.textContent   = this.checked ? 'Paid' : 'Free';
+    });
+  }
+
+  // ── Submit lock ───────────────────────────────────────────────────────────
+  document.getElementById('npForm').addEventListener('submit', function() {
+    document.querySelectorAll('.np-btn-primary').forEach(function(btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving\u2026';
+    });
+  });
+
+})();
 </script>
-
-<style>
-@keyframes toastIn {
-  from { opacity:0; transform: translateX(-50%) translateY(8px); }
-  to   { opacity:1; transform: translateX(-50%) translateY(0); }
-}
-</style>
-
 {% endblock %}
