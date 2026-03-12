@@ -6,7 +6,10 @@
 {% block content %}
 <script>
 window.MathJax = {
-  tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']]
+  },
   options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
 };
 </script>
@@ -339,7 +342,6 @@ window.MathJax = {
 }
 
 .cs-title {
-  font-family: 'Nunito', sans-serif;
   font-size: clamp(1.25rem, 3vw, 1.7rem); font-weight: 900;
   letter-spacing: -.03em; line-height: 1.2;
   color: var(--text-primary); margin: 0 0 .6rem; word-break: break-word;

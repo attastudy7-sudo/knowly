@@ -198,7 +198,7 @@ def create_app(config_class=Config):
     
     app.jinja_env.filters['markdown'] = mistune.html
     app.jinja_env.filters['fromjson'] = json.loads
-    
+
     register_error_handlers(app)
     register_template_context(app)
     return app

@@ -30,11 +30,7 @@
 <link rel="dns-prefetch" href="https://res.cloudinary.com">
 <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
 <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
-{% if config.get('FLASK_ENV') == 'production' %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.min.css') }}">
-{% else %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-{% endif %}
 <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
 
@@ -862,6 +858,9 @@
 .mobile-sheet-item--danger i { color: #ef4444 !important; }
 .mobile-sheet-item--danger:hover { background: #fff5f5; }
 [data-theme="dark"] .mobile-sheet-item--danger:hover { background: #450a0a; }
+.mobile-sheet-item--highlight { border-radius: 8px; }
+.mobile-sheet-item--highlight i { color: #fff; }
+.mobile-sheet-item--highlight:hover { opacity: 0.9; }
 
 .mobile-sheet-divider {
     height: 1px; background: #f3f4f6; margin: .3rem 0;
@@ -1171,6 +1170,21 @@ body { opacity: 0; transition: opacity .18s ease; }
         <div class="mobile-sheet-divider"></div>
         <a href="{{ url_for('auth.logout') }}" class="mobile-sheet-item mobile-sheet-item--danger">
             <i class="fas fa-right-from-bracket"></i> Log Out
+        </a>
+    </div>
+    {% else %}
+    <div class="mobile-sheet-items">
+        <div class="mobile-sheet-item" onclick="toggleDarkMode()" style="cursor:pointer;">
+            <i class="fas fa-moon" id="darkToggleIconMobile"></i>
+            <span id="darkToggleLabelMobile">Dark mode</span>
+            <span class="mobile-dark-pill" id="darkTogglePill" style="margin-left:auto;">Off</span>
+        </div>
+        <div class="mobile-sheet-divider"></div>
+        <a href="{{ url_for('auth.login') }}" class="mobile-sheet-item">
+            <i class="fas fa-right-to-bracket"></i> Log In
+        </a>
+        <a href="{{ url_for('auth.signup') }}" class="mobile-sheet-item mobile-sheet-item--highlight">
+            <i class="fas fa-user-plus"></i> Sign Up
         </a>
     </div>
     {% endif %}
