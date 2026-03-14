@@ -654,6 +654,13 @@ body {
 .qz-rev-item.r-op  { border-color: rgba(196,122,0,.28);  background: var(--qz-warn-bg); }
 .qz-rev-q   { font-weight: 600; color: var(--qz-ink); margin-bottom: .25rem; line-height: 1.45; }
 .qz-rev-ans { font-size: .78rem; color: var(--qz-muted); }
+.qz-rev-exp { margin-top: .6rem; }
+.qz-rev-exp summary { font-size: .75rem; font-weight: 600; color: var(--qz-muted); cursor: pointer; user-select: none; list-style: none; display: inline-flex; align-items: center; gap: .3rem; }
+.qz-rev-exp summary::-webkit-details-marker { display: none; }
+.qz-rev-exp summary::before { content: '▶'; font-size: .55rem; transition: transform .18s; }
+.qz-rev-exp[open] summary::before { transform: rotate(90deg); }
+.qz-rev-exp-body { margin-top: .45rem; font-size: .78rem; color: var(--qz-secondary); line-height: 1.6; padding: .5rem .65rem; border-radius: 6px; background: rgba(0,0,0,.04); }
+[data-theme="dark"] .qz-rev-exp-body { background: rgba(255,255,255,.05); }
 
 .qz-res-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
 .qz-res-actions .qz-btn { flex: 1; justify-content: center; min-width: 130px; }
@@ -1375,6 +1382,27 @@ function flattenQuestions(rawQuestions) {
             }
         }
 
+        // Shuffle MCQ options and remap the correct answer letter
+        if (type === 'mcq' && Array.isArray(options) && options.length > 1) {
+            const letters = ['A','B','C','D','E','F'];
+            // Find which original letter is the correct one
+            const correctText = (options.find(o =>
+                (o.letter || '').toString().toUpperCase() === answer.toUpperCase()
+            ) || {}).text || null;
+            // Fisher-Yates shuffle
+            for (let i = options.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [options[i], options[j]] = [options[j], options[i]];
+            }
+            // Relabel A, B, C, D in new order
+            options = options.map((o, i) => ({ letter: letters[i], text: o.text }));
+            // Remap answer to whichever letter now holds the correct text
+            if (correctText !== null) {
+                const newCorrect = options.find(o => o.text === correctText);
+                if (newCorrect) answer = newCorrect.letter;
+            }
+        }
+
         flat.push({
             type,
             question:    renderMath(q.question || q.question_text || ''),
@@ -1743,20 +1771,39 @@ const totalQuestions = QUESTIONS.length;
     const scored = result.scored || [];
     let html = '';
     QUESTIONS.forEach((q, i) => {
-        const sc   = scored[i];
+        const sc   = scored[i] || null;
         const uAns = (userAnswers[i] || '—').toString();
-         const isA = q.options && q.options.length > 0 && q.answer && q.answer !== 'See subparts';
+        const isA  = q.options && q.options.length > 0 && q.answer && q.answer !== 'See subparts';
         let cls = 'r-op', icon = '📝';
-        if (isA && sc) { cls = sc.is_correct ? 'r-ok' : 'r-err'; icon = sc.is_correct ? '✅' : '❌'; }
+        const isCorrect = isA && sc ? sc.is_correct : null;
+        if (isA && sc) { cls = isCorrect ? 'r-ok' : 'r-err'; icon = isCorrect ? '✅' : '❌'; }
+
+        // Resolve selected option text and correct option text
+        const uOptObj  = isA ? (q.options.find(o => (o.letter||'').toUpperCase() === uAns.toUpperCase()) || null) : null;
+        const cOptObj  = isA ? (q.options.find(o => (o.letter||'').toUpperCase() === (q.answer||'').toUpperCase()) || null) : null;
+        const uAnsText = uOptObj ? uOptObj.text : uAns;
+        const cAnsText = cOptObj ? cOptObj.text : (q.answer || '');
+
         const qText = (q.rawQuestion || '').replace(/<[^>]+>/g, '');
         const qSnip = qText.length > 80 ? qText.substring(0, 80) + '…' : qText;
+
+        // Explanation — open by default on wrong answers
+        const expText = (q.explanation || '').trim();
+        const expHtml = expText
+            ? `<details class="qz-rev-exp"${isCorrect === false ? ' open' : ''}>
+                <summary>Explanation</summary>
+                <div class="qz-rev-exp-body">${renderMath(expText)}</div>
+               </details>`
+            : '';
+
         html += `
         <div class="qz-rev-item ${cls}">
             <div class="qz-rev-q">${icon} Q${i + 1}: ${qSnip}</div>
             <div class="qz-rev-ans">
-                Your answer: <strong>${uAns}</strong>
-                ${isA && q.answer ? ` · Correct: <strong>${q.answer}</strong>` : ''}
+                Your answer: <strong>${uAnsText}</strong>
+                ${isA && cAnsText && !isCorrect ? ` · Correct: <strong>${cAnsText}</strong>` : ''}
             </div>
+            ${expHtml}
         </div>`;
     });
     document.getElementById('resultsReview').innerHTML = html;

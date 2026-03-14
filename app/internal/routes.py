@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import os
+import hmac
 from functools import wraps
 from pathlib import Path
 
@@ -26,7 +27,7 @@ def internal_key_required(f):
     def decorated(*args, **kwargs):
         key = request.headers.get("X-Internal-Key", "").strip()
         expected = os.getenv("INTERNAL_API_KEY", "").strip()
-        if not key or not expected or key != expected:
+        if not key or not expected or not hmac.compare_digest(key, expected):
             return jsonify({"error": "Unauthorized"}), 401
         return f(*args, **kwargs)
     return decorated

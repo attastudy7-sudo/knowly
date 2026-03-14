@@ -211,7 +211,7 @@
                 {% elif post.content_type == 'mixed' %}Mixed
                 {% else %}Notes{% endif %}
               </span>
-              {% if post.has_quiz() %}<span class="type-badge type-quiz">Quiz</span>{% endif %}
+              {% if post.has_quiz() and post.content_type == 'quiz' %}<span class="type-badge type-quiz">Quiz</span>{% endif %}
 
               {# ── Quiz chips ── #}
               {% if post.content_type == 'quiz' %}
@@ -551,9 +551,8 @@ document.addEventListener('click', function(e) {
   iconEl.className = 'cm-icon ' + cfg.cls;
   iconEl.innerHTML = `<i class="fas ${cfg.icon}"></i>`;
   document.getElementById('cmTitle').textContent = title;
-  document.getElementById('cmDesc').innerHTML = marked.parse(desc.length > 160 ? desc.slice(0, 160) + '…' : desc);
+  document.getElementById('cmDesc').innerHTML = '';
   document.getElementById('cmMeta').innerHTML    = `<span><i class="fas fa-tag"></i> ${cfg.label}</span>`;
-
   var html = '';
   if (ct === 'quiz') {
     html += mkBtn('cm-btn-primary', `/posts/${postId}`, 'fa-brain', 'View Quiz');

@@ -5,7 +5,7 @@ from flask import session, request, jsonify, render_template, abort, redirect, u
 from flask_login import current_user, login_required
 
 from app import db
-from app.models import QuizData, QuizAttempt, QuizLeaderboard, QuizAssessment, Post, format_time_taken
+from app.models import QuizData, QuizAttempt, QuizLeaderboard, QuizAssessment, Post, XpTransaction, format_time_taken
 from app.quiz import bp as quiz_bp
 # ── Session key helpers ───────────────────────────────────────────────────────
 
@@ -265,8 +265,15 @@ def quiz_submit(post_id):
             existing.is_public    = False   # reset publish flag on score update
         lb_entry = existing
 
-    # XP to user
+    # XP to user + transaction log
     current_user.xp_points += xp_earned
+    if xp_earned > 0:
+        xp_tx = XpTransaction(
+            user_id=current_user.id,
+            amount=xp_earned,
+            reason=f"Quiz: {post.title}",
+        )
+        db.session.add(xp_tx)
     current_user.update_streak()
 
     db.session.commit()

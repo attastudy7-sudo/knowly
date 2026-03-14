@@ -200,7 +200,7 @@ class User(UserMixin, db.Model):
             self.current_streak = 1
         elif self.last_activity_date == today:
             return
-        elif self.last_activity_date == today - __import__('datetime').timedelta(days=1):
+        elif self.last_activity_date == today - timedelta(days=1):
             self.current_streak += 1
         else:
             self.current_streak = 1
@@ -380,6 +380,8 @@ class Post(db.Model):
             return None
         try:
             m = self._quiz_meta_parsed()
+            if m.get("document_type") != "quiz":
+                return None
             return {
                 "questions": m.get("total_questions"),
                 "marks":     m.get("total_marks"),
