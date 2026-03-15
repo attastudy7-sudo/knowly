@@ -2,9 +2,6 @@
 {% block title %}{{ title }}    {% endblock %}
 
 {% block extra_css %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
 
 <style>
@@ -13,41 +10,44 @@
    ════════════════════════════════════════════════════════════ */
 
 :root {
-    --qz-ink:       #0d0f14;
-    --qz-paper:     #fafaf8;
+    --qz-ink:       #0f172a;
+    --qz-paper:     #f8fafc;
     --qz-card:      #ffffff;
-    --qz-border:    #e4e2dc;
-    --qz-muted:     #8a8880;
-    --qz-secondary: #5a5855;
+    --qz-border:    #e2e8f0;
+    --qz-muted:     #94a3b8;
+    --qz-secondary: #64748b;
 
-    --qz-accent:    #6366f1;
+    --qz-accent:    #2563eb;
     --qz-violet:    #8b5cf6;
     --qz-correct:   #0f7d56;
     --qz-wrong:     #c93030;
     --qz-warn:      #c47a00;
 
-    --qz-accent-bg:   rgba(99, 102, 241, 0.07);
+    --qz-accent-bg:   rgba(37, 99, 235, 0.07);
     --qz-correct-bg:  rgba(15, 125, 86, 0.07);
     --qz-wrong-bg:    rgba(201, 48, 48, 0.06);
     --qz-warn-bg:     rgba(196, 122, 0, 0.07);
 
-    --qz-radius:    18px;
+    --qz-radius:    14px;
     --qz-radius-sm: 10px;
 
     --qz-shadow-sm: 0 1px 4px rgba(0,0,0,.06);
     --qz-shadow:    0 4px 20px rgba(0,0,0,.08);
     --qz-shadow-lg: 0 12px 48px rgba(0,0,0,.14);
+
+    --qz-font-display: 'Nunito', sans-serif;
+    --qz-font-body:    'DM Sans', sans-serif;
 }
 
 [data-theme="dark"] {
-    --qz-ink:      #f0ede8;
-    --qz-paper:    #0e1016;
-    --qz-card:     #181b24;
-    --qz-border:   #282d3a;
-    --qz-muted:    #64697a;
-    --qz-secondary:#9da3b4;
+    --qz-ink:      #f1f5f9;
+    --qz-paper:    #0f172a;
+    --qz-card:     #1e293b;
+    --qz-border:   #334155;
+    --qz-muted:    #64748b;
+    --qz-secondary:#94a3b8;
 
-    --qz-accent-bg:   rgba(99, 102, 241, 0.12);
+    --qz-accent-bg:   rgba(37, 99, 235, 0.12);
     --qz-correct-bg:  rgba(15, 125, 86, 0.10);
     --qz-wrong-bg:    rgba(201, 48, 48, 0.10);
     --qz-warn-bg:     rgba(196, 122, 0, 0.10);
@@ -62,6 +62,7 @@
 body {
     background: var(--qz-paper);
     color: var(--qz-ink);
+    font-family: var(--qz-font-body);
 }
 
 .top-nav { display: none !important; }
@@ -115,7 +116,7 @@ body {
 
 .qz-onboard-stripe {
     height: 4px;
-    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #0f7d56 100%);
+    background: linear-gradient(90deg, #2563eb 0%, #8b5cf6 50%, #0f7d56 100%);
 }
 
 .qz-onboard-body { padding: 2.25rem 2rem 2rem; }
@@ -461,7 +462,7 @@ body {
 }
 
 .qz-stripe { height: 4px; width: 100%; }
-.qz-stripe.mcq  { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+.qz-stripe.mcq  { background: linear-gradient(90deg, #2563eb, #06b6d4); }
 .qz-stripe.tf   { background: linear-gradient(90deg, #0f7d56, #34d399); }
 .qz-stripe.open { background: linear-gradient(90deg, #c47a00, #fbbf24); }
 
@@ -491,8 +492,9 @@ body {
 }
 
 .qz-q-text {
-    font-size: 1.1rem; font-weight: 700; color: var(--qz-ink);
+    font-size: 1.1rem; font-weight: 600; color: var(--qz-ink);
     line-height: 1.6; margin-bottom: 1.75rem; word-break: break-word; letter-spacing: -.015em;
+    font-family: var(--qz-font-body);
 }
 
 /* ── Options ── */
@@ -571,8 +573,8 @@ body {
     transition: all .18s; text-decoration: none; white-space: nowrap; letter-spacing: .01em;
 }
 
-.qz-btn-p { background: var(--qz-accent); color: #fff; box-shadow: 0 3px 12px rgba(99,102,241,.28); }
-.qz-btn-p:hover { background: #4f52d8; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,.36); color: #fff; }
+.qz-btn-p { background: var(--qz-accent); color: #fff; box-shadow: 0 3px 12px rgba(37,99,235,.28); }
+.qz-btn-p:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,.36); color: #fff; }
 .qz-btn-p:disabled { opacity: .4; cursor: default; transform: none; box-shadow: none; }
 
 .qz-btn-s { background: var(--qz-paper); color: var(--qz-secondary); border: 1.5px solid var(--qz-border); }
@@ -594,26 +596,26 @@ body {
     border-left: 4px solid var(--qz-accent);
     border-radius: var(--qz-radius); padding: 3rem 2rem 2.75rem;
     text-align: center; margin-bottom: 1.25rem; overflow: hidden;
-    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.15);
 }
 
 .qz-res-hero::before {
     content: ''; position: absolute; top: -100px; right: -100px;
     width: 360px; height: 360px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(139,92,246,.28) 0%, transparent 60%);
+    background: radial-gradient(circle, rgba(37,99,235,.22) 0%, transparent 60%);
     pointer-events: none;
 }
 .qz-res-hero::after {
     content: ''; position: absolute; bottom: -70px; left: -60px;
     width: 260px; height: 260px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(99,102,241,.18) 0%, transparent 60%);
+    background: radial-gradient(circle, rgba(6,182,212,.15) 0%, transparent 60%);
     pointer-events: none;
 }
 
 .qz-ring-wrap { position: relative; width: 154px; height: 154px; margin: 0 auto 1.75rem; }
 .qz-ring-wrap svg { transform: rotate(-90deg); }
 .ring-bg   { fill: none; stroke: rgba(255,255,255,.12); stroke-width: 9; }
-.ring-fill { fill: none; stroke-width: 9; stroke-linecap: round; stroke: var(--qz-accent); transition: stroke-dashoffset 1.3s cubic-bezier(.4,0,.2,1); }
+.ring-fill { fill: none; stroke-width: 9; stroke-linecap: round; stroke: url(#ringGradient); transition: stroke-dashoffset 1.3s cubic-bezier(.4,0,.2,1); }
 .ring-fill.great { stroke: #34d399; }
 .ring-fill.good  { stroke: #a5b4fc; }
 .ring-fill.poor  { stroke: #fbbf24; }
@@ -623,7 +625,7 @@ body {
 .qz-ring-pct { font-size: 2.25rem; font-weight: 900; color: #fff; line-height: 1; letter-spacing: -.04em; }
 .qz-ring-lbl { font-size: .62rem; font-weight: 700; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .1em; margin-top: .2rem; }
 
-.qz-res-title { font-size: clamp(1.6rem, 3.5vw, 2.1rem); font-weight: 900; color: #fff; margin: 0 0 .4rem; letter-spacing: -.035em; position: relative; z-index: 1; }
+.qz-res-title { font-size: clamp(1.6rem, 3.5vw, 2.1rem); font-weight: 900; color: #fff; margin: 0 0 .4rem; letter-spacing: -.035em; position: relative; z-index: 1; font-family: var(--qz-font-display); }
 .qz-res-sub   { color: rgba(255,255,255,.42); font-size: .875rem; margin: 0 0 1.75rem; position: relative; z-index: 1; }
 
 .qz-xp {
@@ -686,8 +688,8 @@ body {
 [data-theme="dark"] .qz-mode-card { border-color: #282d3a; background: #1a1d27; }
 [data-theme="dark"] .qz-mode-card:hover { background: rgba(99,102,241,.1); }
 [data-theme="dark"] .qz-mode-card.active { background: rgba(99,102,241,.12); }
-[data-theme="dark"] .qz-btn-s { background: #252836; color: #9da3b4; border-color: #282d3a; }
-[data-theme="dark"] .qz-btn-s:hover { color: #f0ede8; border-color: #363c50; background: #2e3244; }
+[data-theme="dark"] .qz-btn-s { background: #1e293b; color: #94a3b8; border-color: #334155; }
+[data-theme="dark"] .qz-btn-s:hover { color: #f1f5f9; border-color: #475569; background: #334155; }
 [data-theme="dark"] .qz-onboard-footer { border-color: #282d3a; }
 [data-theme="dark"] .qz-hero-title { color: #f1f5f9; }
 
@@ -1199,6 +1201,12 @@ body {
         <div class="qz-res-hero">
             <div class="qz-ring-wrap">
                 <svg width="154" height="154" viewBox="0 0 154 154">
+                    <defs>
+                        <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#2563eb"/>
+                            <stop offset="100%" stop-color="#06b6d4"/>
+                        </linearGradient>
+                    </defs>
                     <circle class="ring-bg" cx="77" cy="77" r="67"/>
                     <circle class="ring-fill" id="ringFill" cx="77" cy="77" r="67"
                             stroke-dasharray="421.0" stroke-dashoffset="421.0"/>
@@ -1311,7 +1319,7 @@ document.addEventListener('DOMContentLoaded', initMonetization);
 // ─────────────────────────────────────────────────────────────────────────────
 // Quiz data
 // ─────────────────────────────────────────────────────────────────────────────
-const QUIZ_DATA   = {{ quiz_json | safe }};
+const QUIZ_DATA   = {{ quiz_json | tojson }};
 const TOTAL_MARKS = QUIZ_DATA.total_marks;
 const XP_REWARD   = QUIZ_DATA.xp_reward;
 
@@ -1382,24 +1390,28 @@ function flattenQuestions(rawQuestions) {
             }
         }
 
-        // Shuffle MCQ options and remap the correct answer letter
+        // Shuffle MCQ answer texts across fixed A, B, C, D positions.
+        // correctLetter tracks whichever letter the correct text lands on.
+        let correctLetter = answer;
         if (type === 'mcq' && Array.isArray(options) && options.length > 1) {
-            const letters = ['A','B','C','D','E','F'];
-            // Find which original letter is the correct one
+            const labels = ['A', 'B', 'C', 'D'];
+            // Extract just the texts in original order
+            const texts = options.map(o => o.text);
+            // Find the correct text before shuffling
             const correctText = (options.find(o =>
-                (o.letter || '').toString().toUpperCase() === answer.toUpperCase()
+                (o.letter || '').toUpperCase() === answer.toUpperCase()
             ) || {}).text || null;
-            // Fisher-Yates shuffle
-            for (let i = options.length - 1; i > 0; i--) {
+            // Fisher-Yates shuffle on texts
+            for (let i = texts.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [options[i], options[j]] = [options[j], options[i]];
+                [texts[i], texts[j]] = [texts[j], texts[i]];
             }
-            // Relabel A, B, C, D in new order
-            options = options.map((o, i) => ({ letter: letters[i], text: o.text }));
-            // Remap answer to whichever letter now holds the correct text
+            // Rebuild options with fixed A, B, C, D labels and shuffled texts
+            options = labels.map((ltr, i) => ({ letter: ltr, text: texts[i] }));
+            // Find which letter now holds the correct text
             if (correctText !== null) {
-                const newCorrect = options.find(o => o.text === correctText);
-                if (newCorrect) answer = newCorrect.letter;
+                const found = options.find(o => o.text === correctText);
+                if (found) correctLetter = found.letter;
             }
         }
 
@@ -1407,7 +1419,7 @@ function flattenQuestions(rawQuestions) {
             type,
             question:    renderMath(q.question || q.question_text || ''),
             rawQuestion: q.question || q.question_text || '',
-            answer,
+            answer:      correctLetter,
             explanation: q.explanation || '',
             marks:       q.marks || 0,
             section:     q.section || '',
@@ -1470,6 +1482,7 @@ async function startQuiz() {
     document.getElementById('timerBar')          .style.display = 'flex';
     document.getElementById('quizProgress')      .style.display = 'block';
     document.getElementById('questionContainer') .style.display = 'block';
+    document.querySelector('.qz-hero-back')      .style.display = 'none';
 
     startTimer();
     renderQuestion(0);
@@ -1676,7 +1689,7 @@ function confirmAnswer(idx) {
 
     const isLast = idx === QUESTIONS.length - 1;
     confirmBtn.innerHTML = isLast
-        ? '📊 View Results'
+        ? '<i class="fas fa-chart-bar"></i> View Results'
         : 'Next Question <i class="fas fa-arrow-right"></i>';
     confirmBtn.disabled = false;
     confirmBtn.onclick  = () => {
@@ -1697,31 +1710,53 @@ async function submitQuiz(timedOut) {
     document.getElementById('quizProgress')     .style.display = 'none';
     document.getElementById('timerBar')         .style.display = 'none';
 
-    let result;
+    // Show results immediately from client-side data so user never waits
+    const localResult = {
+        score_pct:    Math.round((earnedMarks / TOTAL_MARKS) * 100),
+        percentage:   Math.round((earnedMarks / TOTAL_MARKS) * 100),
+        earned_marks: earnedMarks,
+        total_marks:  TOTAL_MARKS,
+        xp_earned:    Math.max(1, Math.round(XP_REWARD * earnedMarks / TOTAL_MARKS)),
+        passed:       earnedMarks / TOTAL_MARKS >= 0.5,
+        can_publish:  false,
+        time_display: formatTime(elapsed),
+        scored:       QUESTIONS.map((q, i) => {
+            const isA = q.options && q.options.length > 0 && q.answer && q.answer !== 'See subparts';
+            if (!isA) return { is_correct: null, marks_earned: 0 };
+            const ua = (userAnswers[i] || '').toString().trim().toUpperCase();
+            const ca = (q.answer || '').toString().trim().toUpperCase();
+            const correct = ua === ca && ca !== '';
+            return { is_correct: correct, marks_earned: correct ? q.marks : 0 };
+        }),
+    };
+    showResults(localResult, timedOut);
+
+    // Submit to server in background to record attempt and get XP/publish status
     try {
+        const correctLetters = {};
+        QUESTIONS.forEach((q, i) => { if (q.answer) correctLetters[i] = q.answer; });
         const resp = await fetch(SUBMIT_URL, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
-            body:    JSON.stringify({ answers: userAnswers, timed_out: timedOut }),
+            body:    JSON.stringify({ answers: userAnswers, correct_answers: correctLetters, timed_out: timedOut }),
         });
-        if (resp.status === 409) {
-            showError('This quiz has already been submitted.');
-            return;
+        if (resp.status === 409) return;
+        const serverResult = await resp.json();
+        // Update XP badge and publish button from server response
+        if (serverResult.xp_earned > 0) {
+            const b = document.getElementById('xpBadge');
+            b.style.display = 'inline-flex';
+            document.getElementById('xpBadgeText').textContent = `+${serverResult.xp_earned} XP Earned!`;
         }
-        result = await resp.json();
+        if (serverResult.can_publish) {
+            const actionsDiv = document.querySelector('.qz-res-actions');
+            if (actionsDiv && !document.getElementById('publishBtn')) {
+                showPublishPrompt(actionsDiv);
+            }
+        }
     } catch (e) {
-        result = {
-            score_pct:    Math.round((earnedMarks / TOTAL_MARKS) * 100),
-            percentage:   Math.round((earnedMarks / TOTAL_MARKS) * 100),
-            earned_marks: earnedMarks,
-            total_marks:  TOTAL_MARKS,
-            xp_earned:    Math.max(1, Math.round(XP_REWARD * earnedMarks / TOTAL_MARKS)),
-            passed:       earnedMarks / TOTAL_MARKS >= 0.5,
-            can_publish:  false,
-            time_display: formatTime(elapsed),
-        };
+        // Server submission failed silently — local results already shown
     }
-    showResults(result, timedOut);
 }
 
 function showError(msg) {
@@ -1732,7 +1767,8 @@ function showError(msg) {
 
 function showResults(result, timedOut) {
     const scorePct    = result.score_pct    || result.percentage || 0;
-    document.getElementById('backToPostBtn').href = `{{ url_for('posts.view', post_id=post.id) }}?shared=1&score=${scorePct.toFixed(0)}`;
+    const backBtn = document.getElementById('backToPostBtn');
+    if (backBtn) backBtn.href = `{{ url_for('posts.view', post_id=post.id) }}?shared=1&score=${scorePct.toFixed(0)}`;
     const xpEarned    = result.xp_earned   || 0;
     const earnedMk    = result.earned_marks || 0;
     const totalMk     = QUIZ_DATA.total_marks;
@@ -1748,8 +1784,8 @@ function showResults(result, timedOut) {
     );
     document.getElementById('ringPct').textContent = scorePct.toFixed(2) + '%';
 
-    const titles = ['Keep Studying! 📖', 'Good Effort! 💪', 'Well Done! 🎉', 'Excellent! 🌟'];
-    document.getElementById('resultsTitle')   .textContent = timedOut ? "Time's Up! ⏰"
+    const titles = ['Keep Studying!', 'Good Effort!', 'Well Done!', 'Excellent!'];
+    document.getElementById('resultsTitle')   .innerHTML = timedOut ? '<i class="fas fa-hourglass-end"></i> Time\'s Up!'
         : titles[scorePct >= 80 ? 3 : scorePct >= 60 ? 2 : scorePct >= 40 ? 1 : 0];
     document.getElementById('resultsSubtitle').textContent = timedOut
         ? `Timer ran out — you answered ${Object.keys(userAnswers).length} of ${QUESTIONS.length} questions.`
@@ -1761,7 +1797,7 @@ function showResults(result, timedOut) {
         document.getElementById('xpBadgeText').textContent = `+${xpEarned} XP Earned!`;
     }
 
-const totalQuestions = QUESTIONS.length;
+    const totalQuestions = QUESTIONS.length;
     const correctAnswers = (result.scored || []).filter(s => s && s.is_correct).length;
     document.getElementById('statCorrect').textContent = `${correctAnswers}/${totalQuestions}`;
     document.getElementById('statQuestions').textContent = QUESTIONS.length;
@@ -1774,20 +1810,20 @@ const totalQuestions = QUESTIONS.length;
         const sc   = scored[i] || null;
         const uAns = (userAnswers[i] || '—').toString();
         const isA  = q.options && q.options.length > 0 && q.answer && q.answer !== 'See subparts';
-        let cls = 'r-op', icon = '📝';
+        let cls = 'r-op', icon = '<i class="fas fa-pencil-alt" style="color:var(--qz-warn)"></i>';
         const isCorrect = isA && sc ? sc.is_correct : null;
-        if (isA && sc) { cls = isCorrect ? 'r-ok' : 'r-err'; icon = isCorrect ? '✅' : '❌'; }
+        if (isA && sc) { cls = isCorrect ? 'r-ok' : 'r-err'; icon = isCorrect ? '<i class="fas fa-check-circle" style="color:var(--qz-correct)"></i>' : '<i class="fas fa-times-circle" style="color:var(--qz-wrong)"></i>'; }
 
-        // Resolve selected option text and correct option text
+        // Resolve option text for display instead of raw letters
         const uOptObj  = isA ? (q.options.find(o => (o.letter||'').toUpperCase() === uAns.toUpperCase()) || null) : null;
         const cOptObj  = isA ? (q.options.find(o => (o.letter||'').toUpperCase() === (q.answer||'').toUpperCase()) || null) : null;
-        const uAnsText = uOptObj ? uOptObj.text : uAns;
-        const cAnsText = cOptObj ? cOptObj.text : (q.answer || '');
+        const uAnsText = renderMath(uOptObj ? uOptObj.text : uAns);
+        const cAnsText = renderMath(cOptObj ? cOptObj.text : (q.answer || ''));
 
-        const qText = (q.rawQuestion || '').replace(/<[^>]+>/g, '');
-        const qSnip = qText.length > 80 ? qText.substring(0, 80) + '…' : qText;
+        const qText = (q.rawQuestion || '');
+        const qSnip = renderMath(qText.length > 80 ? qText.substring(0, 80) + '…' : qText);
 
-        // Explanation — open by default on wrong answers
+        // Explanation — open by default on wrong answers, collapsed on correct
         const expText = (q.explanation || '').trim();
         const expHtml = expText
             ? `<details class="qz-rev-exp"${isCorrect === false ? ' open' : ''}>
@@ -1801,12 +1837,14 @@ const totalQuestions = QUESTIONS.length;
             <div class="qz-rev-q">${icon} Q${i + 1}: ${qSnip}</div>
             <div class="qz-rev-ans">
                 Your answer: <strong>${uAnsText}</strong>
-                ${isA && cAnsText && !isCorrect ? ` · Correct: <strong>${cAnsText}</strong>` : ''}
+                ${isA && cAnsText && isCorrect === false ? ` · Correct: <strong>${cAnsText}</strong>` : ''}
             </div>
             ${expHtml}
         </div>`;
     });
-    document.getElementById('resultsReview').innerHTML = html;
+    const reviewEl = document.getElementById('resultsReview');
+    reviewEl.innerHTML = html;
+    renderKatexInElement(reviewEl);
 
     // Only show publish button if backend confirmed score >= 60%
     if (canPublish) {
@@ -1818,6 +1856,8 @@ const totalQuestions = QUESTIONS.length;
     }
 
     document.getElementById('resultsScreen').classList.add('show');
+    const backLink = document.querySelector('.qz-hero-back');
+    if (backLink) backLink.style.display = 'inline-flex';
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 

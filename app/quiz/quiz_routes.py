@@ -89,7 +89,7 @@ def quiz_start(post_id):
             post=post,
             quiz_data=quiz_data,
             meta=meta,
-            quiz_json=json.dumps(quiz_json)
+            quiz_json=quiz_json
         )
     
     # For POST requests, return JSON response
@@ -158,9 +158,10 @@ def quiz_submit(post_id):
     session.pop(start_key, None)
 
     # ── Parse request body ───────────────────────────────────────────────────
-    data        = request.get_json(silent=True) or {}
-    user_answers = data.get('answers', {})
-    timed_out    = bool(data.get('timed_out', False))
+    data            = request.get_json(silent=True) or {}
+    user_answers    = data.get('answers', {})
+    correct_answers = data.get('correct_answers', {})
+    timed_out       = bool(data.get('timed_out', False))
 
     # ── Grade answers ────────────────────────────────────────────────────────
     # Quiz questions are stored as a flat list (from normalise_quiz_to_flat_questions)
@@ -183,8 +184,8 @@ def quiz_submit(post_id):
         # Get user answer for this question
         user_ans = str(user_answers.get(str(flat_index), '')).strip()
         
-        # Get correct answer
-        correct_ans = str(q.get('answer') or '').strip()
+        # Use client-remapped correct letter if provided (post-shuffle), else fall back to DB letter
+        correct_ans = str(correct_answers.get(str(flat_index)) or q.get('answer') or '').strip()
         
         # Determine if auto-graded - any question with options and correct_answer can be auto-graded
         has_options = bool(q.get('options'))

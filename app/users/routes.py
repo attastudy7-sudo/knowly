@@ -287,20 +287,34 @@ def search():
                                content_type=content_type,
                                subject_id=subject_id)
 
-    # Search users
+    like = f'%{query}%'
+
+    # Search users — case-insensitive
     users = User.query.filter(
         db.or_(
-            User.username.contains(query),
-            User.full_name.contains(query)
+            User.username.ilike(like),
+            User.full_name.ilike(like)
         )
     ).limit(12).all()
 
-    # Search posts — approved only
+    # Search posts — approved only, case-insensitive, title matches ranked first
+    from app.models import Subject
+    from sqlalchemy import case as sa_case
+
+    title_match = Post.title.ilike(like)
+    desc_match  = Post.description.ilike(like)
+
+    # Also match posts whose subject name contains the query
+    subject_name_ids = [
+        s.id for s in Subject.query.filter(Subject.name.ilike(like)).all()
+    ]
+
     post_query = Post.query.filter(
         Post.status == 'approved',
         db.or_(
-            Post.title.contains(query),
-            Post.description.contains(query)
+            title_match,
+            desc_match,
+            Post.subject_id.in_(subject_name_ids) if subject_name_ids else db.false()
         )
     )
 
@@ -310,7 +324,13 @@ def search():
     if subject_id:
         post_query = post_query.filter(Post.subject_id == subject_id)
 
-    posts = post_query.order_by(Post.created_at.desc()).limit(30).all()
+    # Title matches rank first, then description matches, then subject matches
+    relevance = sa_case(
+        (title_match, 1),
+        (desc_match, 2),
+        else_=3
+    )
+    posts = post_query.order_by(relevance, Post.created_at.desc()).limit(40).all()
 
     return render_template('users/search.html',
                            title=f'Results for "{query}"',
@@ -319,7 +339,8 @@ def search():
                            posts=posts,
                            subjects=subjects,
                            content_type=content_type,
-                           subject_id=subject_id)
+                           subject_id=subject_id,
+                           total_results=len(users) + len(posts))
                            
 @bp.route('/skip-education', methods=['POST'])
 @login_required

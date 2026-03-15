@@ -196,7 +196,26 @@ def create_app(config_class=Config):
         except (json.JSONDecodeError, TypeError):
             return {}
     
-    app.jinja_env.filters['markdown'] = mistune.html
+    import re as _re
+
+    def _safe_markdown(text):
+        if not text:
+            return ''
+        math_blocks = []
+        def _stash(m):
+            idx = len(math_blocks)
+            math_blocks.append(m.group(0))
+            return f'\x00MATH{idx}\x00'
+        text = _re.sub(r'\$\$.+?\$\$', _stash, text, flags=_re.DOTALL)
+        text = _re.sub(r'\\\[.+?\\\]', _stash, text, flags=_re.DOTALL)
+        text = _re.sub(r'\$[^\$\n]+?\$', _stash, text)
+        text = _re.sub(r'\\\(.+?\\\)', _stash, text, flags=_re.DOTALL)
+        text = mistune.html(text)
+        for i, block in enumerate(math_blocks):
+            text = text.replace(f'\x00MATH{i}\x00', block)
+        return text
+
+    app.jinja_env.filters['markdown'] = _safe_markdown
     app.jinja_env.filters['fromjson'] = json.loads
 
     register_error_handlers(app)

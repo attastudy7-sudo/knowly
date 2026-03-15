@@ -492,7 +492,8 @@
 .cm-btn-green:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(16,185,129,.4); }
 .cm-btn-secondary { background: var(--bg-hover, rgba(255,255,255,.06)); color: var(--text-primary, #f1f5f9) !important; border: 1.5px solid var(--border, #2e3244); }
 .cm-btn-secondary:hover { border-color: #2563eb; color: #2563eb !important; }
-
+.cm-btn-study { background: linear-gradient(135deg, #1d4ed8, #2563eb); color: white !important; box-shadow: 0 4px 16px rgba(37,99,235,.3); }
+.cm-btn-study:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,.4); }
 /* ── ANIMATIONS ── */
 .post-row { animation: fadeUp .2s ease-out both; }
 .post-row:nth-child(2) { animation-delay: .04s; }
@@ -559,6 +560,9 @@ document.addEventListener('click', function(e) {
     if (documentId) html += mkBtn('cm-btn-secondary', `/document/${documentId}/download`, 'fa-download', 'Download Document');
   } else if (ct === 'notes' || ct === 'cheatsheet') {
     html += mkBtn('cm-btn-green', `/posts/${postId}`, 'fa-eye', 'Read');
+    if (ct === 'notes') {
+      html += `<a href="/posts/${postId}?study=1" class="cm-btn cm-btn-study"><i class="fas fa-book-open"></i> Study Mode</a>`;
+    }
     if (documentId) html += mkBtn('cm-btn-secondary', `/document/${documentId}/download`, 'fa-download', 'Download');
   } else {
     if (documentId) {

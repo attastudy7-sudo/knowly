@@ -1,653 +1,910 @@
-{% extends "base.html" %}
-{% block title %}{{ post.title }}{% endblock %}
-{% block og_title %}{{ post.title }} - knowly{% endblock %}
-{% block og_description %}{{ post.description | striptags | truncate(160) if post.description else 'Notes on knowly' }}{% endblock %}
+  {% extends "base.html" %}
+  {% block title %}{{ post.title }}{% endblock %}
+  {% block og_title %}{{ post.title }} - knowly{% endblock %}
+  {% block og_description %}{{ post.description | striptags | truncate(160) if post.description else 'Notes on knowly' }}{% endblock %}
 
-{% block content %}
-<script>
-window.MathJax = {
+  {% block content %}
+  <script>
+  window.MathJax = {
   tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
-  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] },
+  chtml: { fontURL: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2' },
+  svg: { fontCache: 'global' }
 };
-</script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
 
-<div class="nv-root">
+  <div class="nv-root">
 
-  {# ══ TOP BAR ══ #}
-  <header class="nv-topbar">
-    <a href="{{ request.referrer or url_for('main.index') }}" class="nv-back" title="Back">
-      <i class="fas fa-arrow-left"></i>
+    {# ══ TOP BAR ══ #}
+    <header class="nv-topbar">
+      <a href="{{ request.referrer or url_for('main.index') }}" class="nv-back" title="Back">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <div class="nv-topbar-meta">
+        <span class="nv-type-pill"><i class="fas fa-sticky-note"></i> Notes</span>
+        {% if post.subject %}
+        <span class="nv-subject-pill" style="--sc:{{ post.subject.color }}">
+          <i class="fas fa-{{ post.subject.icon }}"></i> {{ post.subject.name }}
+        </span>
+        {% endif %}
+        {% if quiz_meta.get('level') %}
+        <span class="nv-level-pill">{{ quiz_meta.get('level') }}</span>
+        {% endif %}
+      </div>
+      <div class="nv-topbar-actions">
+        {% if current_user.is_authenticated %}
+        <button class="nv-icon-btn {% if post.is_liked_by(current_user) %}is-liked{% endif %}"
+                id="likeBtn" data-post-id="{{ post.id }}"
+                data-liked="{{ 'true' if post.is_liked_by(current_user) else 'false' }}"
+                data-base="{{ ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}"
+                onclick="toggleLike(this)" title="Like">
+          <i class="fas fa-heart"></i>
+          <span id="likeCount">{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
+        </button>
+        {% endif %}
+        <a href="#comments" class="nv-icon-btn" title="Comments">
+          <i class="fas fa-comment"></i>
+          <span>{{ post.comment_count() }}</span>
+        </a>
+        {% if structured_content %}
+        <button class="nv-icon-btn nv-study-toggle" id="studyToggleBtn" onclick="enterStudyMode()" title="Study Mode">
+          <i class="fas fa-book-open"></i>
+          <span>Study</span>
+        </button>
+        {% endif %}
+        {% if current_user.is_authenticated and current_user.id == post.user_id %}
+        <a href="{{ url_for('posts.edit', post_id=post.id) }}" class="nv-icon-btn" title="Edit">
+          <i class="fas fa-pen"></i>
+        </a>
+        {% endif %}
+      </div>
+    </header>
+
+    {# ══ MAIN LAYOUT ══ #}
+    <div class="nv-layout">
+
+      {# ── SIDEBAR ── #}
+      <aside class="nv-sidebar" id="nvSidebar">
+        <div class="nv-sidebar-inner">
+
+          <div class="nv-doc-header">
+            <h1 class="nv-doc-title">{{ post.title }}</h1>
+            <div class="nv-doc-byline">
+              <a href="{{ url_for('users.profile', username=post.author.username) }}" class="nv-author-link">
+                <img src="{{ post.author.profile_picture_url }}" class="nv-author-avatar" alt="">
+                <span>{{ post.author.full_name or post.author.username }}</span>
+              </a>
+              <span class="nv-dot">·</span>
+              <span>{{ post.created_at.strftime('%b %d, %Y') }}</span>
+            </div>
+
+            {% if post.description %}
+            <div class="nv-desc-wrap" id="descWrap">
+              <div class="nv-doc-desc" id="descText">{{ post.description | markdown | safe }}</div>
+              <button class="nv-show-more" id="descToggle" onclick="toggleDesc()">
+                <i class="fas fa-chevron-down" id="descChevron"></i> Show more
+              </button>
+            </div>
+            {% endif %}
+
+            <div class="nv-meta-pills">
+              {% if quiz_meta.get('estimated_read_time') or quiz_meta.get('metadata', {}).get('estimated_read_time') %}
+              <span class="nv-meta-pill"><i class="fas fa-clock"></i> {{ quiz_meta.get('estimated_read_time') or quiz_meta.get('metadata', {}).get('estimated_read_time') }}</span>
+              {% endif %}
+              {% if quiz_meta.get('course') or quiz_meta.get('metadata', {}).get('course') %}
+              <span class="nv-meta-pill"><i class="fas fa-graduation-cap"></i> {{ quiz_meta.get('course') or quiz_meta.get('metadata', {}).get('course') }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <nav class="nv-toc" aria-label="Table of contents">
+            <div class="nv-toc-label">Contents</div>
+            {% if structured_content %}
+            <ul class="nv-toc-list">
+              {% for section in structured_content %}
+              <li>
+                <a href="#section-{{ loop.index }}" class="nv-toc-link" data-section="{{ loop.index }}">
+                  <span class="nv-toc-num">{{ section.section_number }}</span>
+                  <span class="nv-toc-text">{{ section.section_title }}</span>
+                </a>
+              </li>
+              {% endfor %}
+              {% if quiz_meta.get('summary') %}
+              <li>
+                <a href="#section-summary" class="nv-toc-link" data-section="summary">
+                  <span class="nv-toc-num"><i class="fas fa-list-ul" style="font-size:.52rem"></i></span>
+                  <span class="nv-toc-text">Summary</span>
+                </a>
+              </li>
+              {% endif %}
+            </ul>
+            {% endif %}
+          </nav>
+
+          {% if post.has_document and post.document_id %}
+  <div class="nv-sidebar-dl">
+    <a href="{{ url_for('posts.download_document', document_id=post.document_id) }}" class="nv-dl-btn">
+      <i class="fas fa-download"></i> Download PDF
     </a>
-    <div class="nv-topbar-meta">
-      <span class="nv-type-pill"><i class="fas fa-sticky-note"></i> Notes</span>
-      {% if post.subject %}
-      <span class="nv-subject-pill" style="--sc:{{ post.subject.color }}">
-        <i class="fas fa-{{ post.subject.icon }}"></i> {{ post.subject.name }}
-      </span>
-      {% endif %}
-      {% if quiz_meta.get('level') %}
-      <span class="nv-level-pill">{{ quiz_meta.get('level') }}</span>
-      {% endif %}
-    </div>
-    <div class="nv-topbar-actions">
-      {% if current_user.is_authenticated %}
-      <button class="nv-icon-btn {% if post.is_liked_by(current_user) %}is-liked{% endif %}"
-              id="likeBtn" data-post-id="{{ post.id }}"
-              data-liked="{{ 'true' if post.is_liked_by(current_user) else 'false' }}"
-              data-base="{{ ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}"
-              onclick="toggleLike(this)" title="Like">
-        <i class="fas fa-heart"></i>
-        <span id="likeCount">{{ post.like_count() + ((post.id * 37 + post.created_at.toordinal() * 13) % 180) + 12 }}</span>
-      </button>
-      {% endif %}
-      <a href="#comments" class="nv-icon-btn" title="Comments">
-        <i class="fas fa-comment"></i>
-        <span>{{ post.comment_count() }}</span>
-      </a>
-      {% if current_user.is_authenticated and current_user.id == post.user_id %}
-      <a href="{{ url_for('posts.edit', post_id=post.id) }}" class="nv-icon-btn" title="Edit">
-        <i class="fas fa-pen"></i>
-      </a>
-      {% endif %}
-    </div>
-  </header>
+  </div>
+  {% endif %}
 
-  {# ══ MAIN LAYOUT ══ #}
-  <div class="nv-layout">
-
-    {# ── SIDEBAR ── #}
-    <aside class="nv-sidebar" id="nvSidebar">
-      <div class="nv-sidebar-inner">
-
-        <div class="nv-doc-header">
-          <h1 class="nv-doc-title">{{ post.title }}</h1>
-          <div class="nv-doc-byline">
-            <a href="{{ url_for('users.profile', username=post.author.username) }}" class="nv-author-link">
-              <img src="{{ post.author.profile_picture_url }}" class="nv-author-avatar" alt="">
-              <span>{{ post.author.full_name or post.author.username }}</span>
-            </a>
-            <span class="nv-dot">·</span>
-            <span>{{ post.created_at.strftime('%b %d, %Y') }}</span>
-          </div>
-
-          {% if post.description %}
-          <div class="nv-desc-wrap" id="descWrap">
-            <div class="nv-doc-desc" id="descText">{{ post.description | markdown | safe }}</div>
-            <button class="nv-show-more" id="descToggle" onclick="toggleDesc()">
-              <i class="fas fa-chevron-down" id="descChevron"></i> Show more
-            </button>
-          </div>
-          {% endif %}
-
-          <div class="nv-meta-pills">
-            {% if quiz_meta.get('estimated_read_time') or quiz_meta.get('metadata', {}).get('estimated_read_time') %}
-            <span class="nv-meta-pill"><i class="fas fa-clock"></i> {{ quiz_meta.get('estimated_read_time') or quiz_meta.get('metadata', {}).get('estimated_read_time') }}</span>
-            {% endif %}
-            {% if quiz_meta.get('course') or quiz_meta.get('metadata', {}).get('course') %}
-            <span class="nv-meta-pill"><i class="fas fa-graduation-cap"></i> {{ quiz_meta.get('course') or quiz_meta.get('metadata', {}).get('course') }}</span>
-            {% endif %}
-          </div>
         </div>
+      </aside>
 
-        <nav class="nv-toc" aria-label="Table of contents">
-          <div class="nv-toc-label">Contents</div>
+      {# ── CONTENT AREA ── #}
+      <main class="nv-content" id="nvContent">
+
+        {# Mobile TOC toggle #}
+        <button class="nv-toc-toggle" id="tocToggle" onclick="toggleTOC()">
+          <span><i class="fas fa-list"></i> Contents</span>
+          <i class="fas fa-chevron-down" id="tocChevron"></i>
+        </button>
+        <nav class="nv-toc-mobile" id="tocMobile">
           {% if structured_content %}
           <ul class="nv-toc-list">
             {% for section in structured_content %}
             <li>
-              <a href="#section-{{ loop.index }}" class="nv-toc-link" data-section="{{ loop.index }}">
+              <a href="#section-{{ loop.index }}" class="nv-toc-link" onclick="closeTOC()">
                 <span class="nv-toc-num">{{ section.section_number }}</span>
                 <span class="nv-toc-text">{{ section.section_title }}</span>
               </a>
             </li>
             {% endfor %}
-            {% if quiz_meta.get('summary') %}
-            <li>
-              <a href="#section-summary" class="nv-toc-link" data-section="summary">
-                <span class="nv-toc-num"><i class="fas fa-list-ul" style="font-size:.52rem"></i></span>
-                <span class="nv-toc-text">Summary</span>
-              </a>
-            </li>
-            {% endif %}
           </ul>
           {% endif %}
         </nav>
 
-        {% if post.has_document and post.document_id %}
-<div class="nv-sidebar-dl">
-  <a href="{{ url_for('posts.download_document', document_id=post.document_id) }}" class="nv-dl-btn">
-    <i class="fas fa-download"></i> Download PDF
-  </a>
-</div>
-{% endif %}
-
-      </div>
-    </aside>
-
-    {# ── CONTENT AREA ── #}
-    <main class="nv-content" id="nvContent">
-
-      {# Mobile TOC toggle #}
-      <button class="nv-toc-toggle" id="tocToggle" onclick="toggleTOC()">
-        <span><i class="fas fa-list"></i> Contents</span>
-        <i class="fas fa-chevron-down" id="tocChevron"></i>
-      </button>
-      <nav class="nv-toc-mobile" id="tocMobile">
+        {# ── STUDY MODE BAR ── #}
         {% if structured_content %}
-        <ul class="nv-toc-list">
+        <div class="sm-bar" id="smBar" style="display:none">
+          <div class="sm-bar-left">
+            <button class="sm-exit" onclick="exitStudyMode()" title="Exit study mode">
+              <i class="fas fa-times"></i> Read freely
+            </button>
+          </div>
+          <div class="sm-progress-wrap">
+            <div class="sm-progress-track">
+              <div class="sm-progress-fill" id="smProgressFill"></div>
+            </div>
+            <span class="sm-progress-label" id="smProgressLabel">1 / {{ structured_content|length }}</span>
+          </div>
+        </div>
+        {% endif %}
+
+        {# Mobile description #}
+        {% if post.description %}
+        <div class="nv-mobile-desc">
+          <div class="nv-desc-wrap" id="mobileDescWrap">
+            <div class="nv-doc-desc" id="mobileDescText">{{ post.description | markdown | safe }}</div>
+            <button class="nv-show-more" id="mobileDescToggle" onclick="toggleMobileDesc()">
+              <i class="fas fa-chevron-down"></i> Show more
+            </button>
+          </div>
+        </div>
+        {% endif %}
+
+        {# ── SECTIONS ── #}
+        {% if structured_content %}
           {% for section in structured_content %}
-          <li>
-            <a href="#section-{{ loop.index }}" class="nv-toc-link" onclick="closeTOC()">
-              <span class="nv-toc-num">{{ section.section_number }}</span>
-              <span class="nv-toc-text">{{ section.section_title }}</span>
-            </a>
-          </li>
-          {% endfor %}
-        </ul>
-        {% endif %}
-      </nav>
+          <section class="nv-section" id="section-{{ loop.index }}">
 
-      {# Mobile description #}
-      {% if post.description %}
-      <div class="nv-mobile-desc">
-        <div class="nv-desc-wrap" id="mobileDescWrap">
-          <div class="nv-doc-desc" id="mobileDescText">{{ post.description | markdown | safe }}</div>
-          <button class="nv-show-more" id="mobileDescToggle" onclick="toggleMobileDesc()">
-            <i class="fas fa-chevron-down"></i> Show more
-          </button>
-        </div>
-      </div>
-      {% endif %}
-
-      {# ── SECTIONS ── #}
-      {% if structured_content %}
-        {% for section in structured_content %}
-        <section class="nv-section" id="section-{{ loop.index }}">
-
-          <div class="nv-section-header">
-            <span class="nv-section-num">{{ section.section_number }}</span>
-            <div>
-              <h2 class="nv-section-title">{{ section.section_title }}</h2>
-              {% if section.section_type %}
-              <span class="nv-stype-badge nv-stype--{{ section.section_type }}">{{ section.section_type | replace('_', ' ') | title }}</span>
-              {% endif %}
+            <div class="nv-section-header">
+              <span class="nv-section-num">{{ section.section_number }}</span>
+              <div>
+                <h2 class="nv-section-title">{{ section.section_title }}</h2>
+                {% if section.section_type %}
+                <span class="nv-stype-badge nv-stype--{{ section.section_type }}">{{ section.section_type | replace('_', ' ') | title }}</span>
+                {% endif %}
+              </div>
             </div>
-          </div>
 
-          <div class="nv-section-body">
-            {% for cblock in section.content %}
-              {% if not cblock is mapping %}
-              {% elif cblock.block_type == 'paragraph' %}
-              <div class="nv-paragraph"><div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div></div>
+            <div class="nv-section-body">
+              {% for cblock in section.content %}
+                {% if not cblock is mapping %}
+                {% elif cblock.block_type == 'paragraph' %}
+                <div class="nv-paragraph"><div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div></div>
 
-              {% elif cblock.block_type == 'definition' %}
-              <div class="nv-block nv-block--definition">
-                {% if cblock.label %}<div class="nv-block-label">{{ cblock.label | markdown | safe }}</div>{% endif %}
-                <div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>
-              </div>
-
-              {% elif cblock.block_type in ('theorem', 'proof') %}
-              <div class="nv-block nv-block--theorem">
-                {% if cblock.label %}<div class="nv-block-label">{{ cblock.label | markdown | safe }}</div>{% endif %}
-                <div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>
-              </div>
-
-              {% elif cblock.block_type == 'formula' %}
-              <div class="nv-block nv-block--formula">
-                {% if cblock.label %}<div class="nv-block-label">{{ cblock.label }}</div>{% endif %}
-                <div class="nv-formula-text"><div class="nv-math-wrap">{{ cblock.text }}</div></div>
-              </div>
-
-              {% elif cblock.block_type in ('example', 'worked_example') %}
-              <div class="nv-block nv-block--example">
-                <div class="nv-block-label">
-                  <i class="fas fa-flask"></i>
-                  {{ cblock.label if cblock.label else ('Worked Example' if cblock.block_type == 'worked_example' else 'Example') }}
+                {% elif cblock.block_type == 'definition' %}
+                <div class="nv-block nv-block--definition">
+                  {% if cblock.label %}<div class="nv-block-label">{{ cblock.label | markdown | safe }}</div>{% endif %}
+                  <div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>
                 </div>
-                {% if cblock.text %}<div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>{% endif %}
-                {% if cblock.steps %}
-                <ol class="nv-steps">
-                  {% for step in cblock.steps %}<li><div class="nv-math-wrap">{{ step | markdown | safe }}</div></li>{% endfor %}
-                </ol>
+
+                {% elif cblock.block_type in ('theorem', 'proof') %}
+                <div class="nv-block nv-block--theorem">
+                  {% if cblock.label %}<div class="nv-block-label">{{ cblock.label | markdown | safe }}</div>{% endif %}
+                  <div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>
+                </div>
+
+                {% elif cblock.block_type == 'formula' %}
+                <div class="nv-block nv-block--formula">
+                  {% if cblock.label %}<div class="nv-block-label">{{ cblock.label }}</div>{% endif %}
+                  <div class="nv-formula-text"><div class="nv-math-wrap">{{ cblock.text | safe }}</div></div>
+                </div>
+
+                {% elif cblock.block_type in ('example', 'worked_example') %}
+                <div class="nv-block nv-block--example">
+                  <div class="nv-block-label">
+                    <i class="fas fa-flask"></i>
+                    {{ cblock.label if cblock.label else ('Worked Example' if cblock.block_type == 'worked_example' else 'Example') }}
+                  </div>
+                  {% if cblock.text %}<div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>{% endif %}
+                  {% if cblock.steps %}
+                  <ol class="nv-steps">
+                    {% for step in cblock.steps %}<li><div class="nv-math-wrap">{{ step | markdown | safe }}</div></li>{% endfor %}
+                  </ol>
+                  {% endif %}
+                </div>
+
+                {% elif cblock.block_type == 'note' %}
+                <div class="nv-block nv-block--note">
+                  <i class="fas fa-lightbulb nv-note-icon"></i>
+                  <div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>
+                </div>
+
+                {% elif cblock.block_type == 'list' %}
+                <div class="nv-block nv-block--list">
+                  {% if cblock.text or cblock.label %}
+                  <p class="nv-list-title">{{ (cblock.text or cblock.label) | markdown | safe }}</p>
+                  {% endif %}
+                  <ul class="nv-list">
+                    {% for item in cblock.get('items', []) %}<li><div class="nv-math-wrap">{{ item | markdown | safe }}</div></li>{% endfor %}
+                  </ul>
+                </div>
+
+                {% elif cblock.block_type == 'table' %}
+                <div class="nv-block nv-block--table">
+                  {% if cblock.label %}<div class="nv-block-label">{{ cblock.label }}</div>{% endif %}
+                  {% if cblock.headers or cblock.rows %}
+                  <div class="nv-table-wrap">
+                    <table class="nv-table">
+                      {% if cblock.headers %}<thead><tr>{% for h in cblock.headers %}<th><div class="nv-math-wrap">{{ h | markdown | safe }}</div></th>{% endfor %}</tr></thead>{% endif %}
+                      {% if cblock.rows %}<tbody>{% for row in cblock.rows %}<tr>{% for cell in row %}<td><div class="nv-math-wrap">{{ cell | markdown | safe }}</div></td>{% endfor %}</tr>{% endfor %}</tbody>{% endif %}
+                    </table>
+                  </div>
+                  {% elif cblock.text %}<div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>{% endif %}
+                </div>
+
+                {% elif cblock.block_type == 'key_point' or cblock.block_type == 'tip' %}
+                <div class="nv-block nv-block--tip">
+                  <i class="fas fa-star nv-tip-icon"></i>
+                  {% if cblock.label %}<div class="nv-block-label">{{ cblock.label }}</div>{% endif %}
+                  <div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>
+                </div>
+
+                {% elif cblock.block_type == 'warning' or cblock.block_type == 'caution' %}
+                <div class="nv-block nv-block--warning">
+                  <i class="fas fa-exclamation-triangle nv-warning-icon"></i>
+                  {% if cblock.label %}<div class="nv-block-label">{{ cblock.label }}</div>{% endif %}
+                  <div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>
+                </div>
+
+                {% elif cblock.block_type == 'code' %}
+                <div class="nv-block nv-block--code">
+                  {% if cblock.label %}<div class="nv-block-label"><i class="fas fa-code"></i> {{ cblock.label }}</div>{% endif %}
+                  <pre class="nv-code-block"><code>{{ cblock.text }}</code></pre>
+                </div>
+
+                {% elif cblock.block_type == 'diagram_placeholder' %}
+                <div class="nv-block nv-block--diagram">
+                  <i class="fas fa-project-diagram nv-diagram-icon"></i>
+                  <div class="nv-diagram-body">
+                    <p class="nv-diagram-label">{{ cblock.label if cblock.label else 'Diagram' }}</p>
+                    {% if cblock.caption %}<p class="nv-diagram-caption">{{ cblock.caption }}</p>{% endif %}
+                  </div>
+                </div>
+
+                {% else %}
+                {% if cblock.text %}
+                <div class="nv-paragraph"><div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div></div>
                 {% endif %}
-              </div>
-
-              {% elif cblock.block_type == 'note' %}
-              <div class="nv-block nv-block--note">
-                <i class="fas fa-lightbulb nv-note-icon"></i>
-                <div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>
-              </div>
-
-              {% elif cblock.block_type == 'list' %}
-              <div class="nv-block nv-block--list">
-                {% if cblock.text or cblock.label %}
-                <p class="nv-list-title">{{ (cblock.text or cblock.label) | markdown | safe }}</p>
                 {% endif %}
-                <ul class="nv-list">
-                  {% for item in cblock.get('items', []) %}<li><div class="nv-math-wrap">{{ item | markdown | safe }}</div></li>{% endfor %}
-                </ul>
-              </div>
-
-              {% elif cblock.block_type == 'table' %}
-              <div class="nv-block nv-block--table">
-                {% if cblock.label %}<div class="nv-block-label">{{ cblock.label }}</div>{% endif %}
-                {% if cblock.headers or cblock.rows %}
-                <div class="nv-table-wrap">
-                  <table class="nv-table">
-                    {% if cblock.headers %}<thead><tr>{% for h in cblock.headers %}<th><div class="nv-math-wrap">{{ h | markdown | safe }}</div></th>{% endfor %}</tr></thead>{% endif %}
-                    {% if cblock.rows %}<tbody>{% for row in cblock.rows %}<tr>{% for cell in row %}<td><div class="nv-math-wrap">{{ cell | markdown | safe }}</div></td>{% endfor %}</tr>{% endfor %}</tbody>{% endif %}
-                  </table>
-                </div>
-                {% elif cblock.text %}<div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>{% endif %}
-              </div>
-
-              {% elif cblock.block_type == 'key_point' or cblock.block_type == 'tip' %}
-              <div class="nv-block nv-block--tip">
-                <i class="fas fa-star nv-tip-icon"></i>
-                {% if cblock.label %}<div class="nv-block-label">{{ cblock.label }}</div>{% endif %}
-                <div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>
-              </div>
-
-              {% elif cblock.block_type == 'warning' or cblock.block_type == 'caution' %}
-              <div class="nv-block nv-block--warning">
-                <i class="fas fa-exclamation-triangle nv-warning-icon"></i>
-                {% if cblock.label %}<div class="nv-block-label">{{ cblock.label }}</div>{% endif %}
-                <div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div>
-              </div>
-
-              {% elif cblock.block_type == 'code' %}
-              <div class="nv-block nv-block--code">
-                {% if cblock.label %}<div class="nv-block-label"><i class="fas fa-code"></i> {{ cblock.label }}</div>{% endif %}
-                <pre class="nv-code-block"><code>{{ cblock.text }}</code></pre>
-              </div>
-
-              {% elif cblock.block_type == 'diagram_placeholder' %}
-              <div class="nv-block nv-block--diagram">
-                <i class="fas fa-project-diagram nv-diagram-icon"></i>
-                <div class="nv-diagram-body">
-                  <p class="nv-diagram-label">{{ cblock.label if cblock.label else 'Diagram' }}</p>
-                  {% if cblock.caption %}<p class="nv-diagram-caption">{{ cblock.caption }}</p>{% endif %}
-                </div>
-              </div>
-
-              {% else %}
-              {% if cblock.text %}
-              <div class="nv-paragraph"><div class="nv-math-wrap">{{ cblock.text | markdown | safe }}</div></div>
-              {% endif %}
-              {% endif %}
-            {% endfor %}
-          </div>
-
-        </section>
-        {% endfor %}
-
-        {% if quiz_meta.get('summary') %}
-        <section class="nv-section nv-section--summary" id="section-summary">
-          <div class="nv-section-header">
-            <span class="nv-section-num"><i class="fas fa-list-ul"></i></span>
-            <h2 class="nv-section-title">Key Takeaways</h2>
-          </div>
-          <div class="nv-section-body">
-            <ul class="nv-summary-list">
-              {% for point in quiz_meta.get('summary') %}
-              <li class="nv-summary-item"><i class="fas fa-check-circle"></i><span>{{ point }}</span></li>
               {% endfor %}
-            </ul>
-          </div>
-        </section>
-        {% endif %}
+            </div>
 
-      {% else %}
-      <div class="nv-empty"><i class="fas fa-file-alt"></i><p>No structured content available for this post.</p></div>
-      {% endif %}
+          </section>
+          {% endfor %}
 
-      {# ══ COMMENTS ══ #}
-      <div class="nv-comments" id="comments">
-        <div class="nv-comments-head">
-          <h3 class="nv-comments-title"><i class="fas fa-comments"></i> Discussion</h3>
-          <span class="nv-pill">{{ post.comment_count() }}</span>
-        </div>
+          {% if quiz_meta.get('summary') %}
+          <section class="nv-section nv-section--summary" id="section-summary">
+            <div class="nv-section-header">
+              <span class="nv-section-num"><i class="fas fa-list-ul"></i></span>
+              <h2 class="nv-section-title">Key Takeaways</h2>
+            </div>
+            <div class="nv-section-body">
+              <ul class="nv-summary-list">
+                {% for point in quiz_meta.get('summary') %}
+                <li class="nv-summary-item"><i class="fas fa-check-circle"></i><span>{{ point }}</span></li>
+                {% endfor %}
+              </ul>
+            </div>
+          </section>
+          {% endif %}
 
-        {% if current_user.is_authenticated %}
-        <form method="post" action="{{ url_for('posts.comment', post_id=post.id) }}" class="nv-comment-form">
-          {{ comment_form.hidden_tag() }}
-          <img src="{{ current_user.profile_picture_url }}" class="nv-commenter-avatar" alt="">
-          <div class="nv-comment-input-wrap">
-            {{ comment_form.content(class="nv-comment-input", placeholder="Share your thoughts on these notes…") }}
-            {{ comment_form.submit(class="nv-comment-submit") }}
-          </div>
-        </form>
-        {% else %}
-        <div class="nv-login-nudge"><a href="{{ url_for('auth.login') }}">Log in</a> to join the discussion</div>
-        {% endif %}
-
-        <div class="nv-comment-list">
-          {% for comment in comments.items %}
-          <div class="nv-comment">
-            <a href="{{ url_for('users.profile', username=comment.author.username) }}">
-              <img src="{{ comment.author.profile_picture_url }}" class="nv-comment-avatar" alt="">
-            </a>
-            <div class="nv-comment-body">
-              <div class="nv-comment-head">
-                <a href="{{ url_for('users.profile', username=comment.author.username) }}" class="nv-comment-author">{{ comment.author.full_name or comment.author.username }}</a>
-                <span class="nv-comment-time">{{ comment.created_at.strftime('%b %d') }}</span>
-              </div>
-              <p class="nv-comment-text">{{ comment.content }}</p>
+          {# ── STUDY MODE COMPLETION SCREEN ── #}
+          <div class="sm-complete" id="smComplete" style="display:none">
+            <div class="sm-complete-icon"><i class="fas fa-check-circle"></i></div>
+            <h3 class="sm-complete-title">Notes complete</h3>
+            <p class="sm-complete-sub">You've worked through all {{ structured_content|length }} section{% if structured_content|length != 1 %}s{% endif %}.</p>
+            <div class="sm-complete-actions">
+              {% if current_user.is_authenticated %}
+              <button class="sm-complete-btn sm-complete-btn--like" onclick="document.getElementById('likeBtn')?.click()">
+                <i class="fas fa-heart"></i> Like these notes
+              </button>
+              {% endif %}
+              <button class="sm-complete-btn sm-complete-btn--comment" onclick="exitStudyMode(); setTimeout(()=>document.querySelector('.nv-comment-input')?.focus(), 300)">
+                <i class="fas fa-comment"></i> Leave a comment
+              </button>
+              <button class="sm-complete-btn sm-complete-btn--free" onclick="exitStudyMode()">
+                <i class="fas fa-book-open"></i> Read freely
+              </button>
             </div>
           </div>
-          {% endfor %}
-          {% if not comments.items %}
-          <div class="nv-no-comments"><i class="fas fa-comment-medical"></i><p>No comments yet — start the conversation.</p></div>
+
+        {% else %}
+        <div class="nv-empty"><i class="fas fa-file-alt"></i><p>No structured content available for this post.</p></div>
+        {% endif %}
+
+        {# ══ COMMENTS ══ #}
+        <div class="nv-comments" id="comments">
+          <div class="nv-comments-head">
+            <h3 class="nv-comments-title"><i class="fas fa-comments"></i> Discussion</h3>
+            <span class="nv-pill">{{ post.comment_count() }}</span>
+          </div>
+
+          {% if current_user.is_authenticated %}
+          <form method="post" action="{{ url_for('posts.comment', post_id=post.id) }}" class="nv-comment-form">
+            {{ comment_form.hidden_tag() }}
+            <img src="{{ current_user.profile_picture_url }}" class="nv-commenter-avatar" alt="">
+            <div class="nv-comment-input-wrap">
+              {{ comment_form.content(class="nv-comment-input", placeholder="Share your thoughts on these notes…") }}
+              {{ comment_form.submit(class="nv-comment-submit") }}
+            </div>
+          </form>
+          {% else %}
+          <div class="nv-login-nudge"><a href="{{ url_for('auth.login') }}">Log in</a> to join the discussion</div>
+          {% endif %}
+
+          <div class="nv-comment-list">
+            {% for comment in comments.items %}
+            <div class="nv-comment">
+              <a href="{{ url_for('users.profile', username=comment.author.username) }}">
+                <img src="{{ comment.author.profile_picture_url }}" class="nv-comment-avatar" alt="">
+              </a>
+              <div class="nv-comment-body">
+                <div class="nv-comment-head">
+                  <a href="{{ url_for('users.profile', username=comment.author.username) }}" class="nv-comment-author">{{ comment.author.full_name or comment.author.username }}</a>
+                  <span class="nv-comment-time">{{ comment.created_at.strftime('%b %d') }}</span>
+                </div>
+                <p class="nv-comment-text">{{ comment.content }}</p>
+              </div>
+            </div>
+            {% endfor %}
+            {% if not comments.items %}
+            <div class="nv-no-comments"><i class="fas fa-comment-medical"></i><p>No comments yet — start the conversation.</p></div>
+            {% endif %}
+          </div>
+
+          {% if comments.has_prev or comments.has_next %}
+          <div class="nv-pagination">
+            {% if comments.has_prev %}<a href="{{ url_for('posts.view', post_id=post.id, page=comments.prev_num) }}" class="nv-page-btn"><i class="fas fa-chevron-left"></i> Prev</a>{% endif %}
+            <span class="nv-page-info">{{ comments.page }} / {{ comments.pages }}</span>
+            {% if comments.has_next %}<a href="{{ url_for('posts.view', post_id=post.id, page=comments.next_num) }}" class="nv-page-btn">Next <i class="fas fa-chevron-right"></i></a>{% endif %}
+          </div>
           {% endif %}
         </div>
 
-        {% if comments.has_prev or comments.has_next %}
-        <div class="nv-pagination">
-          {% if comments.has_prev %}<a href="{{ url_for('posts.view', post_id=post.id, page=comments.prev_num) }}" class="nv-page-btn"><i class="fas fa-chevron-left"></i> Prev</a>{% endif %}
-          <span class="nv-page-info">{{ comments.page }} / {{ comments.pages }}</span>
-          {% if comments.has_next %}<a href="{{ url_for('posts.view', post_id=post.id, page=comments.next_num) }}" class="nv-page-btn">Next <i class="fas fa-chevron-right"></i></a>{% endif %}
-        </div>
-        {% endif %}
-      </div>
-
-    </main>
+      </main>
+    </div>
   </div>
-</div>
 
-<style>
-/* ═══ ROOT ═══════════════════════════════════════════════════════════════════ */
-.nv-root { min-height: 100vh; background: var(--bg-main); }
-.nv-layout { display: flex; max-width: 1100px; margin: 0 auto; padding: 0 1.25rem 5rem; gap: 2rem; align-items: flex-start; }
+  <style>
+  /* ═══ ROOT ═══════════════════════════════════════════════════════════════════ */
+  .nv-root { min-height: 100vh; background: var(--bg-main); }
+  .nv-layout { display: flex; max-width: 1100px; margin: 0 auto; padding: 0 1.25rem 5rem; gap: 2rem; align-items: flex-start; }
 
-/* ═══ TOP BAR ════════════════════════════════════════════════════════════════ */
-.nv-topbar {
-  display: flex; align-items: center; gap: .65rem;
-  padding: .55rem 1.25rem;
-  background: var(--bg-card); border-bottom: 1px solid var(--border);
-}
-.nv-back {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; border-radius: 8px;
-  color: var(--text-muted); text-decoration: none; flex-shrink: 0; transition: color .15s;
-}
-.nv-back:hover { color: var(--primary); }
-.nv-topbar-meta { display: flex; align-items: center; gap: .4rem; flex: 1; overflow: hidden; }
-.nv-type-pill {
-  display: inline-flex; align-items: center; gap: .28rem;
-  font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
-  padding: .16rem .48rem; border-radius: 5px;
-  background: rgba(16,185,129,.1); color: #10b981; flex-shrink: 0;
-}
-.nv-subject-pill {
-  display: inline-flex; align-items: center; gap: .28rem;
-  font-size: .7rem; font-weight: 600; padding: .16rem .48rem; border-radius: 5px;
-  color: var(--sc, var(--primary));
-  background: color-mix(in srgb, var(--sc, var(--primary)) 10%, transparent);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.nv-level-pill { display: inline-flex; align-items: center; font-size: .62rem; font-weight: 700; padding: .16rem .45rem; border-radius: 5px; background: var(--bg-hover); border: 1px solid var(--border); color: var(--text-muted); }
-.nv-topbar-actions { display: flex; align-items: center; gap: .25rem; flex-shrink: 0; }
-.nv-icon-btn {
-  display: inline-flex; align-items: center; gap: .25rem;
-  padding: .3rem .55rem; border-radius: 7px; border: none; background: none;
-  color: var(--text-muted); font-size: .73rem; font-weight: 600;
-  cursor: pointer; text-decoration: none; transition: color .15s; font-family: var(--font-body);
-}
-.nv-icon-btn:hover { color: var(--primary); }
-.nv-icon-btn.is-liked { color: #ef4444; }
-
-/* ═══ SIDEBAR ════════════════════════════════════════════════════════════════ */
-.nv-sidebar {
-  width: 232px; flex-shrink: 0;
-  position: sticky; top: calc(var(--nav-h, 62px) + 52px);
-  max-height: calc(100vh - calc(var(--nav-h, 62px) + 66px));
-  overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
-  padding: 1.5rem 0;
-}
-.nv-sidebar-inner { display: flex; flex-direction: column; gap: 1.25rem; }
-.nv-doc-header { padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
-.nv-doc-title { font-size: .95rem; font-weight: 900; color: var(--text-primary); line-height: 1.3; margin: 0 0 .55rem; letter-spacing: -.025em; }
-.nv-doc-byline { display: flex; align-items: center; gap: .3rem; font-size: .7rem; color: var(--text-muted); flex-wrap: wrap; }
-.nv-author-link { display: inline-flex; align-items: center; gap: .28rem; text-decoration: none; color: var(--text-muted); transition: color .15s; }
-.nv-author-link:hover { color: var(--primary); }
-.nv-author-avatar { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); }
-.nv-dot { opacity: .4; }
-
-/* Description */
-.nv-desc-wrap { margin-top: .5rem; }
-.nv-doc-desc { font-size: .73rem; color: var(--text-muted); line-height: 1.55; margin: 0; overflow: hidden; max-height: 3.6em; transition: max-height .35s ease; }
-.nv-desc-wrap.is-open .nv-doc-desc { max-height: 40em; }
-.nv-doc-desc h2, .nv-doc-desc h3 { font-size: .75rem; font-weight: 800; color: var(--text-primary); margin: .4rem 0 .15rem; }
-.nv-doc-desc p { margin: 0 0 .25rem; }
-.nv-doc-desc ul, .nv-doc-desc ol { margin: .15rem 0 .25rem .9rem; display: flex; flex-direction: column; gap: .12rem; }
-.nv-doc-desc ul > li { list-style: disc; }
-.nv-doc-desc ol > li { list-style: decimal; }
-.nv-doc-desc strong { font-weight: 700; color: var(--text-primary); }
-.nv-doc-desc hr { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
-.nv-show-more { background: none; border: none; cursor: pointer; font-size: .68rem; font-weight: 700; color: var(--primary); padding: .25rem 0 0; display: inline-flex; align-items: center; gap: .22rem; transition: opacity .15s; font-family: var(--font-body); }
-.nv-show-more:hover { opacity: .75; }
-.nv-show-more i { font-size: .56rem; transition: transform .25s; }
-.nv-desc-wrap.is-open .nv-show-more i { transform: rotate(180deg); }
-
-/* Meta pills */
-.nv-meta-pills { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .55rem; }
-.nv-meta-pill { display: inline-flex; align-items: center; gap: .22rem; font-size: .63rem; font-weight: 600; color: var(--text-muted); padding: .16rem .42rem; border-radius: 4px; background: var(--bg-hover); border: 1px solid var(--border); }
-.nv-meta-pill i { font-size: .58rem; }
-
-/* ═══ TOC ════════════════════════════════════════════════════════════════════ */
-.nv-toc { display: flex; flex-direction: column; gap: .25rem; }
-.nv-toc-label { font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); margin-bottom: .35rem; }
-.nv-toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .05rem; }
-.nv-toc-link { display: flex; align-items: baseline; gap: .45rem; padding: .3rem .45rem; border-radius: 7px; text-decoration: none; font-size: .75rem; color: var(--text-muted); transition: all .15s; line-height: 1.4; }
-.nv-toc-link:hover { background: var(--bg-hover); color: var(--text-primary); }
-.nv-toc-link.is-active { background: rgba(16,185,129,.08); color: #10b981; font-weight: 700; }
-.nv-toc-num { font-size: .58rem; font-weight: 800; color: var(--text-muted); min-width: 14px; flex-shrink: 0; }
-.nv-toc-link.is-active .nv-toc-num { color: #10b981; }
-.nv-toc-text { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-
-.nv-sidebar-dl { padding-top: .75rem; border-top: 1px solid var(--border); }
-.nv-dl-btn { display: flex; align-items: center; justify-content: center; gap: .38rem; padding: .48rem .875rem; border-radius: 9px; background: var(--bg-secondary); border: 1.5px solid var(--border); color: var(--text-muted); font-size: .75rem; font-weight: 700; text-decoration: none; transition: all .15s; }
-.nv-dl-btn:hover { border-color: var(--primary); color: var(--primary); }
-
-/* ═══ MOBILE TOC ═════════════════════════════════════════════════════════════ */
-.nv-toc-toggle { display: none; align-items: center; justify-content: space-between; gap: .5rem; width: 100%; padding: .6rem .875rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; font-size: .8rem; font-weight: 700; color: var(--text-secondary); cursor: pointer; margin-bottom: .75rem; font-family: var(--font-body); }
-.nv-toc-toggle i { font-size: .72rem; }
-.nv-toc-mobile { display: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: .65rem; margin-bottom: 1.25rem; }
-.nv-toc-mobile.is-open { display: block; }
-.nv-mobile-desc { display: none; margin-bottom: 1rem; }
-
-/* ═══ CONTENT ════════════════════════════════════════════════════════════════ */
-.nv-content { flex: 1; min-width: 0; padding: 1.5rem 0; }
-
-/* ═══ SECTION ════════════════════════════════════════════════════════════════ */
-.nv-section { margin-bottom: 2.5rem; scroll-margin-top: 100px; }
-.nv-section-header { display: flex; align-items: flex-start; gap: .7rem; margin-bottom: 1rem; padding-bottom: .7rem; border-bottom: 1.5px solid var(--border); }
-.nv-section-num {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 7px;
-  background: rgba(16,185,129,.1); color: #10b981;
-  font-size: .68rem; font-weight: 800; flex-shrink: 0; margin-top: .1rem;
-}
-.nv-section-title { font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 900; color: var(--text-primary); letter-spacing: -.025em; margin: 0 0 .18rem; }
-.nv-stype-badge { display: inline-block; font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; padding: .1rem .38rem; border-radius: 4px; vertical-align: middle; }
-.nv-stype--overview    { background: rgba(16,185,129,.1);  color: #10b981; }
-.nv-stype--theory      { background: rgba(99,102,241,.1);  color: #6366f1; }
-.nv-stype--practice    { background: rgba(6,182,212,.1);   color: #06b6d4; }
-.nv-stype--application { background: rgba(245,158,11,.1);  color: #f59e0b; }
-.nv-stype--review      { background: rgba(139,92,246,.1);  color: #8b5cf6; }
-.nv-stype--concepts       { background: rgba(99,102,241,.1);  color: #6366f1; }
-.nv-stype--worked_examples{ background: rgba(6,182,212,.1);   color: #06b6d4; }
-.nv-stype--mistakes       { background: rgba(239,68,68,.1);   color: #ef4444; }
-.nv-stype--revision       { background: rgba(139,92,246,.1);  color: #8b5cf6; }
-.nv-stype--custom         { background: var(--bg-hover); color: var(--text-muted); border: 1px solid var(--border); }
-.nv-section-body { display: flex; flex-direction: column; gap: .6rem; }
-
-/* ═══ CONTENT BLOCKS ═════════════════════════════════════════════════════════ */
-.nv-block { padding: .875rem 1rem; border-radius: 10px; font-size: .875rem; line-height: 1.7; color: var(--text-secondary); position: relative; }
-.nv-block p { margin: 0; }
-.nv-block--definition { background: rgba(99,102,241,.05);  border-left: 3px solid #6366f1; }
-.nv-block--theorem    { background: rgba(16,185,129,.05);  border-left: 3px solid #10b981; }
-.nv-block--formula    { background: rgba(245,158,11,.05);  border-left: 3px solid #f59e0b; }
-.nv-block--example    { background: rgba(6,182,212,.05);   border-left: 3px solid #06b6d4; padding-top: .65rem; }
-.nv-block--note       { background: var(--bg-secondary); border: 1px solid var(--border); display: flex; gap: .6rem; align-items: flex-start; }
-.nv-block--list       { background: var(--bg-card); border: 1px solid var(--border); }
-.nv-block--table      { background: var(--bg-card); border: 1px solid var(--border); padding: 0; }
-.nv-block--table .nv-block-label { padding: .7rem 1rem .45rem; }
-.nv-block--tip        { background: rgba(245,158,11,.05); border-left: 3px solid #f59e0b; display: flex; gap: .6rem; align-items: flex-start; }
-.nv-block--warning    { background: rgba(239,68,68,.05);  border-left: 3px solid #ef4444; display: flex; gap: .6rem; align-items: flex-start; }
-.nv-block--code       { background: var(--bg-secondary); border: 1px solid var(--border); padding: 0; border-radius: 10px; }
-.nv-block--code .nv-block-label { padding: .45rem 1rem; font-size: .62rem; font-weight: 800; color: var(--text-muted); background: var(--bg-hover); border-bottom: 1px solid var(--border); border-radius: 0; margin: 0; }
-.nv-block--diagram { display: flex; align-items: center; gap: .875rem; padding: .875rem 1rem; background: var(--bg-secondary); border: 1.5px dashed var(--border); border-radius: 10px; color: var(--text-muted); }
-.nv-diagram-icon { font-size: 1.3rem; flex-shrink: 0; opacity: .4; }
-.nv-diagram-label { font-size: .8rem; font-weight: 700; color: var(--text-secondary); margin: 0; }
-.nv-diagram-caption { font-size: .72rem; color: var(--text-muted); margin: .18rem 0 0; }
-
-.nv-block-label { font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .38rem; display: flex; align-items: center; gap: .28rem; }
-.nv-block--definition .nv-block-label { color: #6366f1; }
-.nv-block--theorem    .nv-block-label { color: #10b981; }
-.nv-block--formula    .nv-block-label { color: #f59e0b; }
-.nv-block--example    .nv-block-label { color: #06b6d4; }
-.nv-block--tip        .nv-block-label { color: #f59e0b; }
-.nv-block--warning    .nv-block-label { color: #ef4444; }
-
-.nv-formula-text { font-family: 'Courier New', monospace; font-size: .88rem; color: #f59e0b; letter-spacing: .02em; overflow-x: auto; display: block; }
-mjx-container { max-width: 100%; display: inline-block; }
-.nv-formula-text .MathJax { color: var(--text-primary) !important; }
-.nv-math-wrap { max-width: 100%; overflow-x: auto; }
-.nv-math-wrap mjx-container { display: inline-block; }
-.nv-note-icon    { color: #f59e0b; font-size: .82rem; margin-top: .15rem; flex-shrink: 0; }
-.nv-tip-icon     { color: #f59e0b; font-size: .82rem; margin-top: .15rem; flex-shrink: 0; }
-.nv-warning-icon { color: #ef4444; font-size: .82rem; margin-top: .15rem; flex-shrink: 0; }
-
-.nv-steps { margin: .5rem 0 0 .25rem; padding-left: 1.3em; display: flex; flex-direction: column; gap: .28rem; font-size: .84rem; list-style-type: decimal; }
-.nv-steps > li { display: list-item; padding-left: .35em; }
-.nv-list-title { font-size: .76rem; font-weight: 700; color: var(--text-primary); margin: 0 0 .38rem; }
-.nv-list { margin: 0 0 0 1.1rem; list-style: disc; display: flex; flex-direction: column; gap: .22rem; font-size: .875rem; color: var(--text-secondary); }
-.nv-list li p, .nv-steps li p, .nv-table td p, .nv-table th p { margin: 0; display: inline; }
-.nv-paragraph { font-size: .875rem; line-height: 1.75; color: var(--text-secondary); margin: 0 0 .2rem; overflow-x: auto; }
-
-.nv-table-wrap { overflow-x: auto; }
-.nv-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
-.nv-table th { padding: .48rem .75rem; background: var(--bg-secondary); color: var(--text-primary); font-weight: 700; text-align: left; border-bottom: 1.5px solid var(--border); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
-.nv-table td { padding: .48rem .75rem; color: var(--text-secondary); border-bottom: 1px solid var(--border); line-height: 1.5; }
-.nv-table tr:last-child td { border-bottom: none; }
-.nv-table tr:hover td { background: var(--bg-hover); }
-.nv-code-block { margin: 0; padding: .875rem 1rem; font-family: 'Courier New', monospace; font-size: .8rem; color: #a5f3fc; line-height: 1.6; overflow-x: auto; }
-
-/* Summary */
-.nv-section--summary .nv-section-num { background: rgba(139,92,246,.1); color: #8b5cf6; }
-.nv-section--summary .nv-section-header { border-bottom-color: rgba(139,92,246,.18); }
-.nv-summary-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .45rem; }
-.nv-summary-item { display: flex; align-items: flex-start; gap: .6rem; padding: .6rem .875rem; border-radius: 9px; background: rgba(139,92,246,.04); border: 1px solid rgba(139,92,246,.13); font-size: .875rem; color: var(--text-secondary); line-height: 1.6; }
-.nv-summary-item i { color: #8b5cf6; font-size: .72rem; margin-top: .22rem; flex-shrink: 0; }
-
-/* Empty */
-.nv-empty { text-align: center; padding: 4rem 1rem; color: var(--text-muted); }
-.nv-empty i { font-size: 2rem; opacity: .15; display: block; margin-bottom: .75rem; }
-
-/* ═══ COMMENTS ═══════════════════════════════════════════════════════════════ */
-.nv-comments { margin-top: 3rem; padding-top: 2rem; border-top: 2px solid var(--border); }
-.nv-comments-head { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.1rem; }
-.nv-comments-title { font-family: 'Nunito', sans-serif; font-size: .9rem; font-weight: 800; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: .35rem; }
-.nv-comments-title i { color: var(--primary); font-size: .75rem; }
-.nv-pill { display: inline-flex; align-items: center; height: 19px; padding: 0 .4rem; border-radius: 50px; background: var(--bg-secondary); border: 1px solid var(--border); font-size: .62rem; font-weight: 700; color: var(--text-muted); }
-.nv-comment-form { display: flex; gap: .65rem; align-items: flex-start; margin-bottom: 1.5rem; }
-.nv-commenter-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; margin-top: .15rem; }
-.nv-comment-input-wrap { flex: 1; display: flex; flex-direction: column; gap: .4rem; }
-.nv-comment-input { width: 100%; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 10px; padding: .6rem .875rem; font-family: var(--font-body); font-size: .84rem; color: var(--text-primary); resize: vertical; min-height: 68px; transition: border-color .15s; box-sizing: border-box; }
-.nv-comment-input:focus { outline: none; border-color: var(--primary); }
-.nv-comment-submit { align-self: flex-end; padding: .45rem .9rem; border-radius: 8px; background: var(--primary); color: #fff; font-family: var(--font-body); font-size: .78rem; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s; }
-.nv-comment-submit:hover { opacity: .85; }
-.nv-login-nudge { font-size: .83rem; color: var(--text-muted); padding: .75rem 1rem; background: var(--bg-secondary); border-radius: 10px; margin-bottom: 1.25rem; }
-.nv-login-nudge a { color: var(--primary); text-decoration: none; font-weight: 700; }
-.nv-comment-list { display: flex; flex-direction: column; gap: .875rem; }
-.nv-comment { display: flex; gap: .6rem; align-items: flex-start; }
-.nv-comment-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; }
-.nv-comment-body { flex: 1; min-width: 0; }
-.nv-comment-head { display: flex; align-items: center; gap: .4rem; margin-bottom: .15rem; }
-.nv-comment-author { font-size: .77rem; font-weight: 700; color: var(--text-primary); text-decoration: none; }
-.nv-comment-author:hover { color: var(--primary); }
-.nv-comment-time { font-size: .67rem; color: var(--text-muted); }
-.nv-comment-text { font-size: .82rem; color: var(--text-secondary); line-height: 1.65; margin: 0; }
-.nv-no-comments { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: .83rem; }
-.nv-no-comments i { font-size: 1.4rem; opacity: .15; display: block; margin-bottom: .5rem; }
-.nv-pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-.nv-page-btn { display: inline-flex; align-items: center; gap: .3rem; padding: .38rem .75rem; font-size: .77rem; font-weight: 600; color: var(--primary); background: rgba(37,99,235,.07); border-radius: 8px; text-decoration: none; transition: background .15s; }
-.nv-page-btn:hover { background: rgba(37,99,235,.14); }
-.nv-page-info { font-size: .7rem; color: var(--text-muted); }
-
-/* ═══ RESPONSIVE ═════════════════════════════════════════════════════════════ */
-@media (max-width: 900px) {
-  .nv-layout { padding: 0 .875rem 5rem; gap: 0; }
-  .nv-sidebar { display: none; }
-  .nv-toc-toggle { display: flex; }
-  .nv-mobile-desc { display: block; }
-  .nv-content { padding: 1rem 0; }
-  .nv-section { scroll-margin-top: 120px; }
-}
-@media (max-width: 480px) {
-  .nv-section-title { font-size: .95rem; }
-  .nv-topbar { padding: .45rem .875rem; }
-  .nv-icon-btn span { display: none; }
-  .nv-subject-pill { display: none; }
-}
-</style>
-
-<script>
-async function toggleLike(btn) {
-  if (btn.disabled) return;
-  btn.disabled = true;
-  const postId = btn.dataset.postId, isLiked = btn.dataset.liked === 'true';
-  const countEl = document.getElementById('likeCount');
-  const base = parseInt(btn.dataset.base || '0', 10);
-  const newLiked = !isLiked;
-  btn.dataset.liked = newLiked; btn.classList.toggle('is-liked', newLiked);
-  if (countEl) { const d = parseInt(countEl.textContent, 10); countEl.textContent = newLiked ? d + 1 : Math.max(base, d - 1); }
-  try {
-    const res = await fetch(`/posts/${postId}/like`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '' } });
-    if (!res.ok) throw new Error();
-    const data = await res.json().catch(() => null);
-    if (data?.like_count !== undefined && countEl) countEl.textContent = data.like_count + base;
-  } catch {
-    btn.dataset.liked = isLiked; btn.classList.toggle('is-liked', isLiked);
-    if (countEl) { const d = parseInt(countEl.textContent, 10); countEl.textContent = isLiked ? d + 1 : Math.max(base, d - 1); }
-  } finally { btn.disabled = false; }
-}
-
-function toggleDesc() {
-  const wrap = document.getElementById('descWrap'), btn = document.getElementById('descToggle');
-  const open = wrap.classList.toggle('is-open');
-  btn.innerHTML = open ? '<i class="fas fa-chevron-up"></i> Show less' : '<i class="fas fa-chevron-down"></i> Show more';
-}
-function toggleMobileDesc() {
-  const wrap = document.getElementById('mobileDescWrap'), btn = document.getElementById('mobileDescToggle');
-  const open = wrap.classList.toggle('is-open');
-  btn.innerHTML = open ? '<i class="fas fa-chevron-up"></i> Show less' : '<i class="fas fa-chevron-down"></i> Show more';
-}
-function toggleTOC() {
-  const mobile = document.getElementById('tocMobile'), chevron = document.getElementById('tocChevron');
-  const open = mobile.classList.toggle('is-open');
-  chevron.style.transform = open ? 'rotate(180deg)' : '';
-}
-function closeTOC() {
-  document.getElementById('tocMobile').classList.remove('is-open');
-  document.getElementById('tocChevron').style.transform = '';
-}
-
-// Scroll spy
-(function () {
-  const links = document.querySelectorAll('.nv-toc-link[data-section]');
-  const sections = document.querySelectorAll('.nv-section');
-  if (!links.length || !sections.length) return;
-  function onScroll() {
-    let current = 0;
-    sections.forEach((sec, i) => { if (sec.getBoundingClientRect().top <= 130) current = i; });
-    links.forEach((l, i) => l.classList.toggle('is-active', i === current));
+  /* ═══ TOP BAR ════════════════════════════════════════════════════════════════ */
+  .nv-topbar {
+    display: flex; align-items: center; gap: .65rem;
+    padding: .55rem 1.25rem;
+    background: var(--bg-card); border-bottom: 1px solid var(--border);
   }
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
-})();
-</script>
+  .nv-back {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 8px;
+    color: var(--text-muted); text-decoration: none; flex-shrink: 0; transition: color .15s;
+  }
+  .nv-back:hover { color: var(--primary); }
+  .nv-topbar-meta { display: flex; align-items: center; gap: .4rem; flex: 1; overflow: hidden; }
+  .nv-type-pill {
+    display: inline-flex; align-items: center; gap: .28rem;
+    font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+    padding: .16rem .48rem; border-radius: 5px;
+    background: rgba(16,185,129,.1); color: #10b981; flex-shrink: 0;
+  }
+  .nv-subject-pill {
+    display: inline-flex; align-items: center; gap: .28rem;
+    font-size: .7rem; font-weight: 600; padding: .16rem .48rem; border-radius: 5px;
+    color: var(--sc, var(--primary));
+    background: color-mix(in srgb, var(--sc, var(--primary)) 10%, transparent);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .nv-level-pill { display: inline-flex; align-items: center; font-size: .62rem; font-weight: 700; padding: .16rem .45rem; border-radius: 5px; background: var(--bg-hover); border: 1px solid var(--border); color: var(--text-muted); }
+  .nv-topbar-actions { display: flex; align-items: center; gap: .25rem; flex-shrink: 0; }
+  .nv-icon-btn {
+    display: inline-flex; align-items: center; gap: .25rem;
+    padding: .3rem .55rem; border-radius: 7px; border: none; background: none;
+    color: var(--text-muted); font-size: .73rem; font-weight: 600;
+    cursor: pointer; text-decoration: none; transition: color .15s; font-family: var(--font-body);
+  }
+  .nv-icon-btn:hover { color: var(--primary); }
+  .nv-icon-btn.is-liked { color: #ef4444; }
 
-{% endblock %}
+  /* ═══ SIDEBAR ════════════════════════════════════════════════════════════════ */
+  .nv-sidebar {
+    width: 232px; flex-shrink: 0;
+    position: sticky; top: calc(var(--nav-h, 62px) + 52px);
+    max-height: calc(100vh - calc(var(--nav-h, 62px) + 66px));
+    overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    padding: 1.5rem 0;
+  }
+  .nv-sidebar-inner { display: flex; flex-direction: column; gap: 1.25rem; }
+  .nv-doc-header { padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .nv-doc-title { font-size: .95rem; font-weight: 900; color: var(--text-primary); line-height: 1.3; margin: 0 0 .55rem; letter-spacing: -.025em; }
+  .nv-doc-byline { display: flex; align-items: center; gap: .3rem; font-size: .7rem; color: var(--text-muted); flex-wrap: wrap; }
+  .nv-author-link { display: inline-flex; align-items: center; gap: .28rem; text-decoration: none; color: var(--text-muted); transition: color .15s; }
+  .nv-author-link:hover { color: var(--primary); }
+  .nv-author-avatar { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); }
+  .nv-dot { opacity: .4; }
+
+  /* Description */
+  .nv-desc-wrap { margin-top: .5rem; }
+  .nv-doc-desc { font-size: .73rem; color: var(--text-muted); line-height: 1.55; margin: 0; overflow: hidden; max-height: 3.6em; transition: max-height .35s ease; }
+  .nv-desc-wrap.is-open .nv-doc-desc { max-height: 40em; }
+  .nv-doc-desc h2, .nv-doc-desc h3 { font-size: .75rem; font-weight: 800; color: var(--text-primary); margin: .4rem 0 .15rem; }
+  .nv-doc-desc p { margin: 0 0 .25rem; }
+  .nv-doc-desc ul, .nv-doc-desc ol { margin: .15rem 0 .25rem .9rem; display: flex; flex-direction: column; gap: .12rem; }
+  .nv-doc-desc ul > li { list-style: disc; }
+  .nv-doc-desc ol > li { list-style: decimal; }
+  .nv-doc-desc strong { font-weight: 700; color: var(--text-primary); }
+  .nv-doc-desc hr { border: none; border-top: 1px solid var(--border); margin: .4rem 0; }
+  .nv-show-more { background: none; border: none; cursor: pointer; font-size: .68rem; font-weight: 700; color: var(--primary); padding: .25rem 0 0; display: inline-flex; align-items: center; gap: .22rem; transition: opacity .15s; font-family: var(--font-body); }
+  .nv-show-more:hover { opacity: .75; }
+  .nv-show-more i { font-size: .56rem; transition: transform .25s; }
+  .nv-desc-wrap.is-open .nv-show-more i { transform: rotate(180deg); }
+
+  /* Meta pills */
+  .nv-meta-pills { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .55rem; }
+  .nv-meta-pill { display: inline-flex; align-items: center; gap: .22rem; font-size: .63rem; font-weight: 600; color: var(--text-muted); padding: .16rem .42rem; border-radius: 4px; background: var(--bg-hover); border: 1px solid var(--border); }
+  .nv-meta-pill i { font-size: .58rem; }
+
+  /* ═══ TOC ════════════════════════════════════════════════════════════════════ */
+  .nv-toc { display: flex; flex-direction: column; gap: .25rem; }
+  .nv-toc-label { font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); margin-bottom: .35rem; }
+  .nv-toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .05rem; }
+  .nv-toc-link { display: flex; align-items: baseline; gap: .45rem; padding: .3rem .45rem; border-radius: 7px; text-decoration: none; font-size: .75rem; color: var(--text-muted); transition: all .15s; line-height: 1.4; }
+  .nv-toc-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .nv-toc-link.is-active { background: rgba(16,185,129,.08); color: #10b981; font-weight: 700; }
+  .nv-toc-num { font-size: .58rem; font-weight: 800; color: var(--text-muted); min-width: 14px; flex-shrink: 0; }
+  .nv-toc-link.is-active .nv-toc-num { color: #10b981; }
+  .nv-toc-text { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+  .nv-sidebar-dl { padding-top: .75rem; border-top: 1px solid var(--border); }
+  .nv-dl-btn { display: flex; align-items: center; justify-content: center; gap: .38rem; padding: .48rem .875rem; border-radius: 9px; background: var(--bg-secondary); border: 1.5px solid var(--border); color: var(--text-muted); font-size: .75rem; font-weight: 700; text-decoration: none; transition: all .15s; }
+  .nv-dl-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ═══ MOBILE TOC ═════════════════════════════════════════════════════════════ */
+  .nv-toc-toggle { display: none; align-items: center; justify-content: space-between; gap: .5rem; width: 100%; padding: .6rem .875rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; font-size: .8rem; font-weight: 700; color: var(--text-secondary); cursor: pointer; margin-bottom: .75rem; font-family: var(--font-body); }
+  .nv-toc-toggle i { font-size: .72rem; }
+  .nv-toc-mobile { display: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: .65rem; margin-bottom: 1.25rem; }
+  .nv-toc-mobile.is-open { display: block; }
+  .nv-mobile-desc { display: none; margin-bottom: 1rem; }
+
+  /* ═══ CONTENT ════════════════════════════════════════════════════════════════ */
+  .nv-content { flex: 1; min-width: 0; padding: 1.5rem 0; }
+
+  /* ═══ SECTION ════════════════════════════════════════════════════════════════ */
+  .nv-section { margin-bottom: 2.5rem; scroll-margin-top: 100px; }
+  .nv-section-header { display: flex; align-items: flex-start; gap: .7rem; margin-bottom: 1rem; padding-bottom: .7rem; border-bottom: 1.5px solid var(--border); }
+  .nv-section-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 7px;
+    background: rgba(16,185,129,.1); color: #10b981;
+    font-size: .68rem; font-weight: 800; flex-shrink: 0; margin-top: .1rem;
+  }
+  .nv-section-title { font-family: 'Dm Sans', sans-serif; font-size: 1.2rem; font-weight: 900; color: var(--text-primary); letter-spacing: -.025em; margin: 0 0 .18rem; }
+  .nv-stype-badge { display: inline-block; font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; padding: .1rem .38rem; border-radius: 4px; vertical-align: middle; }
+  .nv-stype--overview    { background: rgba(16,185,129,.1);  color: #10b981; }
+  .nv-stype--theory      { background: rgba(99,102,241,.1);  color: #6366f1; }
+  .nv-stype--practice    { background: rgba(6,182,212,.1);   color: #06b6d4; }
+  .nv-stype--application { background: rgba(245,158,11,.1);  color: #f59e0b; }
+  .nv-stype--review      { background: rgba(139,92,246,.1);  color: #8b5cf6; }
+  .nv-stype--concepts       { background: rgba(99,102,241,.1);  color: #6366f1; }
+  .nv-stype--worked_examples{ background: rgba(6,182,212,.1);   color: #06b6d4; }
+  .nv-stype--mistakes       { background: rgba(239,68,68,.1);   color: #ef4444; }
+  .nv-stype--revision       { background: rgba(139,92,246,.1);  color: #8b5cf6; }
+  .nv-stype--custom         { background: var(--bg-hover); color: var(--text-muted); border: 1px solid var(--border); }
+  .nv-section-body { display: flex; flex-direction: column; gap: .6rem; }
+
+  /* ═══ CONTENT BLOCKS ═════════════════════════════════════════════════════════ */
+  .nv-block { padding: .875rem 1rem; border-radius: 10px; font-size: .95rem; line-height: 1.7; color: var(--text-secondary); position: relative; }
+  .nv-block p { margin: 0; }
+  .nv-block--definition { background: rgba(99,102,241,.05);  border-left: 3px solid #6366f1; }
+  .nv-block--theorem    { background: rgba(16,185,129,.05);  border-left: 3px solid #10b981; }
+  .nv-block--formula    { background: rgba(245,158,11,.05);  border-left: 3px solid #f59e0b; }
+  .nv-block--example    { background: rgba(6,182,212,.05);   border-left: 3px solid #06b6d4; padding-top: .65rem; }
+  .nv-block--note       { background: var(--bg-secondary); border: 1px solid var(--border); display: flex; gap: .6rem; align-items: flex-start; }
+  .nv-block--list       { background: var(--bg-card); border: 1px solid var(--border); }
+  .nv-block--table      { background: var(--bg-card); border: 1px solid var(--border); padding: 0; }
+  .nv-block--table .nv-block-label { padding: .7rem 1rem .45rem; }
+  .nv-block--tip        { background: rgba(245,158,11,.05); border-left: 3px solid #f59e0b; display: flex; gap: .6rem; align-items: flex-start; }
+  .nv-block--warning    { background: rgba(239,68,68,.05);  border-left: 3px solid #ef4444; display: flex; gap: .6rem; align-items: flex-start; }
+  .nv-block--code       { background: var(--bg-secondary); border: 1px solid var(--border); padding: 0; border-radius: 10px; }
+  .nv-block--code .nv-block-label { padding: .45rem 1rem; font-size: .62rem; font-weight: 800; color: var(--text-muted); background: var(--bg-hover); border-bottom: 1px solid var(--border); border-radius: 0; margin: 0; }
+  .nv-block--diagram { display: flex; align-items: center; gap: .875rem; padding: .875rem 1rem; background: var(--bg-secondary); border: 1.5px dashed var(--border); border-radius: 10px; color: var(--text-muted); }
+  .nv-diagram-icon { font-size: 1.3rem; flex-shrink: 0; opacity: .4; }
+  .nv-diagram-label { font-size: .8rem; font-weight: 700; color: var(--text-secondary); margin: 0; }
+  .nv-diagram-caption { font-size: .72rem; color: var(--text-muted); margin: .18rem 0 0; }
+
+  .nv-block-label { font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .38rem; display: flex; align-items: center; gap: .28rem; }
+  .nv-block--definition .nv-block-label { color: #6366f1; }
+  .nv-block--theorem    .nv-block-label { color: #10b981; }
+  .nv-block--formula    .nv-block-label { color: #f59e0b; }
+  .nv-block--example    .nv-block-label { color: #06b6d4; }
+  .nv-block--tip        .nv-block-label { color: #f59e0b; }
+  .nv-block--warning    .nv-block-label { color: #ef4444; }
+
+  .nv-formula-text { font-family: 'Courier New', monospace; font-size: .88rem; color: #f59e0b; letter-spacing: .02em; overflow-x: auto; display: block; }
+  mjx-container { max-width: 100%; display: inline-block; }
+  .nv-formula-text .MathJax { color: var(--text-primary) !important; }
+  .nv-math-wrap { max-width: 100%; overflow-x: auto; }
+  .nv-math-wrap mjx-container { display: inline-block; }
+  .nv-note-icon    { color: #f59e0b; font-size: .82rem; margin-top: .15rem; flex-shrink: 0; }
+  .nv-tip-icon     { color: #f59e0b; font-size: .82rem; margin-top: .15rem; flex-shrink: 0; }
+  .nv-warning-icon { color: #ef4444; font-size: .82rem; margin-top: .15rem; flex-shrink: 0; }
+
+  .nv-steps { margin: .5rem 0 0 .25rem; padding-left: 1.3em; display: flex; flex-direction: column; gap: .28rem; font-size: .84rem; list-style-type: decimal; }
+  .nv-steps > li { display: list-item; padding-left: .35em; }
+  .nv-list-title { font-size: .76rem; font-weight: 700; color: var(--text-primary); margin: 0 0 .38rem; }
+  .nv-list { margin: 0 0 0 1.1rem; list-style: disc; display: flex; flex-direction: column; gap: .22rem; font-size: .95rem; color: var(--text-secondary); }
+  .nv-list li p, .nv-steps li p, .nv-table td p, .nv-table th p { margin: 0; display: inline; }
+  .nv-paragraph { font-size: .95rem; line-height: 1.75; color: var(--text-secondary); margin: 0 0 .2rem; overflow-x: auto; }
+
+  .nv-table-wrap { overflow-x: auto; }
+  .nv-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .nv-table th { padding: .48rem .75rem; background: var(--bg-secondary); color: var(--text-primary); font-weight: 700; text-align: left; border-bottom: 1.5px solid var(--border); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+  .nv-table td { padding: .48rem .75rem; color: var(--text-secondary); border-bottom: 1px solid var(--border); line-height: 1.5; }
+  .nv-table tr:last-child td { border-bottom: none; }
+  .nv-table tr:hover td { background: var(--bg-hover); }
+  .nv-code-block { margin: 0; padding: .875rem 1rem; font-family: 'Courier New', monospace; font-size: .8rem; color: #a5f3fc; line-height: 1.6; overflow-x: auto; }
+
+  /* Summary */
+  .nv-section--summary .nv-section-num { background: rgba(139,92,246,.1); color: #8b5cf6; }
+  .nv-section--summary .nv-section-header { border-bottom-color: rgba(139,92,246,.18); }
+  .nv-summary-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .45rem; }
+  .nv-summary-item { display: flex; align-items: flex-start; gap: .6rem; padding: .6rem .875rem; border-radius: 9px; background: rgba(139,92,246,.04); border: 1px solid rgba(139,92,246,.13); font-size: .875rem; color: var(--text-secondary); line-height: 1.6; }
+  .nv-summary-item i { color: #8b5cf6; font-size: .72rem; margin-top: .22rem; flex-shrink: 0; }
+
+  /* Empty */
+  .nv-empty { text-align: center; padding: 4rem 1rem; color: var(--text-muted); }
+  .nv-empty i { font-size: 2rem; opacity: .15; display: block; margin-bottom: .75rem; }
+
+  /* ═══ COMMENTS ═══════════════════════════════════════════════════════════════ */
+  .nv-comments { margin-top: 3rem; padding-top: 2rem; border-top: 2px solid var(--border); }
+  .nv-comments-head { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.1rem; }
+  .nv-comments-title { font-family: 'Nunito', sans-serif; font-size: .9rem; font-weight: 800; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: .35rem; }
+  .nv-comments-title i { color: var(--primary); font-size: .75rem; }
+  .nv-pill { display: inline-flex; align-items: center; height: 19px; padding: 0 .4rem; border-radius: 50px; background: var(--bg-secondary); border: 1px solid var(--border); font-size: .62rem; font-weight: 700; color: var(--text-muted); }
+  .nv-comment-form { display: flex; gap: .65rem; align-items: flex-start; margin-bottom: 1.5rem; }
+  .nv-commenter-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; margin-top: .15rem; }
+  .nv-comment-input-wrap { flex: 1; display: flex; flex-direction: column; gap: .4rem; }
+  .nv-comment-input { width: 100%; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 10px; padding: .6rem .875rem; font-family: var(--font-body); font-size: .84rem; color: var(--text-primary); resize: vertical; min-height: 68px; transition: border-color .15s; box-sizing: border-box; }
+  .nv-comment-input:focus { outline: none; border-color: var(--primary); }
+  .nv-comment-submit { align-self: flex-end; padding: .45rem .9rem; border-radius: 8px; background: var(--primary); color: #fff; font-family: var(--font-body); font-size: .78rem; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s; }
+  .nv-comment-submit:hover { opacity: .85; }
+  .nv-login-nudge { font-size: .83rem; color: var(--text-muted); padding: .75rem 1rem; background: var(--bg-secondary); border-radius: 10px; margin-bottom: 1.25rem; }
+  .nv-login-nudge a { color: var(--primary); text-decoration: none; font-weight: 700; }
+  .nv-comment-list { display: flex; flex-direction: column; gap: .875rem; }
+  .nv-comment { display: flex; gap: .6rem; align-items: flex-start; }
+  .nv-comment-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; }
+  .nv-comment-body { flex: 1; min-width: 0; }
+  .nv-comment-head { display: flex; align-items: center; gap: .4rem; margin-bottom: .15rem; }
+  .nv-comment-author { font-size: .77rem; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+  .nv-comment-author:hover { color: var(--primary); }
+  .nv-comment-time { font-size: .67rem; color: var(--text-muted); }
+  .nv-comment-text { font-size: .82rem; color: var(--text-secondary); line-height: 1.65; margin: 0; }
+  .nv-no-comments { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: .83rem; }
+  .nv-no-comments i { font-size: 1.4rem; opacity: .15; display: block; margin-bottom: .5rem; }
+  .nv-pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+  .nv-page-btn { display: inline-flex; align-items: center; gap: .3rem; padding: .38rem .75rem; font-size: .77rem; font-weight: 600; color: var(--primary); background: rgba(37,99,235,.07); border-radius: 8px; text-decoration: none; transition: background .15s; }
+  .nv-page-btn:hover { background: rgba(37,99,235,.14); }
+  .nv-page-info { font-size: .7rem; color: var(--text-muted); }
+
+  /* ═══ RESPONSIVE ═════════════════════════════════════════════════════════════ */
+  @media (max-width: 900px) {
+    .nv-layout { padding: 0 .875rem 5rem; gap: 0; }
+    .nv-sidebar { display: none; }
+    .nv-toc-toggle { display: flex; }
+    .nv-mobile-desc { display: block; }
+    .nv-content { padding: 1rem 0; }
+    .nv-section { scroll-margin-top: 120px; }
+  }
+  @media (max-width: 480px) {
+    .nv-section-title { font-size: .95rem; }
+    .nv-topbar { padding: .45rem .875rem; }
+    .nv-icon-btn span { display: none; }
+    .nv-subject-pill { display: none; }
+  }
+
+  /* ═══ STUDY MODE ═════════════════════════════════════════════════════════════ */
+  /* Study mode hides all sections by default when active */
+  .study-mode .nv-section { display: none; }
+  .study-mode .nv-section.sm-active { display: block; animation: smFadeIn .3s ease; }
+  .study-mode .nv-toc-toggle { display: none; }
+  .study-mode .nv-toc-mobile { display: none !important; }
+  @keyframes smFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Nav bar */
+  .sm-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; margin-bottom: 1.25rem;
+    padding: .6rem .875rem;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .sm-exit {
+    display: inline-flex; align-items: center; gap: .35rem;
+    background: none; border: none; cursor: pointer;
+    font-size: .72rem; font-weight: 700; color: var(--text-muted);
+    padding: 0; font-family: var(--font-body); transition: color .15s; white-space: nowrap;
+  }
+  .sm-exit:hover { color: var(--text-primary); }
+  .sm-progress-wrap { display: flex; align-items: center; gap: .6rem; flex: 1; justify-content: flex-end; }
+  .sm-progress-track { flex: 1; max-width: 200px; height: 5px; background: var(--bg-hover); border-radius: 99px; overflow: hidden; }
+  .sm-progress-fill { height: 100%; background: #10b981; border-radius: 99px; transition: width .35s ease; }
+  .sm-progress-label { font-size: .68rem; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+
+  /* Per-section nav footer */
+  .sm-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 2rem; padding-top: 1.25rem;
+    border-top: 1.5px solid var(--border);
+    gap: .75rem;
+  }
+  .sm-nav-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .6rem 1.1rem; border-radius: 10px; border: 1.5px solid var(--border);
+    background: var(--bg-card); color: var(--text-secondary);
+    font-size: .82rem; font-weight: 700; cursor: pointer;
+    font-family: var(--font-body); transition: all .15s;
+  }
+  .sm-nav-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .sm-nav-btn--next { background: #10b981; color: #fff; border-color: #10b981; }
+  .sm-nav-btn--next:hover { background: #059669; border-color: #059669; color: #fff; }
+  .sm-nav-btn:disabled { opacity: .35; cursor: default; pointer-events: none; }
+  .sm-nav-center { font-size: .72rem; color: var(--text-muted); font-weight: 600; }
+
+  /* Study mode toggle button active state */
+  .nv-study-toggle.is-active { color: #10b981; }
+
+  /* Completion screen */
+  .sm-complete {
+    text-align: center; padding: 3.5rem 1.5rem;
+    background: var(--bg-card); border: 1.5px solid var(--border);
+    border-radius: 16px; margin-top: 1rem;
+    animation: smFadeIn .4s ease;
+  }
+  .sm-complete-icon { font-size: 2.8rem; color: #10b981; margin-bottom: .875rem; }
+  .sm-complete-title { font-family: 'Nunito', sans-serif; font-size: 1.3rem; font-weight: 900; color: var(--text-primary); margin: 0 0 .4rem; letter-spacing: -.025em; }
+  .sm-complete-sub { font-size: .875rem; color: var(--text-muted); margin: 0 0 1.75rem; }
+  .sm-complete-actions { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; }
+  .sm-complete-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .6rem 1.1rem; border-radius: 10px;
+    font-size: .82rem; font-weight: 700; cursor: pointer;
+    font-family: var(--font-body); border: 1.5px solid var(--border);
+    transition: all .15s;
+  }
+  .sm-complete-btn--like    { background: rgba(239,68,68,.08);   color: #ef4444; border-color: rgba(239,68,68,.2); }
+  .sm-complete-btn--like:hover { background: rgba(239,68,68,.15); }
+  .sm-complete-btn--comment { background: rgba(37,99,235,.08);  color: var(--primary); border-color: rgba(37,99,235,.2); }
+  .sm-complete-btn--comment:hover { background: rgba(37,99,235,.15); }
+  .sm-complete-btn--free    { background: var(--bg-secondary); color: var(--text-secondary); }
+  .sm-complete-btn--free:hover { background: var(--bg-hover); }
+
+  </style>
+
+  <script>
+  async function toggleLike(btn) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const postId = btn.dataset.postId, isLiked = btn.dataset.liked === 'true';
+    const countEl = document.getElementById('likeCount');
+    const base = parseInt(btn.dataset.base || '0', 10);
+    const newLiked = !isLiked;
+    btn.dataset.liked = newLiked; btn.classList.toggle('is-liked', newLiked);
+    if (countEl) { const d = parseInt(countEl.textContent, 10); countEl.textContent = newLiked ? d + 1 : Math.max(base, d - 1); }
+    try {
+      const res = await fetch(`/posts/${postId}/like`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '' } });
+      if (!res.ok) throw new Error();
+      const data = await res.json().catch(() => null);
+      if (data?.like_count !== undefined && countEl) countEl.textContent = data.like_count + base;
+    } catch {
+      btn.dataset.liked = isLiked; btn.classList.toggle('is-liked', isLiked);
+      if (countEl) { const d = parseInt(countEl.textContent, 10); countEl.textContent = isLiked ? d + 1 : Math.max(base, d - 1); }
+    } finally { btn.disabled = false; }
+  }
+
+  function toggleDesc() {
+    const wrap = document.getElementById('descWrap'), btn = document.getElementById('descToggle');
+    const open = wrap.classList.toggle('is-open');
+    btn.innerHTML = open ? '<i class="fas fa-chevron-up"></i> Show less' : '<i class="fas fa-chevron-down"></i> Show more';
+  }
+  function toggleMobileDesc() {
+    const wrap = document.getElementById('mobileDescWrap'), btn = document.getElementById('mobileDescToggle');
+    const open = wrap.classList.toggle('is-open');
+    btn.innerHTML = open ? '<i class="fas fa-chevron-up"></i> Show less' : '<i class="fas fa-chevron-down"></i> Show more';
+  }
+  function toggleTOC() {
+    const mobile = document.getElementById('tocMobile'), chevron = document.getElementById('tocChevron');
+    const open = mobile.classList.toggle('is-open');
+    chevron.style.transform = open ? 'rotate(180deg)' : '';
+  }
+  function closeTOC() {
+    document.getElementById('tocMobile').classList.remove('is-open');
+    document.getElementById('tocChevron').style.transform = '';
+  }
+
+  // Scroll spy (only active outside study mode)
+  (function () {
+    const links = document.querySelectorAll('.nv-toc-link[data-section]');
+    const sections = document.querySelectorAll('.nv-section');
+    if (!links.length || !sections.length) return;
+    function onScroll() {
+      if (document.getElementById('nvContent')?.classList.contains('study-mode')) return;
+      let current = 0;
+      sections.forEach((sec, i) => { if (sec.getBoundingClientRect().top <= 130) current = i; });
+      links.forEach((l, i) => l.classList.toggle('is-active', i === current));
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+
+  // ── STUDY MODE ──────────────────────────────────────────────────────────────
+  (function () {
+    const POST_ID   = '{{ post.id }}';
+    const STORE_KEY = 'sm_progress_' + POST_ID;
+    const content   = document.getElementById('nvContent');
+    const smBar     = document.getElementById('smBar');
+    const smFill    = document.getElementById('smProgressFill');
+    const smLabel   = document.getElementById('smProgressLabel');
+    const smComplete = document.getElementById('smComplete');
+    const toggleBtn  = document.getElementById('studyToggleBtn');
+
+    const allSections = Array.from(document.querySelectorAll('.nv-section'));
+    const totalSections = allSections.length;
+    let currentIndex = 0;
+    let inStudyMode  = false;
+
+    function saveProgress(idx) {
+      try { localStorage.setItem(STORE_KEY, idx); } catch (_) {}
+    }
+    function loadProgress() {
+      try { return parseInt(localStorage.getItem(STORE_KEY) || '0', 10) || 0; } catch (_) { return 0; }
+    }
+
+    function updateBar(idx) {
+      const pct = totalSections > 0 ? ((idx + 1) / totalSections) * 100 : 0;
+      if (smFill)  smFill.style.width  = pct + '%';
+      if (smLabel) smLabel.textContent = (idx + 1) + ' / ' + totalSections;
+    }
+
+    function buildNav(idx) {
+      // Remove any existing nav footer
+      document.querySelectorAll('.sm-nav').forEach(n => n.remove());
+
+      const sec = allSections[idx];
+      if (!sec) return;
+
+      const nav = document.createElement('div');
+      nav.className = 'sm-nav';
+
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'sm-nav-btn sm-nav-btn--prev';
+      prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i> Previous';
+      prevBtn.disabled  = idx === 0;
+      prevBtn.addEventListener('click', () => goTo(idx - 1));
+
+      const centerLabel = document.createElement('span');
+      centerLabel.className = 'sm-nav-center';
+      centerLabel.textContent = (idx + 1) + ' of ' + totalSections;
+
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'sm-nav-btn sm-nav-btn--next';
+      nextBtn.innerHTML = idx < totalSections - 1
+        ? 'Next <i class="fas fa-chevron-right"></i>'
+        : 'Finish <i class="fas fa-check"></i>';
+      nextBtn.addEventListener('click', () => {
+        if (idx < totalSections - 1) goTo(idx + 1);
+        else showComplete();
+      });
+
+      nav.appendChild(prevBtn);
+      nav.appendChild(centerLabel);
+      nav.appendChild(nextBtn);
+      sec.appendChild(nav);
+    }
+
+    function goTo(idx) {
+      if (idx < 0 || idx >= totalSections) return;
+      allSections.forEach(s => s.classList.remove('sm-active'));
+      allSections[idx].classList.add('sm-active');
+      currentIndex = idx;
+      updateBar(idx);
+      buildNav(idx);
+      saveProgress(idx);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showComplete() {
+      allSections.forEach(s => s.classList.remove('sm-active'));
+      document.querySelectorAll('.sm-nav').forEach(n => n.remove());
+      if (smComplete) smComplete.style.display = 'block';
+      if (smFill)  smFill.style.width  = '100%';
+      if (smLabel) smLabel.textContent = totalSections + ' / ' + totalSections;
+      saveProgress(totalSections); // mark fully complete
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.enterStudyMode = function () {
+      if (!totalSections) return;
+      inStudyMode = true;
+      content.classList.add('study-mode');
+      if (smBar) smBar.style.display = 'flex';
+      if (toggleBtn) toggleBtn.classList.add('is-active');
+      if (smComplete) smComplete.style.display = 'none';
+
+      // Resume from saved position, but if fully complete restart from 0
+      const saved = loadProgress();
+      const startIdx = saved >= totalSections ? 0 : saved;
+      goTo(startIdx);
+    };
+
+    window.exitStudyMode = function () {
+      inStudyMode = false;
+      content.classList.remove('study-mode');
+      if (smBar) smBar.style.display = 'none';
+      if (smComplete) smComplete.style.display = 'none';
+      if (toggleBtn) toggleBtn.classList.remove('is-active');
+      allSections.forEach(s => { s.classList.remove('sm-active'); document.querySelectorAll('.sm-nav').forEach(n => n.remove()); });
+    };
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function (e) {
+      if (!inStudyMode) return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        if (currentIndex < totalSections - 1) goTo(currentIndex + 1);
+        else showComplete();
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (currentIndex > 0) goTo(currentIndex - 1);
+      }
+      if (e.key === 'Escape') exitStudyMode();
+    });
+    // Auto-enter study mode if redirected from subject modal
+  window.addEventListener('load', function () {
+    if (new URLSearchParams(window.location.search).get('study') === '1') {
+      setTimeout(function () {
+        if (typeof enterStudyMode === 'function') enterStudyMode();
+      }, 300);
+    }
+  });
+  })();
+  </script>
+
+  {% endblock %}

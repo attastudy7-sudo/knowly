@@ -117,6 +117,12 @@
         <i class="fas fa-clone"></i> Cheatsheet
         {% endif %}
       </button>
+      {% if structured_type == 'notes' and structured_content %}
+      <button class="pv-tab pv-tab--study" id="tab-study" role="tab"
+              onclick="pvSetTab('content'); pvEnterStudy()" aria-selected="false">
+        <i class="fas fa-book-open"></i> Study
+      </button>
+      {% endif %}
       {% endif %}
     </div>
 
@@ -217,11 +223,20 @@
 
   {% if structured_content %}
   <div class="pv-panel pv-panel--hidden" id="panel-content" role="tabpanel">
-    
+
     {% if structured_type == 'notes' %}
+    {# ── Study mode bar ── #}
+    <div class="pv-sm-bar" id="pvSmBar" style="display:none">
+      <button class="pv-sm-exit" onclick="pvExitStudy()"><i class="fas fa-times"></i> Read freely</button>
+      <div class="pv-sm-progress-wrap">
+        <div class="pv-sm-track"><div class="pv-sm-fill" id="pvSmFill"></div></div>
+        <span class="pv-sm-label" id="pvSmLabel">1 / {{ structured_content|length }}</span>
+      </div>
+    </div>
+
     {# ── Notes renderer ── #}
     {% for section in structured_content %}
-    <div class="pv-panel-block">
+    <div class="pv-panel-block pv-sm-section" id="pv-section-{{ loop.index }}">
       <div class="pv-panel-block-label">
         <i class="fas fa-bookmark"></i> {{ section.section_title }}
       </div>
@@ -276,6 +291,14 @@
       {% endfor %}
     </div>
     {% endfor %}
+
+    {# ── Study mode completion ── #}
+    <div class="pv-sm-complete" id="pvSmComplete" style="display:none">
+      <div class="pv-sm-complete-icon"><i class="fas fa-check-circle"></i></div>
+      <h3 class="pv-sm-complete-title">Notes complete</h3>
+      <p class="pv-sm-complete-sub">You've worked through all {{ structured_content|length }} section{% if structured_content|length != 1 %}s{% endif %}.</p>
+      <button class="pv-sm-complete-btn" onclick="pvExitStudy()"><i class="fas fa-book-open"></i> Read freely</button>
+    </div>
 
     {% elif structured_type == 'cheatsheet' %}
     {# ── Cheatsheet renderer ── #}
@@ -763,9 +786,32 @@
 .cheat-entry-example span{font-weight:700;color:var(--primary);margin-right:.3rem}
 .pv-panel-block-label--formula i{color:#f59e0b}
 .pv-panel-block-label--definition i{color:#6366f1}
+/* ── Study mode (view.html panel) ── */
+.pv-tab--study { color: #10b981 !important; }
+.pv-sm-bar { display:flex; align-items:center; justify-content:space-between; gap:.875rem; padding:.55rem .75rem; background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; margin-bottom:.875rem; }
+.pv-sm-exit { background:none; border:none; cursor:pointer; font-size:.72rem; font-weight:700; color:var(--text-muted); font-family:var(--font-body); display:inline-flex; align-items:center; gap:.28rem; padding:0; transition:color .15s; white-space:nowrap; }
+.pv-sm-exit:hover { color:var(--text-primary); }
+.pv-sm-progress-wrap { display:flex; align-items:center; gap:.5rem; flex:1; justify-content:flex-end; }
+.pv-sm-track { flex:1; max-width:160px; height:4px; background:var(--bg-hover); border-radius:99px; overflow:hidden; }
+.pv-sm-fill { height:100%; background:#10b981; border-radius:99px; transition:width .3s ease; }
+.pv-sm-label { font-size:.65rem; font-weight:700; color:var(--text-muted); white-space:nowrap; }
+.pv-study-mode .pv-sm-section { display:none; }
+.pv-study-mode .pv-sm-section.pv-sm-active { display:block; animation:pvSmIn .25s ease; }
+@keyframes pvSmIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.pv-sm-nav { display:flex; align-items:center; justify-content:space-between; margin-top:1.25rem; padding-top:.875rem; border-top:1px solid var(--border); gap:.5rem; }
+.pv-sm-nav-btn { display:inline-flex; align-items:center; gap:.35rem; padding:.5rem .875rem; border-radius:9px; border:1.5px solid var(--border); background:var(--bg-card); color:var(--text-secondary); font-size:.78rem; font-weight:700; cursor:pointer; font-family:var(--font-body); transition:all .15s; }
+.pv-sm-nav-btn:hover { border-color:var(--primary); color:var(--primary); }
+.pv-sm-nav-btn--next { background:#10b981; color:#fff; border-color:#10b981; }
+.pv-sm-nav-btn--next:hover { background:#059669; border-color:#059669; color:#fff; }
+.pv-sm-nav-btn:disabled { opacity:.35; pointer-events:none; }
+.pv-sm-center { font-size:.68rem; color:var(--text-muted); font-weight:600; }
+.pv-sm-complete { text-align:center; padding:2.5rem 1rem; background:var(--bg-card); border:1px solid var(--border); border-radius:14px; margin-top:.5rem; animation:pvSmIn .3s ease; }
+.pv-sm-complete-icon { font-size:2.2rem; color:#10b981; margin-bottom:.6rem; }
+.pv-sm-complete-title { font-size:1rem; font-weight:800; color:var(--text-primary); margin:0 0 .3rem; }
+.pv-sm-complete-sub { font-size:.8rem; color:var(--text-muted); margin:0 0 1.25rem; }
+.pv-sm-complete-btn { display:inline-flex; align-items:center; gap:.35rem; padding:.55rem 1rem; border-radius:9px; border:1.5px solid var(--border); background:var(--bg-secondary); color:var(--text-secondary); font-size:.8rem; font-weight:700; cursor:pointer; font-family:var(--font-body); transition:all .15s; }
+.pv-sm-complete-btn:hover { border-color:var(--primary); color:var(--primary); }
 </style>
-</style>
-
 <script>
 async function toggleLike(btn) {
     if (btn.disabled) return;
@@ -931,6 +977,107 @@ function pvSetTab(name) {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
     if (tab && PV_TABS.includes(tab)) pvSetTab(tab);
+})();
+
+// ── Study mode for notes panel ──────────────────────────────
+(function () {
+  const POST_KEY  = 'pvsm_{{ post.id }}';
+  const sections  = Array.from(document.querySelectorAll('.pv-sm-section'));
+  const total     = sections.length;
+  const panel     = document.getElementById('panel-content');
+  const bar       = document.getElementById('pvSmBar');
+  const fill      = document.getElementById('pvSmFill');
+  const label     = document.getElementById('pvSmLabel');
+  const complete  = document.getElementById('pvSmComplete');
+  let cur = 0, active = false;
+
+  function save(i) { try { localStorage.setItem(POST_KEY, i); } catch (_) {} }
+  function load()  { try { return parseInt(localStorage.getItem(POST_KEY) || '0') || 0; } catch (_) { return 0; } }
+
+  function updateBar(i) {
+    if (fill)  fill.style.width  = ((i + 1) / total * 100) + '%';
+    if (label) label.textContent = (i + 1) + ' / ' + total;
+  }
+
+  function buildNav(i) {
+    document.querySelectorAll('.pv-sm-nav').forEach(n => n.remove());
+    const sec = sections[i]; if (!sec) return;
+    const nav = document.createElement('div');
+    nav.className = 'pv-sm-nav';
+    const prev = document.createElement('button');
+    prev.className = 'pv-sm-nav-btn'; prev.innerHTML = '<i class="fas fa-chevron-left"></i> Prev';
+    prev.disabled = i === 0;
+    prev.onclick = () => goTo(i - 1);
+    const ctr = document.createElement('span');
+    ctr.className = 'pv-sm-center'; ctr.textContent = (i + 1) + ' of ' + total;
+    const next = document.createElement('button');
+    next.className = 'pv-sm-nav-btn pv-sm-nav-btn--next';
+    next.innerHTML = i < total - 1 ? 'Next <i class="fas fa-chevron-right"></i>' : 'Finish <i class="fas fa-check"></i>';
+    next.onclick = () => i < total - 1 ? goTo(i + 1) : showDone();
+    nav.append(prev, ctr, next);
+    sec.appendChild(nav);
+  }
+
+  function goTo(i) {
+    if (i < 0 || i >= total) return;
+    sections.forEach(s => s.classList.remove('pv-sm-active'));
+    sections[i].classList.add('pv-sm-active');
+    cur = i; updateBar(i); buildNav(i); save(i);
+  }
+
+  function showDone() {
+    sections.forEach(s => s.classList.remove('pv-sm-active'));
+    document.querySelectorAll('.pv-sm-nav').forEach(n => n.remove());
+    if (complete) complete.style.display = 'block';
+    if (fill)  fill.style.width  = '100%';
+    if (label) label.textContent = total + ' / ' + total;
+    save(total);
+  }
+
+  window.pvEnterStudy = function () {
+    if (!total || !panel) return;
+    active = true;
+    panel.classList.add('pv-study-mode');
+    if (bar) bar.style.display = 'flex';
+    if (complete) complete.style.display = 'none';
+    const saved = load();
+    goTo(saved >= total ? 0 : saved);
+  };
+
+  window.pvExitStudy = function () {
+    active = false;
+    if (panel) panel.classList.remove('pv-study-mode');
+    if (bar) bar.style.display = 'none';
+    if (complete) complete.style.display = 'none';
+    sections.forEach(s => s.classList.remove('pv-sm-active'));
+    document.querySelectorAll('.pv-sm-nav').forEach(n => n.remove());
+  };
+
+  document.addEventListener('keydown', function (e) {
+    if (!active) return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); cur < total - 1 ? goTo(cur + 1) : showDone(); }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); if (cur > 0) goTo(cur - 1); }
+    if (e.key === 'Escape') pvExitStudy();
+  });
+
+  // Auto-enter study mode if redirected from subject modal
+  if (new URLSearchParams(window.location.search).get('study') === '1') {
+    // Wait for MathJax and DOM to be fully ready before entering study mode
+    function tryEnter(attempts) {
+      const sections = document.querySelectorAll('.nv-section');
+      if (sections.length > 0) {
+        enterStudyMode();
+      } else if (attempts > 0) {
+        setTimeout(() => tryEnter(attempts - 1), 200);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => setTimeout(() => tryEnter(10), 100));
+    } else {
+      setTimeout(() => tryEnter(10), 100);
+    }
+  }
 })();
 </script>
 

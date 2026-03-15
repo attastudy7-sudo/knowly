@@ -39,6 +39,18 @@
 
   {% if query %}
 
+  {# ── RESULT SUMMARY ── #}
+  <p class="srch-summary">
+    {% if total_results == 0 %}
+      No results for <strong>{{ query }}</strong>
+    {% else %}
+      <strong>{{ total_results }}</strong> result{% if total_results != 1 %}s{% endif %} —
+      {% if users %}{{ users|length }} people{% endif %}
+      {% if users and posts %}, {% endif %}
+      {% if posts %}{{ posts|length }} posts{% endif %}
+    {% endif %}
+  </p>
+
   {# ── FILTERS PANEL ── #}
   <div class="srch-filters home-panel">
 
@@ -198,6 +210,12 @@
 
 /* ── SEARCH BAR ── */
 .srch-bar-wrap { margin-bottom: 1.25rem; }
+.srch-summary {
+  font-size: .78rem;
+  color: var(--text-muted, #64748b);
+  margin: -.5rem 0 .875rem .25rem;
+}
+.srch-summary strong { color: var(--text-secondary, #94a3b8); }
 .srch-bar {
   display: flex; align-items: center; gap: .5rem;
   background: var(--bg-card);
