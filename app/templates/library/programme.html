@@ -49,7 +49,7 @@
       {% if subjects %}
       <div class="course-list">
         {% for s in subjects %}
-        <a href="{{ url_for('main.library_subject', slug=s.slug) }}" class="course-row" style="--sc:{{ s.color }}">
+        <a href="{{ url_for('main.library_subject', slug=s.slug, from=programme.slug) }}" class="course-row" style="--sc:{{ s.color }}">
           <div class="course-icon" style="background:{{ s.color }}1a;color:{{ s.color }}">
             <i class="fas fa-{{ s.icon }}"></i>
           </div>

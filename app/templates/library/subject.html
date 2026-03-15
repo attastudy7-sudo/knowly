@@ -2,6 +2,7 @@
 {% block title %}{{ subject.name }} — Library{% endblock %}
 
 {% block content %}
+{% set from_prog = request.args.get('from', '') %}
 <div class="lib-wrap">
 
   {# ── BREADCRUMB ── #}
@@ -166,19 +167,19 @@
   <div class="subj-layout">
 
     <div class="subj-tabs-wrap">
-      <a href="{{ url_for('main.library_subject', slug=subject.slug, tab='all') }}"
+      <a href="{{ url_for('main.library_subject', slug=subject.slug, tab='all', from=from_prog) }}"
          class="st-tab{% if tab == 'all' %} active{% endif %}">
         <i class="fas fa-layer-group"></i> All
       </a>
-      <a href="{{ url_for('main.library_subject', slug=subject.slug, tab='notes') }}"
+      <a href="{{ url_for('main.library_subject', slug=subject.slug, tab='notes', from=from_prog) }}"
          class="st-tab{% if tab == 'notes' %} active{% endif %}">
         <i class="fas fa-sticky-note"></i> Notes
       </a>
-      <a href="{{ url_for('main.library_subject', slug=subject.slug, tab='cheatsheet') }}"
+      <a href="{{ url_for('main.library_subject', slug=subject.slug, tab='cheatsheet', from=from_prog) }}"
          class="st-tab{% if tab == 'cheatsheet' %} active{% endif %}">
         <i class="fas fa-clone"></i> Cheatsheets
       </a>
-      <a href="{{ url_for('main.library_subject', slug=subject.slug, tab='quiz') }}"
+      <a href="{{ url_for('main.library_subject', slug=subject.slug, tab='quiz', from=from_prog) }}"
          class="st-tab{% if tab == 'quiz' %} active{% endif %}">
         <i class="fas fa-brain"></i> Quizzes
       </a>
@@ -298,13 +299,13 @@
       {% if posts.pages > 1 %}
       <nav class="subj-pagination">
         {% if posts.has_prev %}
-        <a href="{{ url_for('main.library_subject', slug=subject.slug, tab=tab, page=posts.prev_num) }}" class="pag-btn">
+        <a href="{{ url_for('main.library_subject', slug=subject.slug, tab=tab, page=posts.prev_num, from=from_prog) }}" class="pag-btn">
           <i class="fas fa-chevron-left"></i> Prev
         </a>
         {% endif %}
         <span class="pag-info">Page {{ posts.page }} of {{ posts.pages }}</span>
         {% if posts.has_next %}
-        <a href="{{ url_for('main.library_subject', slug=subject.slug, tab=tab, page=posts.next_num) }}" class="pag-btn">
+        <a href="{{ url_for('main.library_subject', slug=subject.slug, tab=tab, page=posts.next_num, from=from_prog) }}" class="pag-btn">
           Next <i class="fas fa-chevron-right"></i>
         </a>
         {% endif %}
@@ -492,8 +493,7 @@
 .cm-btn-green:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(16,185,129,.4); }
 .cm-btn-secondary { background: var(--bg-hover, rgba(255,255,255,.06)); color: var(--text-primary, #f1f5f9) !important; border: 1.5px solid var(--border, #2e3244); }
 .cm-btn-secondary:hover { border-color: #2563eb; color: #2563eb !important; }
-.cm-btn-study { background: linear-gradient(135deg, #1d4ed8, #2563eb); color: white !important; box-shadow: 0 4px 16px rgba(37,99,235,.3); }
-.cm-btn-study:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,.4); }
+
 /* ── ANIMATIONS ── */
 .post-row { animation: fadeUp .2s ease-out both; }
 .post-row:nth-child(2) { animation-delay: .04s; }
@@ -560,9 +560,6 @@ document.addEventListener('click', function(e) {
     if (documentId) html += mkBtn('cm-btn-secondary', `/document/${documentId}/download`, 'fa-download', 'Download Document');
   } else if (ct === 'notes' || ct === 'cheatsheet') {
     html += mkBtn('cm-btn-green', `/posts/${postId}`, 'fa-eye', 'Read');
-    if (ct === 'notes') {
-      html += `<a href="/posts/${postId}?study=1" class="cm-btn cm-btn-study"><i class="fas fa-book-open"></i> Study Mode</a>`;
-    }
     if (documentId) html += mkBtn('cm-btn-secondary', `/document/${documentId}/download`, 'fa-download', 'Download');
   } else {
     if (documentId) {

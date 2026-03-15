@@ -683,7 +683,14 @@ def library_subject(slug):
         'quiz':       base_query.filter(Post.content_type == 'quiz').count(),
     }
 
-    programme = subject.programmes.first()  # may be None
+    programme = None
+    from_slug = request.args.get('from', '')
+    if from_slug:
+        candidate = Programme.query.filter_by(slug=from_slug, is_active=True).first()
+        if candidate and subject.programmes.filter_by(id=candidate.id).first():
+            programme = candidate
+    if not programme:
+        programme = subject.programmes.first()
 
     return render_template(
         'library/subject.html',
